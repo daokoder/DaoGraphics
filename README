@@ -1,0 +1,17 @@
+Dao Graphics Engine
+===================
+
+DaoGraphics is a lightweight graphics engine written in C with interfaces to Dao.
+
+Features
+--------
+1. Support for both 2D and 3D graphics;
+2. Resolution independent 2D vector graphics;
+3. Minimum dependency (Dao and OpenGL, and optionally GLUT for testing only);
+
+
+License
+
+The engine is released under the Simplified BSD License.
+
+The fonts accompanying the engine were released under the Apache License by Google.
