@@ -40,36 +40,9 @@
 
 
 
-
-static const char *const daox_vertex_shader2d_150 =
-"#version 150 \n\
-uniform int  textureCount; \n\
-uniform mat4 modelMatrix; \n\
-uniform mat4 viewMatrix; \n\
-uniform mat4 projMatrix; \n\
-uniform sampler2D textures[2]; \n\
-\n\
-in  vec2  position; \n\
-in  vec3  texKLM; \n\
-in  float pathOffset; \n\
-out vec2  texcoord; \n\
-out vec2  vertexPosition; \n\
-out vec3  bezierKLM2; \n\
-out float pathOffset2; \n\
-\n\
-void main(void) \n\
-{ \n\
-	texcoord = vec2( texKLM ); \n\
-	bezierKLM2 = texKLM; \n\
-	pathOffset2 = pathOffset; \n\
-	vertexPosition = position; \n\
-	gl_Position = projMatrix * viewMatrix * modelMatrix * vec4( position, 0.0, 1.0 ); \n\
-}";
-
-static const char *const daox_fragment_shader2d_150 =
-"#version 150 \n\
+static const char *const daox_vector_graphics_shader_150 =
+"//#version 150\n\
 uniform vec4  brushColor; \n\
-uniform float alphaBlending; \n\
 uniform float pathLength; \n\
 uniform int   dashCount;         // 0: none; \n\
 uniform int   gradientType;      // 0: none; 1: linear; 2: radial; 3: stroke; \n\
@@ -79,15 +52,6 @@ uniform vec2  gradientPoint2;    // end for linear; focal for radial; \n\
 uniform float gradientRadius;    // radius of radial gradient; \n\
 uniform sampler1D dashSampler;   // dash,gap,dash,gap,... \n\
 uniform sampler1D gradientSampler; // (s,0,0,0),(s,0,0,0),(r,g,b,a),(r,g,b,a); \n\
-\n\
-uniform int textureCount; \n\
-uniform sampler2D textures[2]; \n\
-\n\
-in  vec2  vertexPosition; \n\
-in  vec4  texcoord; \n\
-in  vec3  bezierKLM2; \n\
-in  float pathOffset2; \n\
-out vec4  fragColor; \n\
 \n\
 \n\
 vec4 InterpolateColor( vec4 C1, vec4 C2, float start, float mid, float end ) \n\
@@ -196,16 +160,9 @@ float HandleDash( float offset )\n\
 	float fy = (dash - 2*offset) * dy; \n\
 	float sd = offset*(dash-offset) / sqrt( fx*fx + fy*fy ); \n\
 	\n\
-	//if( offset < 1.0 ) return sqrt(offset); \n\
-	//if( offset > (dash - 1.0) ) return sqrt(dash - offset); \n\
-	//return 1.0; \n\
-		\n\
 	float alpha = (sd - 0.5); \n\
 	if( alpha < 0.0 ) discard; \n\
 	if( alpha < 2.0 ) return 0.5*alpha; \n\
-	return 1.0; \n\
-	//if( offset < offset / dd ) return sqrt(offset); \n\
-	//if( offset > (dash - offset) / dd ) return sqrt(dash - offset); \n\
 	return 1.0; \n\
 }\n\
 \n\
@@ -235,15 +192,9 @@ vec4 ComputeQuadraticBezier( vec2 p, vec4 color )\n\
                                                       \n\
 	// Linear alpha: \n\
 	float alpha = 0.5 - sd; \n\
-	if( alpha > 1.0 ) \n\
-		color.a = 1.0; \n\
-	else if( alpha < 0.0 ) \n\
-		discard; \n\
-	else \n\
-		color.a = alpha; \n\
+	if( alpha < 0.0 ) discard; \n\
+	if( alpha < 1.0 ) color.a *= alpha; \n\
 	return color; \n\
-\n\
-	return vec4(1.0,0.0,0.0,1.0); \n\
 }\n\
 \n\
 \n\
@@ -266,6 +217,48 @@ vec4 ComputeCubicBezier( vec3 p, vec4 color )\n\
 	if( alpha < 1.0 ) color.a *= alpha; \n\
 	return color; \n\
 }\n\
+";
+
+
+
+
+static const char *const daox_vertex_shader2d_150 =
+"//#version 150 \n\
+uniform int  textureCount; \n\
+uniform mat4 modelMatrix; \n\
+uniform mat4 viewMatrix; \n\
+uniform mat4 projMatrix; \n\
+uniform sampler2D textures[2]; \n\
+\n\
+in  vec2  position; \n\
+in  vec3  texKLM; \n\
+in  float pathOffset; \n\
+out vec2  texcoord; \n\
+out vec2  vertexPosition; \n\
+out vec3  bezierKLM2; \n\
+out float pathOffset2; \n\
+\n\
+void main(void) \n\
+{ \n\
+	texcoord = vec2( texKLM ); \n\
+	bezierKLM2 = texKLM; \n\
+	pathOffset2 = pathOffset; \n\
+	vertexPosition = position; \n\
+	gl_Position = projMatrix * viewMatrix * modelMatrix * vec4( position, 0.0, 1.0 ); \n\
+}";
+
+static const char *const daox_fragment_shader2d_150 =
+"//#version 150\n\
+//include daox_vector_graphics_shader_150 \n\
+uniform float alphaBlending; \n\
+uniform int textureCount; \n\
+uniform sampler2D textures[2]; \n\
+\n\
+in  vec2  vertexPosition; \n\
+in  vec4  texcoord; \n\
+in  vec3  bezierKLM2; \n\
+in  float pathOffset2; \n\
+out vec4  fragColor; \n\
 \n\
 \n\
 void main(void) \n\
@@ -300,7 +293,7 @@ void main(void) \n\
 
 
 static const char *const daox_vertex_shader3d_150 =
-"#version 150\n\
+"//#version 150\n\
 uniform int lightCount;\n\
 uniform int textureCount;\n\
 uniform vec3 lightSource[32];\n\
@@ -356,7 +349,7 @@ void main(void)\n\
 
 
 static const char *const daox_fragment_shader3d_150 =
-"#version 150\n\
+"//#version 150\n\
 uniform int lightCount;\n\
 uniform int textureCount;\n\
 uniform vec3 lightSource[32];\n\
@@ -403,6 +396,9 @@ void DaoxShader_Init( DaoxShader *self )
 	memset( data, 0, width*4*sizeof(GLfloat) );
 	memset( dash, 0, DAOX_MAX_DASH*sizeof(GLfloat) );
 
+	self->vertexSources = DArray_New( D_STRING );
+	self->fragmentSources = DArray_New( D_STRING );
+
 	glGenTextures( 1, & tid );
 	self->textures.gradientSampler = tid;
 
@@ -430,7 +426,10 @@ void DaoxShader_Init2D( DaoxShader *self )
 	DaoxShader_Init( self );
 	self->program = glCreateProgram();
 	DaoxShader_AddShader( self, GL_VERTEX_SHADER, daox_vertex_shader2d_150 );
+	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_vector_graphics_shader_150 );
 	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader2d_150 );
+	DaoxShader_CompileShader( self, GL_VERTEX_SHADER, self->vertexSources );
+	DaoxShader_CompileShader( self, GL_FRAGMENT_SHADER, self->fragmentSources );
 }
 void DaoxShader_Init3D( DaoxShader *self )
 {
@@ -438,6 +437,8 @@ void DaoxShader_Init3D( DaoxShader *self )
 	self->program = glCreateProgram();
 	DaoxShader_AddShader( self, GL_VERTEX_SHADER, daox_vertex_shader3d_150 );
 	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader3d_150 );
+	DaoxShader_CompileShader( self, GL_VERTEX_SHADER, self->vertexSources );
+	DaoxShader_CompileShader( self, GL_FRAGMENT_SHADER, self->fragmentSources );
 }
 void DaoxShader_Finalize( DaoxShader *self )
 {
@@ -503,7 +504,6 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.textures[0] = glGetUniformLocation(self->program, "textures[0]");
 	self->uniforms.textures[1] = glGetUniformLocation(self->program, "textures[1]");
 	//self->uniforms.material = glGetUniformBlockIndex(self->program, "material");
-	//self->uniforms.fade_factor = glGetUniformLocation(self->program, "fade_factor");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.normal = glGetAttribLocation(self->program, "normal");
 	self->attributes.texCoord = glGetAttribLocation(self->program, "texCoord");
@@ -516,23 +516,47 @@ void DaoxShader_Free( DaoxShader *self )
 	if( self->vertexShader ) glDeleteShader( self->vertexShader );
 	if( self->fragmentShader ) glDeleteShader( self->fragmentShader );
 	if( self->program ) glDeleteShader( self->program );
+	if( self->vertexSources ) DArray_Delete( self->vertexSources );
+	if( self->fragmentSources ) DArray_Delete( self->fragmentSources );
+	self->vertexSources = NULL;
+	self->fragmentSources = NULL;
 	self->vertexShader = 0;
 	self->fragmentShader = 0;
 	self->program = 0;
 }
 void DaoxShader_AddShader( DaoxShader *self, int type, const char *codes )
 {
+	DString source = DString_WrapMBS( codes );
+	switch( type ){
+	case GL_VERTEX_SHADER :
+		DArray_Append( self->vertexSources, & source );
+		break;
+	case GL_FRAGMENT_SHADER :
+		DArray_Append( self->fragmentSources, & source );
+		break;
+	}
+}
+void DaoxShader_CompileShader( DaoxShader *self, int type, DArray *strings )
+{
+	daoint i, n = strings->size;
 	uint_t shader = glCreateShader( type );
-	GLchar *source = (GLchar*) codes;
-	GLint length = strlen( codes );
-	GLint shader_ok;
+	GLchar **sources;
+	GLint length, shader_ok;
 
 	if( shader == 0 ){
 		fprintf(stderr, "Failed to create shader of type %i\n", type );
 		return;
 	}
-	glShaderSource( shader, 1, (const GLchar**)&source, &length);
+	sources = (GLchar**) malloc( n*sizeof(GLchar*) );
+	for(i=0; i<n; ++i){
+		sources[i] = (GLchar*) DString_GetMBS( strings->items.pString[i] );
+		if( i == 0 ) sources[i] += 2; /* skip //; */
+	}
+
+	glShaderSource( shader, n, sources, NULL );
 	glCompileShader( shader );
+	free( sources );
+
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 	if( !shader_ok ){
 		const char *log2;
@@ -541,7 +565,7 @@ void DaoxShader_AddShader( DaoxShader *self, int type, const char *codes )
 		DString_Resize( log, length );
 		log2 = DString_GetMBS(log);
 		glGetShaderInfoLog( shader, length, NULL, (char*)log2 );
-		fprintf(stderr, "Failed to compile:%s\n\nWith error message: %s", source, log2 );
+		fprintf(stderr, "Failed to compile shader!\nWith error message: %s", log2 );
 		glDeleteShader(shader);
 		return;
 	}

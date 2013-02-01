@@ -126,6 +126,9 @@ struct DaoxShader
 		uint_t  dashSampler;
 		uint_t  gradientSampler;
 	} textures;
+
+	DArray  *vertexSources;
+	DArray  *fragmentSources;
 };
 
 void DaoxShader_Init3D( DaoxShader *self );
