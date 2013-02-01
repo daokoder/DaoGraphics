@@ -472,10 +472,8 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	glUniformMatrix4fv( self->shader.uniforms.viewMatrix, 1, 0, matrix3 );
 	glUniform1i(self->shader.uniforms.textureCount, 0 );
 	glUniform1i(self->shader.uniforms.dashCount, 0 );
-	glUniform1i(self->shader.uniforms.dashMaxCount, DAOX_MAX_DASH );
 	glUniform1i(self->shader.uniforms.gradientType, 2 );
 	glUniform1i(self->shader.uniforms.gradientStops, 2 );
-	glUniform1i(self->shader.uniforms.gradientMaxStops, DAOX_MAX_GRADIENT_STOPS );
 	glUniform1f(self->shader.uniforms.gradientRadius, 200 );
 #if 0
 #endif

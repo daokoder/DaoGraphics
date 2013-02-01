@@ -66,8 +66,9 @@ struct DaoGLVertex2D
 
 struct DaoGLVertex3D
 {
-	struct{ GLfloat  x, y, z; }  point, norm;
-	struct{ GLfloat  x, y; }  texUV;
+	struct{ GLfloat  x, y, z; }  point;
+	struct{ GLfloat  x, y, z; }  norm;
+	struct{ GLfloat  x, y; }     texUV;
 };
 
 struct DaoGLTriangle
@@ -104,11 +105,9 @@ struct DaoxShader
 		uint_t  pathLength;
 		uint_t  brushColor;
 		uint_t  dashCount;
-		uint_t  dashMaxCount;
 		uint_t  dashSampler;
 		uint_t  gradientType;
 		uint_t  gradientStops;
-		uint_t  gradientMaxStops;
 		uint_t  gradientPoint1;
 		uint_t  gradientPoint2;
 		uint_t  gradientRadius;
@@ -127,8 +126,6 @@ struct DaoxShader
 		uint_t  dashSampler;
 		uint_t  gradientSampler;
 	} textures;
-
-	float  fadeFactor;
 };
 
 void DaoxShader_Init3D( DaoxShader *self );

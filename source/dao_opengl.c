@@ -40,43 +40,6 @@
 
 
 
-static const char *const daox_vertex_shader2d_150_v1 =
-"#version 150\n\
-uniform int textureCount;\n\
-uniform mat4 modelMatrix;\n\
-uniform mat4 viewMatrix;\n\
-uniform mat4 projMatrix;\n\
-uniform vec4 alpha;\n\
-uniform sampler2D textures[2];\n\
-\n\
-in  vec2 position;\n\
-in  vec4 color;\n\
-out vec4 texcoord;\n\
-out vec4 vertexColor;\n\
-\n\
-void main(void)\n\
-{\n\
-	vertexColor = color * alpha;\n\
-	texcoord = color;\n\
-	gl_Position = projMatrix * viewMatrix * modelMatrix * vec4( position, 0.0, 1.0 );\n\
-}";
-
-static const char *const daox_fragment_shader2d_150_v1 =
-"#version 150\n\
-uniform int textureCount;\n\
-uniform sampler2D textures[2];\n\
-in  vec4 texcoord;\n\
-in  vec4 vertexColor;\n\
-out vec4 fragColor;\n\
-\n\
-void main(void)\n\
-{\n\
-	fragColor = vertexColor;\n\
-	if( textureCount > 0 ) fragColor = texture( textures[0], vec2(texcoord) );\n\
-}";
-
-
-
 
 static const char *const daox_vertex_shader2d_150 =
 "#version 150 \n\
@@ -109,10 +72,8 @@ uniform vec4  brushColor; \n\
 uniform float alphaBlending; \n\
 uniform float pathLength; \n\
 uniform int   dashCount;         // 0: none; \n\
-uniform int   dashMaxCount;      // \n\
 uniform int   gradientType;      // 0: none; 1: linear; 2: radial; 3: stroke; \n\
 uniform int   gradientStops;     // number of grandient stops; \n\
-uniform int   gradientMaxStops;  // max number of grandient stops; \n\
 uniform vec2  gradientPoint1;    // start for linear; center for radial; \n\
 uniform vec2  gradientPoint2;    // end for linear; focal for radial; \n\
 uniform float gradientRadius;    // radius of radial gradient; \n\
@@ -138,12 +99,14 @@ vec4 InterpolateColor( vec4 C1, vec4 C2, float start, float mid, float end ) \n\
 \n\
 float GradientSampler_GetStop( int i ) \n\
 { \n\
-	return texture( gradientSampler, 2.0*i/(2.0*gradientMaxStops) )[0]; \n\
+	float gradientMaxStops = float( textureSize( gradientSampler, 0 ) ); \n\
+	return texture( gradientSampler, 2.0*i/gradientMaxStops )[0]; \n\
 } \n\
 \n\
 vec4 GradientSampler_GetColor( int i ) \n\
 { \n\
-	return texture( gradientSampler, (2*i+1)/(2.0*gradientMaxStops) ); \n\
+	float gradientMaxStops = float( textureSize( gradientSampler, 0 ) ); \n\
+	return texture( gradientSampler, (2*i+1)/gradientMaxStops ); \n\
 } \n\
 \n\
 vec4 SampleGradientColor( float at ) \n\
@@ -215,16 +178,17 @@ vec4 ComputeGradient( vec2 point )\n\
 float HandleDash( float offset )\n\
 {\n\
 	float sum = 0.0; \n\
+	float dashMaxCount = float( textureSize( dashSampler, 0 ) ); \n\
 	int i; \n\
-	for(i=0; i<dashCount; ++i) sum += texture( dashSampler, i/float(dashMaxCount) )[0]; \n\
+	for(i=0; i<dashCount; ++i) sum += texture( dashSampler, i/dashMaxCount )[0]; \n\
 	offset -= sum * int(offset/sum); \n\
 	for(i=0; i<dashCount; ++i){ \n\
-		float dash = texture( dashSampler, i/float(dashMaxCount) )[0]; \n\
+		float dash = texture( dashSampler, i/dashMaxCount )[0]; \n\
 		if( offset < dash ) break; \n\
 		offset -= dash; \n\
 	} \n\
 	if( (i%2) > 0 ) discard; \n\
-	float dash = texture( dashSampler, i/float(dashMaxCount) )[0]; \n\
+	float dash = texture( dashSampler, i/dashMaxCount )[0]; \n\
 	float dx = dFdx( offset ); \n\
 	float dy = dFdy( offset ); \n\
 	// implicit lines: offset*(dash-offset) = 0 \n\
@@ -509,11 +473,9 @@ void DaoxShader_Finalize2D( DaoxShader *self )
 	self->uniforms.pathLength = glGetUniformLocation(self->program, "pathLength");
 	self->uniforms.brushColor = glGetUniformLocation(self->program, "brushColor");
 	self->uniforms.dashCount = glGetUniformLocation(self->program, "dashCount");
-	self->uniforms.dashMaxCount = glGetUniformLocation(self->program, "dashMaxCount");
 	self->uniforms.dashSampler = glGetUniformLocation(self->program, "dashSampler");
 	self->uniforms.gradientType = glGetUniformLocation(self->program, "gradientType");
 	self->uniforms.gradientStops = glGetUniformLocation(self->program, "gradientStops");
-	self->uniforms.gradientMaxStops = glGetUniformLocation(self->program, "gradientMaxStops");
 	self->uniforms.gradientPoint1 = glGetUniformLocation(self->program, "gradientPoint1");
 	self->uniforms.gradientPoint2 = glGetUniformLocation(self->program, "gradientPoint2");
 	self->uniforms.gradientRadius = glGetUniformLocation(self->program, "gradientRadius");

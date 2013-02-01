@@ -828,12 +828,11 @@ DaoxOBBox2D DaoxPathSegment_GetOBBox( DaoxPathSegment *self )
 	double len = sqrt( DaoxVector2D_Norm2( & xaxis ) );
 	double xmin, xmax, ymin = 0.0, ymax = 0.0;
 	double eps1 = 1E-4 * len;
-	double eps2 = 1E-6 * len;
+	double eps2 = 1E-3 * len;
 	int i, count = 0;
 
 	if( eps1 > 1E-4 ) eps1 = 1E-4;
-	if( eps2 > 1E-6 ) eps2 = 1E-6;
-	printf( "%g %g\n", eps1, eps2 );
+	if( eps2 > 1E-3 ) eps2 = 1E-3;
 
 #if 0
 	eps1 = 1E-5 * len;
@@ -863,7 +862,6 @@ DaoxOBBox2D DaoxPathSegment_GetOBBox( DaoxPathSegment *self )
 	}
 	ymax += eps2;
 	ymin -= eps2;
-	printf( "%g %g\n", ymax, ymin );
 	xaxis1 = DaoxVector2D_Scale( & xaxis, xmin );
 	yaxis1 = DaoxVector2D_Scale( & yaxis, ymin );
 	xaxis2 = DaoxVector2D_Scale( & xaxis, xmax - xmin );
