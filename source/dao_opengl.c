@@ -323,7 +323,7 @@ vec4 ComputeLight( vec3 lightSource, vec4 lightIntensity, vec4 texColor )\n\
 {\n\
 	float cosAngIncidence = dot( worldNormal, lightSource );\n\
 	cosAngIncidence = clamp(cosAngIncidence, 0, 1);\n\
-	vec3 reflection = (1 + cosAngIncidence) * worldNormal;\n\
+	vec3 reflection = 0.5*(1 + cosAngIncidence) * worldNormal;\n\
 	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
 	vertexColor += lightIntensity * texColor * dot(reflection, relativeCameraPosition);\n\
 	vertexColor += lightIntensity * specularColor * dot(reflection, relativeCameraPosition);\n\
@@ -334,10 +334,13 @@ vec4 ComputeLight( vec3 lightSource, vec4 lightIntensity, vec4 texColor )\n\
 void main(void)\n\
 {\n\
 	vec4 texColor = diffuseColor;\n\
+	vertexPosition = vec2( position ); \n\
+	bezierKLM = vec3( texCoord, texMO[0] ); \n\
+	pathOffset = texMO[1]; \n\
 	worldNormal = normal;\n\
 	relativeCameraPosition = normalize( cameraPosition - position );\n\
 	vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
-	if( textureCount > 0 ) texColor = vec4( 1.0, 1.0, 1.0, 1.0 );\n\
+	if( textureCount > 0 || vectorGraphics > 0 ) texColor = vec4( 1.0, 1.0, 1.0, 1.0 );\n\
 	for(int i=0; i<lightCount; ++i){\n\
 		vec3 relativeLightSource2 = lightSource[i] - position;\n\
 		relativeLightSource2 = normalize( relativeLightSource2 );\n\
@@ -345,9 +348,6 @@ void main(void)\n\
 		relativeLightSource[i] = relativeLightSource2;\n\
 	}\n\
 	if( lightCount == 0 ) vertexColor = texColor;\n\
-	vertexPosition = vec2( position ); \n\
-	bezierKLM = vec3( texCoord, texMO[0] ); \n\
-	pathOffset = texMO[1]; \n\
 	gl_Position = projMatrix * viewMatrix * vec4( position, 1.0 );\n\
 	texCoord2 = texCoord;\n\
 }\n";
@@ -390,7 +390,8 @@ void main(void)\n\
 		if( lightCount == 0 ) fragColor = texColor;\n\
 	}\n\
 	if( vectorGraphics > 0 ){ \n\
-		fragColor = RenderVectorGraphics( vertexPosition, bezierKLM, pathOffset ); \n\
+		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, pathOffset ); \n\
+		fragColor = vertexColor * color; \n\
 	}\n\
 }\n";
 
@@ -625,21 +626,18 @@ void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradie
 		rgba[2] = color.blue;
 		rgba[3] = color.alpha;
 	}
-	//printf( "DaoxShader_MakeGradientSampler..... %i %f %f %f %i\n", n, gradient->colors->colors[1].red, gradient->colors->colors[1].green, gradient->colors->colors[1].blue, self->textures.gradientSampler );
 	gradientType = fill ? gradient->gradient : DAOX_GRADIENT_STROKE;
+	//printf( "DaoxShader_MakeGradientSampler..... %i %i\n", gradientType , self->textures.gradientSampler );
+
 	glUniform1i(self->uniforms.gradientType, gradientType );
 	glUniform1i(self->uniforms.gradientStops, n );
 	glUniform1f(self->uniforms.gradientRadius, gradient->radius );
 	glUniform2fv(self->uniforms.gradientPoint1, 1, & gradient->points[0].x );
 	glUniform2fv(self->uniforms.gradientPoint2, 1, & gradient->points[1].x );
+
 	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER );
 	glBindTexture(GL_TEXTURE_1D, self->textures.gradientSampler);
 	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 2*n, GL_RGBA, GL_FLOAT, data);
-	//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4*n, 1, GL_RGBA, GL_FLOAT, data);
-	//glTexImage2D(GL_TEXTURE_2D, 0, 4*n, 1, 0, GL_RGBA, GL_FLOAT, data);
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 4*n, 1, 0, GL_RGBA, GL_FLOAT, data);
-	//glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 2*n, 0, GL_RGBA, GL_FLOAT, data);
-	//glUniform1i(self->uniforms.gradientSampler, self->textures.gradientSampler );
 	glUniform1i(self->uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
 }
 void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxCanvasState *state )

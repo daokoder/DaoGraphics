@@ -469,6 +469,15 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	glUniform1i(self->shader.uniforms.gradientType, 2 );
 	glUniform1i(self->shader.uniforms.gradientStops, 2 );
 	glUniform1f(self->shader.uniforms.gradientRadius, 200 );
+
+	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER);
+	glBindTexture(GL_TEXTURE_1D, self->shader.textures.gradientSampler);
+	glUniform1i(self->shader.uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
+
+	glActiveTexture(GL_TEXTURE0 + DAOX_DASH_SAMPLER);
+	glBindTexture(GL_TEXTURE_1D, self->shader.textures.dashSampler);
+	glUniform1i(self->shader.uniforms.dashSampler, DAOX_DASH_SAMPLER );
+
 #if 0
 #endif
 

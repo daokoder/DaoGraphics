@@ -170,6 +170,7 @@ struct DaoxCanvasItem
 	uchar_t  visible;
 	uchar_t  dataChanged;  /* geometry changed; */
 	uchar_t  stateChanged; /* orientation, stroke width etc. changed; */
+	uint_t   depth;
 
 	DaoxOBBox2D       obbox;      /* local coordinates; */
 	DaoxMatrix3D      transform;  /* local to parent; */

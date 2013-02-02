@@ -791,6 +791,13 @@ void DaoxCanvas_SetFont( DaoxCanvas *self, DaoxFont *font, float size )
 	state->fontSize = size;
 }
 
+void DaoxCanvas_AddItem( DaoxCanvas *self, DaoxCanvasItem *item )
+{
+	DArray_PushBack( self->items, item );
+	item->depth = 2*self->states->size;
+	item->state = DaoxCanvas_GetOrPushState( self );
+	DaoGC_IncRC( item->state );
+}
 
 #if 0
 DaoxCanvasLine* DaoxCanvas_AddLine( DaoxCanvas *self, float x1, float y1, float x2, float y2 )
@@ -843,11 +850,9 @@ DaoxCanvasPolygon* DaoxCanvas_AddPolygon( DaoxCanvas *self )
 DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path )
 {
 	DaoxCanvasPath *item = DaoxCanvasPath_New();
-	DArray_PushBack( self->items, item );
 	DaoGC_IncRC( path );
 	item->path = path;
-	item->state = DaoxCanvas_GetOrPushState( self );
-	DaoGC_IncRC( item->state );
+	DaoxCanvas_AddItem( self, item );
 	return item;
 }
 #if 0

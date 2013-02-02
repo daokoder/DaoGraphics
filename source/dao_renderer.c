@@ -578,9 +578,11 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 #endif
 
 
+	glDepthMask(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.5, 0.5, 0.5, 0.0);
@@ -589,6 +591,20 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUseProgram( self->shader.program );
 
 	glUniform1i(self->shader.uniforms.vectorGraphics, 0 );
+	glUniform1i(self->shader.uniforms.textureCount, 0 );
+	glUniform1i(self->shader.uniforms.dashCount, 0 );
+	glUniform1i(self->shader.uniforms.gradientType, 0 );
+	glUniform1i(self->shader.uniforms.gradientStops, 0 );
+	glUniform1f(self->shader.uniforms.gradientRadius, 0 );
+
+	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER);
+	glBindTexture(GL_TEXTURE_1D, self->shader.textures.gradientSampler);
+	glUniform1i(self->shader.uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
+
+	glActiveTexture(GL_TEXTURE0 + DAOX_DASH_SAMPLER);
+	glBindTexture(GL_TEXTURE_1D, self->shader.textures.dashSampler);
+	glUniform1i(self->shader.uniforms.dashSampler, DAOX_DASH_SAMPLER );
+
 	glUniformMatrix4fv( self->shader.uniforms.projMatrix, 1, 0, matrix2 );
 	glUniformMatrix4fv( self->shader.uniforms.viewMatrix, 1, 0, matrix );
 	glUniform3fv(self->shader.uniforms.cameraPosition, 1, & cameraPosition.x );
@@ -596,17 +612,11 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform3fv(self->shader.uniforms.lightSource, lightCount, & lightSource[0].x );
 	glUniform4fv(self->shader.uniforms.lightIntensity, lightCount, & lightIntensity[0].red );
 
+
 	glBindVertexArray( self->buffer.vertexVAO );
 	glBindBuffer( GL_ARRAY_BUFFER, self->buffer.vertexVBO );
 	//glEnableClientState(GL_VERTEX_ARRAY);
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->buffer.triangleVBO );
-
-
-	for(i=0; i<self->canvases->size; ++i){
-		DaoxCanvas *canvas = (DaoxCanvas*) self->canvases->items.pVoid[i];
-		DaoxRenderer_RenderCanvas( self, canvas );
-	}
-
 
 	DaoxShader * shader = & self->shader;
 	int stride = sizeof(DaoxVertex);
@@ -638,6 +648,19 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		glDrawRangeElements( GL_TRIANGLES, 0, max, M, GL_UNSIGNED_INT, (void*)K );
 	}
 	glBindVertexArray(0);
+
+
+	glDepthMask(GL_FALSE);
+	glBindVertexArray( self->bufferVG.vertexVAO );
+	glBindBuffer( GL_ARRAY_BUFFER, self->bufferVG.vertexVBO );
+	//glEnableClientState(GL_VERTEX_ARRAY);
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->bufferVG.triangleVBO );
+	for(i=0; i<self->canvases->size; ++i){
+		DaoxCanvas *canvas = (DaoxCanvas*) self->canvases->items.pVoid[i];
+		DaoxRenderer_RenderCanvas( self, canvas );
+	}
+	glBindVertexArray(0);
+
 
 	self->frameIndex += 1;
 	for(i=0; i<self->visibleModels->size; ++i){
