@@ -44,6 +44,7 @@ DaoxRenderer* DaoxRenderer_New()
 	self->visibleModels = DArray_New(0);
 	self->visibleChunks = DArray_New(0);
 	self->drawLists = DArray_New(0);
+	self->canvases = DArray_New(D_VALUE);
 	self->mapMaterials = DMap_New(0,0);
 	self->vertices = DaoxPlainArray_New( sizeof(DaoxVertex) );
 	self->triangles = DaoxPlainArray_New( sizeof(DaoxTriangle) );
@@ -56,6 +57,7 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 {
 	DaoxShader_Free( & self->shader );
 	DaoCstruct_Free( (DaoCstruct*) self );
+	DArray_Delete( self->canvases );
 	DArray_Delete( self->drawLists );
 	DArray_Delete( self->visibleChunks );
 	DArray_Delete( self->visibleModels );
@@ -84,8 +86,10 @@ void DaoxRenderer_InitBuffers( DaoxRenderer *self )
 {
 	int pos  = self->shader.attributes.position;
 	int norm = self->shader.attributes.normal;
-	int tex  = self->shader.attributes.texCoord;
-	DaoxBuffer_Init3D( & self->buffer, pos, norm, tex );
+	int texuv  = self->shader.attributes.texCoord;
+	int texmo  = self->shader.attributes.texMO;
+	DaoxBuffer_Init3D( & self->buffer, pos, norm, texuv, texmo );
+	DaoxBuffer_Init3DVG( & self->bufferVG, pos, norm, texuv, texmo );
 }
 
 
@@ -147,6 +151,10 @@ void DaoxRenderer_PrepareMesh( DaoxRenderer *self, DaoxModel *model, DaoxMesh *m
 	}
 }
 
+void DaoxRenderer_PrepareCanvas( DaoxRenderer *self, DaoxCanvas *canvas )
+{
+	DArray_Append( self->canvases, canvas );
+}
 
 void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 {
@@ -171,7 +179,7 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 		DaoxVector3D canvasNorm = {0.0,0.0,1.0};
 		double dot = DaoxVector3D_Dot( & canvasNorm, & self->localFrustum.cameraPosition );
 		if( dot < 0.0 ) return;
-		//DaoxRenderer_PrepareCanvas( self, (DaoxCanvas*) node );
+		DaoxRenderer_PrepareCanvas( self, (DaoxCanvas*) node );
 		return;
 	}
 
@@ -370,7 +378,7 @@ void DaoxRenderer_UpdateBuffer2( DaoxRenderer *self, DaoxVector3D camPos )
 	DaoGLTriangle *gltriangles = DaoxBuffer_MapTriangles( & self->buffer, triangleCount );
 
 	//printf( "DaoxRenderer_UpdateBuffer: %i %i\n", vertexCount, triangleCount );
-	//printf( "buffering: %15p %15p %6i %6i\n", glvertices, gltriangles, self->vertexOffset[0], self->triangleOffset[0] );
+	//printf( "buffering: %15p %15p\n", glvertices, gltriangles );
 	for(i=0,glv=0,glt=0; i<self->visibleChunks->size; ++i){
 		DArray *chunks = self->visibleChunks->items.pArray[i];
 		DaoxMaterial *material;
@@ -434,6 +442,45 @@ void DaoxRenderer_UpdateBuffer2( DaoxRenderer *self, DaoxVector3D camPos )
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
+void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *canvas, DaoxCanvasItem *item );
+void DaoxRenderer_RenderCanvasItem( DaoxRenderer *self, DaoxCanvas *canvas, DaoxCanvasItem *item, DaoxMatrix3D transform )
+{
+	DaoxOBBox2D obbox;
+	DaoxMatrix3D inverse;
+	GLfloat modelMatrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+	float scale = 1;//DaoxCanvas_Scale( canvas );
+	float stroke = item->state->strokeWidth / (scale + 1E-16);
+	int n = item->children ? item->children->size : 0;
+	int k = stroke >= 1.0;
+	int m = stroke >= 1E-3;
+	int i;
+
+	DaoxMatrix3D_Multiply( & transform, item->transform );
+	obbox = DaoxOBBox2D_Transform( & item->obbox, & transform );
+
+	DaoxCanvasItem_Update( item, canvas );
+
+	//DaoxGraphics_TransfromMatrix( transform, modelMatrix );
+	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
+	//DaoxRenderer_PaintItemData( self, canvas, item );
+	DaoxVG_PaintItemData( & self->shader, & self->bufferVG, canvas, item );
+	//if( item->texture ) DaoxRenderer_PaintImageItem( self, item );
+
+	for(i=0; i<n; i++){
+		DaoxCanvasItem *it = (DaoxCanvasItem*) item->children->items.pVoid[i];
+		DaoxRenderer_RenderCanvasItem( self, canvas, it, transform );
+	}
+}
+void DaoxRenderer_RenderCanvas( DaoxRenderer *self, DaoxCanvas *canvas )
+{
+	int i, n = canvas->items->size;
+	glUniform1i(self->shader.uniforms.vectorGraphics, 1 );
+	for(i=0; i<n; i++){
+		DaoxCanvasItem *it = (DaoxCanvasItem*) canvas->items->items.pVoid[i];
+		DaoxRenderer_RenderCanvasItem( self, canvas, it, canvas->transform );
+	}
+	glUniform1i(self->shader.uniforms.vectorGraphics, 0 );
+}
 void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam )
 {
 	DaoxViewFrustum fm;
@@ -495,6 +542,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		self->frustum = fm;
 		//printf( "prepare\n" );
 		DMap_Clear( self->mapMaterials );
+		DArray_Clear( self->canvases );
 		for(i=0; i<scene->nodes->size; ++i){
 			DaoxSceneNode *node = scene->nodes->items.pVoid[i];
 			DaoxRenderer_PrepareNode( self, node );
@@ -533,11 +581,14 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.5, 0.5, 0.5, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram( self->shader.program );
 
+	glUniform1i(self->shader.uniforms.vectorGraphics, 0 );
 	glUniformMatrix4fv( self->shader.uniforms.projMatrix, 1, 0, matrix2 );
 	glUniformMatrix4fv( self->shader.uniforms.viewMatrix, 1, 0, matrix );
 	glUniform3fv(self->shader.uniforms.cameraPosition, 1, & cameraPosition.x );
@@ -549,6 +600,13 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glBindBuffer( GL_ARRAY_BUFFER, self->buffer.vertexVBO );
 	//glEnableClientState(GL_VERTEX_ARRAY);
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->buffer.triangleVBO );
+
+
+	for(i=0; i<self->canvases->size; ++i){
+		DaoxCanvas *canvas = (DaoxCanvas*) self->canvases->items.pVoid[i];
+		DaoxRenderer_RenderCanvas( self, canvas );
+	}
+
 
 	DaoxShader * shader = & self->shader;
 	int stride = sizeof(DaoxVertex);

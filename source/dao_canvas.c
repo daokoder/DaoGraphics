@@ -1701,9 +1701,11 @@ static DaoFuncItem DaoxCanvasMeths[]=
 	{ NULL, NULL }
 };
 
+extern DaoTypeBase DaoxSceneNode_Typer;
 DaoTypeBase DaoxCanvas_Typer =
 {
-	"Canvas", NULL, NULL, (DaoFuncItem*) DaoxCanvasMeths, {0}, {0},
+	"Canvas", NULL, NULL, (DaoFuncItem*) DaoxCanvasMeths,
+	{ & DaoxSceneNode_Typer, 0 }, {0},
 	(FuncPtrDel)DaoxCanvas_Delete, DaoxCanvas_GetGCFields
 };
 

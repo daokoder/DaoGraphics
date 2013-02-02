@@ -42,6 +42,7 @@
 
 static const char *const daox_vector_graphics_shader_150 =
 "//#version 150\n\
+uniform float alphaBlending; \n\
 uniform vec4  brushColor; \n\
 uniform float pathLength; \n\
 uniform int   dashCount;         // 0: none; \n\
@@ -131,10 +132,11 @@ vec4 ComputeRadialGradient( vec2 point )\n\
 }\n\
 \n\
 \n\
-vec4 ComputeGradient( vec2 point )\n\
+vec4 ComputeGradient( vec2 point, float pathOffset )\n\
 {\n\
 	if( gradientType == 1 ) return ComputeLinearGradient( point ); \n\
 	else if( gradientType == 2 ) return ComputeRadialGradient( point ); \n\
+	else if( gradientType == 3 ) return SampleGradientColor( pathOffset / pathLength ); \n\
 	return brushColor; \n\
 }\n\
 \n\
@@ -217,7 +219,27 @@ vec4 ComputeCubicBezier( vec3 p, vec4 color )\n\
 	if( alpha < 1.0 ) color.a *= alpha; \n\
 	return color; \n\
 }\n\
-";
+\n\
+\n\
+vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, float pathOffset ) \n\
+{ \n\
+	float alphaBlending2 = alphaBlending; \n\
+	vec4 fragColor = brushColor; \n\
+	// switch-case not working with intel graphics cards? \n\
+	//switch( gradientType ){ \n\
+	//case 0: break; \n\
+	//case 1: fragColor = ComputeLinearGradient( vertexPosition ); break; \n\
+	//case 2: fragColor = ComputeRadialGradient( vertexPosition ); break; \n\
+	//} \n\
+	if( dashCount > 0 ) alphaBlending2 *= HandleDash( pathOffset ); \n\
+	if( gradientType > 0 ) fragColor = ComputeGradient( vertexPosition, pathOffset ); \n\
+	//if( textureCount > 0 ) fragColor = texture( textures[0], vec2(texcoord) ); \n\
+	float klm = abs( bezierKLM[0] ) + abs( bezierKLM[1] ) + abs( bezierKLM[2] ); \n\
+	if( klm > 1E-16 ) fragColor = ComputeCubicBezier( bezierKLM, fragColor ); \n\
+	//fragColor = ComputeQuadraticBezier( vec2( texcoord ), fragColor ); \n\
+	fragColor.a *= alphaBlending2; \n\
+	return fragColor; \n\
+}";
 
 
 
@@ -231,18 +253,17 @@ uniform mat4 projMatrix; \n\
 uniform sampler2D textures[2]; \n\
 \n\
 in  vec2  position; \n\
-in  vec3  texKLM; \n\
-in  float pathOffset; \n\
+in  vec4  texKLMO; \n\
 out vec2  texcoord; \n\
 out vec2  vertexPosition; \n\
-out vec3  bezierKLM2; \n\
-out float pathOffset2; \n\
+out vec3  bezierKLM; \n\
+out float pathOffset; \n\
 \n\
 void main(void) \n\
 { \n\
-	texcoord = vec2( texKLM ); \n\
-	bezierKLM2 = texKLM; \n\
-	pathOffset2 = pathOffset; \n\
+	texcoord = vec2( texKLMO ); \n\
+	bezierKLM = vec3( texKLMO ); \n\
+	pathOffset = texKLMO[3]; \n\
 	vertexPosition = position; \n\
 	gl_Position = projMatrix * viewMatrix * modelMatrix * vec4( position, 0.0, 1.0 ); \n\
 }";
@@ -250,43 +271,19 @@ void main(void) \n\
 static const char *const daox_fragment_shader2d_150 =
 "//#version 150\n\
 //include daox_vector_graphics_shader_150 \n\
-uniform float alphaBlending; \n\
 uniform int textureCount; \n\
 uniform sampler2D textures[2]; \n\
 \n\
 in  vec2  vertexPosition; \n\
 in  vec4  texcoord; \n\
-in  vec3  bezierKLM2; \n\
-in  float pathOffset2; \n\
+in  vec3  bezierKLM; \n\
+in  float pathOffset; \n\
 out vec4  fragColor; \n\
 \n\
 \n\
 void main(void) \n\
 { \n\
-	float alphaBlending2 = alphaBlending; \n\
-	fragColor = brushColor; \n\
-	// switch-case not working with intel graphics cards? \n\
-	//switch( gradientType ){ \n\
-	//case 0: break; \n\
-	//case 1: fragColor = ComputeLinearGradient( vertexPosition ); break; \n\
-	//case 2: fragColor = ComputeRadialGradient( vertexPosition ); break; \n\
-	//} \n\
-	//if( (int(pathOffset2/10)) % 2 > 0 ) discard; \n\
-	if( dashCount > 0 ) alphaBlending2 *= HandleDash( pathOffset2 ); \n\
-	if( gradientType > 0 ){ \n\
-		if( gradientType == 3 ){ \n\
-			fragColor = SampleGradientColor( pathOffset2 / pathLength ); \n\
-		}else{ \n\
-			fragColor = ComputeGradient( vertexPosition ); \n\
-		} \n\
-	} \n\
-	//if( textureCount > 0 ) fragColor = texture( textures[0], vec2(texcoord) ); \n\
-	//fragColor = vec4( vertexPosition[0]/200, vertexPosition[1]/200, 0.0, 1.0 ); \n\
-	//fragColor = texture( gradientSampler, 0.02 ); \n\
-	float klm = abs( bezierKLM2[0] ) + abs( bezierKLM2[1] ) + abs( bezierKLM2[2] ); \n\
-	if( klm > 1E-16 ) fragColor = ComputeCubicBezier( bezierKLM2, fragColor ); \n\
-	//fragColor = ComputeQuadraticBezier( vec2( texcoord ), fragColor ); \n\
-	fragColor.a *= alphaBlending2; \n\
+	fragColor = RenderVectorGraphics( vertexPosition, bezierKLM, pathOffset ); \n\
 }";
 
 
@@ -294,8 +291,9 @@ void main(void) \n\
 
 static const char *const daox_vertex_shader3d_150 =
 "//#version 150\n\
-uniform int lightCount;\n\
-uniform int textureCount;\n\
+uniform int  vectorGraphics;\n\
+uniform int  lightCount;\n\
+uniform int  textureCount;\n\
 uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
 uniform vec4 ambientColor;\n\
@@ -309,9 +307,13 @@ uniform sampler2D textures[2];\n\
 in vec3 position;\n\
 in vec3 normal;\n\
 in vec2 texCoord;\n\
+in vec2 texMO;\n\
 \n\
-out vec2 texCoord2;\n\
-out vec4 vertexColor;\n\
+out vec2  vertexPosition; \n\
+out vec2  texCoord2;\n\
+out vec4  vertexColor;\n\
+out vec3  bezierKLM; \n\
+out float pathOffset; \n\
 \n\
 out vec3 worldNormal; // normal in world coordinates; \n\
 out vec3 relativeCameraPosition;\n\
@@ -343,6 +345,9 @@ void main(void)\n\
 		relativeLightSource[i] = relativeLightSource2;\n\
 	}\n\
 	if( lightCount == 0 ) vertexColor = texColor;\n\
+	vertexPosition = vec2( position ); \n\
+	bezierKLM = vec3( texCoord, texMO[0] ); \n\
+	pathOffset = texMO[1]; \n\
 	gl_Position = projMatrix * viewMatrix * vec4( position, 1.0 );\n\
 	texCoord2 = texCoord;\n\
 }\n";
@@ -350,13 +355,17 @@ void main(void)\n\
 
 static const char *const daox_fragment_shader3d_150 =
 "//#version 150\n\
-uniform int lightCount;\n\
-uniform int textureCount;\n\
+uniform int  vectorGraphics;\n\
+uniform int  lightCount;\n\
+uniform int  textureCount;\n\
 uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
 uniform sampler2D textures[2];\n\
 \n\
+in  vec2 vertexPosition; \n\
 in  vec2 texCoord2;\n\
+in  vec3  bezierKLM; \n\
+in  float pathOffset; \n\
 in  vec4 vertexColor;\n\
 in  vec3 worldNormal;\n\
 in  vec3 relativeLightSource[32];\n\
@@ -379,6 +388,9 @@ void main(void)\n\
 		vec4 texColor = texture( textures[0], texCoord2 );\n\
 		fragColor = vertexColor * texColor;\n\
 		if( lightCount == 0 ) fragColor = texColor;\n\
+	}\n\
+	if( vectorGraphics > 0 ){ \n\
+		fragColor = RenderVectorGraphics( vertexPosition, bezierKLM, pathOffset ); \n\
 	}\n\
 }\n";
 
@@ -436,6 +448,7 @@ void DaoxShader_Init3D( DaoxShader *self )
 	DaoxShader_Init( self );
 	self->program = glCreateProgram();
 	DaoxShader_AddShader( self, GL_VERTEX_SHADER, daox_vertex_shader3d_150 );
+	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_vector_graphics_shader_150 );
 	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader3d_150 );
 	DaoxShader_CompileShader( self, GL_VERTEX_SHADER, self->vertexSources );
 	DaoxShader_CompileShader( self, GL_FRAGMENT_SHADER, self->fragmentSources );
@@ -460,16 +473,8 @@ void DaoxShader_Finalize( DaoxShader *self )
 		self->program = 0;
 	}
 }
-void DaoxShader_Finalize2D( DaoxShader *self )
+void DaoxShader_GetVectorGraphicsUniforms( DaoxShader *self )
 {
-	DaoxShader_Finalize( self );
-	if( self->program == 0 ) return;
-	self->uniforms.modelMatrix = glGetUniformLocation(self->program, "modelMatrix");
-	self->uniforms.viewMatrix = glGetUniformLocation(self->program, "viewMatrix");
-	self->uniforms.projMatrix = glGetUniformLocation(self->program, "projMatrix");
-	self->uniforms.textureCount = glGetUniformLocation(self->program, "textureCount");
-	self->uniforms.textures[0] = glGetUniformLocation(self->program, "textures[0]");
-	self->uniforms.textures[1] = glGetUniformLocation(self->program, "textures[1]");
 	self->uniforms.alphaBlending = glGetUniformLocation(self->program, "alphaBlending");
 	self->uniforms.pathLength = glGetUniformLocation(self->program, "pathLength");
 	self->uniforms.brushColor = glGetUniformLocation(self->program, "brushColor");
@@ -481,16 +486,29 @@ void DaoxShader_Finalize2D( DaoxShader *self )
 	self->uniforms.gradientPoint2 = glGetUniformLocation(self->program, "gradientPoint2");
 	self->uniforms.gradientRadius = glGetUniformLocation(self->program, "gradientRadius");
 	self->uniforms.gradientSampler = glGetUniformLocation(self->program, "gradientSampler");
+}
+void DaoxShader_Finalize2D( DaoxShader *self )
+{
+	DaoxShader_Finalize( self );
+	if( self->program == 0 ) return;
+	DaoxShader_GetVectorGraphicsUniforms( self );
+	self->uniforms.modelMatrix = glGetUniformLocation(self->program, "modelMatrix");
+	self->uniforms.viewMatrix = glGetUniformLocation(self->program, "viewMatrix");
+	self->uniforms.projMatrix = glGetUniformLocation(self->program, "projMatrix");
+	self->uniforms.textureCount = glGetUniformLocation(self->program, "textureCount");
+	self->uniforms.textures[0] = glGetUniformLocation(self->program, "textures[0]");
+	self->uniforms.textures[1] = glGetUniformLocation(self->program, "textures[1]");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
-	self->attributes.texKLM = glGetAttribLocation(self->program, "texKLM");
-	self->attributes.pathOffset = glGetAttribLocation(self->program, "pathOffset");
+	self->attributes.texKLMO = glGetAttribLocation(self->program, "texKLMO");
 	printf( "DaoxShader_Finalize: %i\n", self->attributes.position );
-	printf( "DaoxShader_Finalize: %i\n", self->attributes.texKLM );
+	printf( "DaoxShader_Finalize: %i\n", self->attributes.texKLMO );
 }
 void DaoxShader_Finalize3D( DaoxShader *self )
 {
 	DaoxShader_Finalize( self );
 	if( self->program == 0 ) return;
+	DaoxShader_GetVectorGraphicsUniforms( self );
+	self->uniforms.vectorGraphics = glGetUniformLocation(self->program, "vectorGraphics");
 	self->uniforms.projMatrix = glGetUniformLocation(self->program, "projMatrix");
 	self->uniforms.viewMatrix = glGetUniformLocation(self->program, "viewMatrix");
 	self->uniforms.cameraPosition = glGetUniformLocation(self->program, "cameraPosition");
@@ -507,6 +525,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.normal = glGetAttribLocation(self->program, "normal");
 	self->attributes.texCoord = glGetAttribLocation(self->program, "texCoord");
+	self->attributes.texMO = glGetAttribLocation(self->program, "texMO");
 	printf( "DaoxShader_Finalize: %i\n", self->attributes.position );
 	printf( "DaoxShader_Finalize: %i\n", self->uniforms.projMatrix );
 	printf( "DaoxShader_Finalize: %i\n", self->uniforms.viewMatrix );
@@ -582,6 +601,73 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DArray *strings )
 	if( shader && self->program ) glAttachShader( self->program, shader );
 }
 
+void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradient, int fill )
+{
+	GLfloat data[2*DAOX_MAX_GRADIENT_STOPS*4];
+	int width = 2*DAOX_MAX_GRADIENT_STOPS;
+	int i, n, gradientType;
+
+	if( gradient == NULL ){
+		glUniform1i(self->uniforms.gradientType, 0 );
+		return;
+	}
+
+	n = gradient->stops->size;
+	if( n > DAOX_MAX_GRADIENT_STOPS ) n = DAOX_MAX_GRADIENT_STOPS;
+	memset( data, 0, n*2*4*sizeof(GLfloat) );
+	for(i=0; i<n; ++i){
+		DaoxColor color = gradient->colors->pod.colors[i];
+		GLfloat *stop = data + 8*i;
+		GLfloat *rgba = data + 8*i + 4;
+		stop[0] = gradient->stops->pod.floats[i];
+		rgba[0] = color.red;
+		rgba[1] = color.green;
+		rgba[2] = color.blue;
+		rgba[3] = color.alpha;
+	}
+	//printf( "DaoxShader_MakeGradientSampler..... %i %f %f %f %i\n", n, gradient->colors->colors[1].red, gradient->colors->colors[1].green, gradient->colors->colors[1].blue, self->textures.gradientSampler );
+	gradientType = fill ? gradient->gradient : DAOX_GRADIENT_STROKE;
+	glUniform1i(self->uniforms.gradientType, gradientType );
+	glUniform1i(self->uniforms.gradientStops, n );
+	glUniform1f(self->uniforms.gradientRadius, gradient->radius );
+	glUniform2fv(self->uniforms.gradientPoint1, 1, & gradient->points[0].x );
+	glUniform2fv(self->uniforms.gradientPoint2, 1, & gradient->points[1].x );
+	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER );
+	glBindTexture(GL_TEXTURE_1D, self->textures.gradientSampler);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 2*n, GL_RGBA, GL_FLOAT, data);
+	//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4*n, 1, GL_RGBA, GL_FLOAT, data);
+	//glTexImage2D(GL_TEXTURE_2D, 0, 4*n, 1, 0, GL_RGBA, GL_FLOAT, data);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 4*n, 1, 0, GL_RGBA, GL_FLOAT, data);
+	//glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 2*n, 0, GL_RGBA, GL_FLOAT, data);
+	//glUniform1i(self->uniforms.gradientSampler, self->textures.gradientSampler );
+	glUniform1i(self->uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
+}
+void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxCanvasState *state )
+{
+	GLfloat dash[DAOX_MAX_DASH];
+	int i, n;
+
+	if( state == NULL ){
+		glUniform1i(self->uniforms.dashCount, 0 );
+		return;
+	}
+
+	n = state->dash;
+	if( n > DAOX_MAX_DASH ) n = DAOX_MAX_DASH;
+	memset( dash, 0, n*sizeof(GLfloat) );
+	for(i=0; i<n; ++i) dash[i] = state->dashPattern[i];
+
+	//printf( "DaoxShader_MakeDashSampler: %i\n", n );
+
+	glUniform1i(self->uniforms.dashCount, n );
+	glActiveTexture(GL_TEXTURE0 + DAOX_DASH_SAMPLER);
+	glBindTexture(GL_TEXTURE_1D, self->textures.dashSampler);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, n, GL_RED, GL_FLOAT, dash);
+	glUniform1i(self->uniforms.dashSampler, DAOX_DASH_SAMPLER );
+}
+
+
+
 
 
 
@@ -593,43 +679,66 @@ void DaoxBuffer_Init( DaoxBuffer *self )
 	self->triangleCapacity = 16*1024;
 }
 void DaoxBuffer_InitBuffers( DaoxBuffer *self );
-void DaoxBuffer_Init2D( DaoxBuffer *self, uint_t pos, uint_t klm, uint_t path )
+void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo )
 {
 	DaoGLVertex2D *vertex = NULL;
 	DaoxBuffer_Init( self );
 
-	self->traitCount = 3;
+	self->traitCount = 2;
 	self->vertexSize = sizeof(DaoGLVertex2D);
 	self->triangleSize = sizeof(DaoGLTriangle);
 	self->traits[0].uniform = pos;
-	self->traits[1].uniform = klm;
-	self->traits[2].uniform = path;
+	self->traits[1].uniform = klmo;
 	self->traits[0].count = 2;
-	self->traits[1].count = 3;
-	self->traits[2].count = 1;
+	self->traits[1].count = 4;
 	self->traits[0].offset = NULL;
-	self->traits[1].offset = (void*) & vertex->texKLM;
-	self->traits[2].offset = (void*) & vertex->pathOffset;
+	self->traits[1].offset = (void*) & vertex->texKLMO;
 
 	DaoxBuffer_InitBuffers( self );
 }
-void DaoxBuffer_Init3D( DaoxBuffer *self, uint_t pos, uint_t norm, uint_t texuv )
+void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int texuv, int texmo )
 {
 	DaoGLVertex3D *vertex = NULL;
 	DaoxBuffer_Init( self );
 
-	self->traitCount = 3;
+	self->traitCount = 4;
 	self->vertexSize = sizeof(DaoGLVertex3D);
 	self->triangleSize = sizeof(DaoGLTriangle);
 	self->traits[0].uniform = pos;
 	self->traits[1].uniform = norm;
 	self->traits[2].uniform = texuv;
+	self->traits[3].uniform = texmo;
 	self->traits[0].count = 3;
 	self->traits[1].count = 3;
 	self->traits[2].count = 2;
+	self->traits[3].count = 2;
 	self->traits[0].offset = NULL;
 	self->traits[1].offset = (void*) & vertex->norm;
 	self->traits[2].offset = (void*) & vertex->texUV;
+	self->traits[3].offset = (void*) & vertex->texUV;
+
+	DaoxBuffer_InitBuffers( self );
+}
+void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int texmo )
+{
+	DaoGLVertex3DVG *vertex = NULL;
+	DaoxBuffer_Init( self );
+
+	self->traitCount = 4;
+	self->vertexSize = sizeof(DaoGLVertex3DVG);
+	self->triangleSize = sizeof(DaoGLTriangle);
+	self->traits[0].uniform = pos;
+	self->traits[1].uniform = norm;
+	self->traits[2].uniform = texuv;
+	self->traits[3].uniform = texmo;
+	self->traits[0].count = 3;
+	self->traits[1].count = 3;
+	self->traits[2].count = 2;
+	self->traits[3].count = 2;
+	self->traits[0].offset = NULL;
+	self->traits[1].offset = (void*) & vertex->norm;
+	self->traits[2].offset = (void*) & vertex->texKLMO;
+	self->traits[3].offset = (void*) & vertex->texKLMO.m;
 
 	DaoxBuffer_InitBuffers( self );
 }
@@ -687,6 +796,10 @@ DaoGLVertex2D* DaoxBuffer_MapVertices2D( DaoxBuffer *self, int count )
 DaoGLVertex3D* DaoxBuffer_MapVertices3D( DaoxBuffer *self, int count )
 {
 	return (DaoGLVertex3D*) DaoxBuffer_MapVertices( self, count );
+}
+DaoGLVertex3DVG* DaoxBuffer_MapVertices3DVG( DaoxBuffer *self, int count )
+{
+	return (DaoGLVertex3DVG*) DaoxBuffer_MapVertices( self, count );
 }
 DaoGLTriangle* DaoxBuffer_MapTriangles( DaoxBuffer *self, int count )
 {

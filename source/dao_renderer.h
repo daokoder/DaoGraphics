@@ -54,11 +54,14 @@ struct DaoxRenderer
 
 	DaoxShader  shader;
 	DaoxBuffer  buffer;
+	DaoxBuffer  bufferVG;
 
 	DMap     *mapMaterials;
 	DArray   *visibleModels;
 	DArray   *visibleChunks;
 	DArray   *drawLists;
+
+	DArray   *canvases;
 
 	DaoxPlainArray  *vertices;   /* <DaoxVertex> */
 	DaoxPlainArray  *triangles;  /* <DaoxTriangle> */

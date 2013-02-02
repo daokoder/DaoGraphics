@@ -46,22 +46,27 @@
 
 
 
-typedef struct DaoGLVertex2D  DaoGLVertex2D;
-typedef struct DaoGLVertex3D  DaoGLVertex3D;
-typedef struct DaoGLTriangle  DaoGLTriangle;
-typedef struct DaoxShader     DaoxShader;
-typedef struct DaoxBuffer     DaoxBuffer;
+typedef struct DaoGLVertex2D    DaoGLVertex2D;
+typedef struct DaoGLVertex3D    DaoGLVertex3D;
+typedef struct DaoGLVertex3DVG  DaoGLVertex3DVG;
+typedef struct DaoGLTriangle    DaoGLTriangle;
+typedef struct DaoxShader       DaoxShader;
+typedef struct DaoxBuffer       DaoxBuffer;
 
+
+enum DaoxSamplerID
+{
+	DAOX_DASH_SAMPLER = 2 ,
+	DAOX_GRADIENT_SAMPLER
+};
 
 
 
 
 struct DaoGLVertex2D
 {
-	struct{ GLfloat  x, y; }     point;
-	struct{ GLfloat  k, l, m; }  texKLM; /* texture coordinates or KLM for bezier curves; */
-	GLfloat  pathOffset;  /* location on the path; */
-	 
+	struct{ GLfloat  x, y; }        point;
+	struct{ GLfloat  k, l, m, o; }  texKLMO; /* texture coordinates or KLM for bezier curves; */
 };
 
 struct DaoGLVertex3D
@@ -69,6 +74,13 @@ struct DaoGLVertex3D
 	struct{ GLfloat  x, y, z; }  point;
 	struct{ GLfloat  x, y, z; }  norm;
 	struct{ GLfloat  x, y; }     texUV;
+};
+
+struct DaoGLVertex3DVG
+{
+	struct{ GLfloat  x, y, z; }     point;
+	struct{ GLfloat  x, y, z; }     norm;
+	struct{ GLfloat  k, l, m, o; }  texKLMO;
 };
 
 struct DaoGLTriangle
@@ -87,6 +99,7 @@ struct DaoxShader
 	uint_t  program;
 
 	struct {
+		uint_t  vectorGraphics;
 		uint_t  projMatrix;
 		uint_t  viewMatrix;
 		uint_t  modelMatrix;
@@ -118,8 +131,8 @@ struct DaoxShader
 		uint_t  position;
 		uint_t  normal;
 		uint_t  texCoord;
-		uint_t  texKLM;
-		uint_t  pathOffset;
+		uint_t  texMO;
+		uint_t  texKLMO;
 	} attributes;
 
 	struct {
@@ -135,6 +148,8 @@ void DaoxShader_Init3D( DaoxShader *self );
 void DaoxShader_Free( DaoxShader *self );
 void DaoxShader_AddShader( DaoxShader *self, int type, const char *source );
 void DaoxShader_Finalize3D( DaoxShader *self );
+void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradient, int fill );
+void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxCanvasState *state );
 
 
 
@@ -162,13 +177,16 @@ struct DaoxBuffer
 };
 
 void DaoxBuffer_Init( DaoxBuffer *self );
-void DaoxBuffer_Init2D( DaoxBuffer *self, uint_t pos, uint_t klm, uint_t path );
-void DaoxBuffer_Init3D( DaoxBuffer *self, uint_t pos, uint_t norm, uint_t texuv );
+void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo );
+void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int texuv, int texmo );
+void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int texmo );
 void DaoxBuffer_Free( DaoxBuffer *self );
 
-DaoGLVertex2D* DaoxBuffer_MapVertices2D( DaoxBuffer *self, int count );
-DaoGLVertex3D* DaoxBuffer_MapVertices3D( DaoxBuffer *self, int count );
-DaoGLTriangle* DaoxBuffer_MapTriangles( DaoxBuffer *self, int count );
+void* DaoxBuffer_MapVertices( DaoxBuffer *self, int count );
+DaoGLVertex2D*   DaoxBuffer_MapVertices2D( DaoxBuffer *self, int count );
+DaoGLVertex3D*   DaoxBuffer_MapVertices3D( DaoxBuffer *self, int count );
+DaoGLVertex3DVG* DaoxBuffer_MapVertices3DVG( DaoxBuffer *self, int count );
+DaoGLTriangle*   DaoxBuffer_MapTriangles( DaoxBuffer *self, int count );
 
 
 

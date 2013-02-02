@@ -77,6 +77,16 @@ DaoTypeBase DaoxMaterial_Typer =
 };
 
 
+static DaoFuncItem DaoxSceneNodeMeths[]=
+{
+	{ NULL, NULL }
+};
+DaoTypeBase DaoxSceneNode_Typer =
+{
+	"SceneNode", NULL, NULL, (DaoFuncItem*) DaoxSceneNodeMeths, {0}, {0},
+	(FuncPtrDel)DaoxSceneNode_Delete, NULL
+};
+
 
 static void CAM_Move( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -132,7 +142,8 @@ static DaoFuncItem DaoxCameraMeths[]=
 };
 DaoTypeBase DaoxCamera_Typer =
 {
-	"Camera", NULL, NULL, (DaoFuncItem*) DaoxCameraMeths, {0}, {0},
+	"Camera", NULL, NULL, (DaoFuncItem*) DaoxCameraMeths,
+	{ & DaoxSceneNode_Typer, 0 }, {0},
 	(FuncPtrDel)DaoxCamera_Delete, NULL
 };
 
@@ -144,7 +155,8 @@ static DaoFuncItem DaoxLightMeths[]=
 };
 DaoTypeBase DaoxLight_Typer =
 {
-	"Light", NULL, NULL, (DaoFuncItem*) DaoxLightMeths, {0}, {0},
+	"Light", NULL, NULL, (DaoFuncItem*) DaoxLightMeths,
+	{ & DaoxSceneNode_Typer, 0 }, {0},
 	(FuncPtrDel)DaoxLight_Delete, NULL
 };
 
@@ -154,7 +166,8 @@ static DaoFuncItem DaoxModelMeths[]=
 };
 DaoTypeBase DaoxModel_Typer =
 {
-	"Model", NULL, NULL, (DaoFuncItem*) DaoxModelMeths, {0}, {0},
+	"Model", NULL, NULL, (DaoFuncItem*) DaoxModelMeths,
+	{ & DaoxSceneNode_Typer, 0 }, {0},
 	(FuncPtrDel)DaoxModel_Delete, NULL
 };
 
@@ -165,9 +178,16 @@ static void SCENE_New( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxScene *self = DaoxScene_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void SCENE_AddNode( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoxSceneNode *node = (DaoxSceneNode*) p[1];
+	DaoxScene_AddNode( self, node );
+}
 static DaoFuncItem DaoxSceneMeths[]=
 {
 	{ SCENE_New,         "Scene()" },
+	{ SCENE_AddNode,     "AddNode( self : Scene, node : SceneNode )" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxScene_Typer =
@@ -286,6 +306,7 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_mesh = DaoNamespace_WrapType( ns, & DaoxMesh_Typer, 0 );
 	daox_type_texture = DaoNamespace_WrapType( ns, & DaoxTexture_Typer, 0 );
 	daox_type_material = DaoNamespace_WrapType( ns, & DaoxMaterial_Typer, 0 );
+	daox_type_scene_node = DaoNamespace_WrapType( ns, & DaoxSceneNode_Typer, 0 );
 	daox_type_camera = DaoNamespace_WrapType( ns, & DaoxCamera_Typer, 0 );
 	daox_type_light = DaoNamespace_WrapType( ns, & DaoxLight_Typer, 0 );
 	daox_type_model = DaoNamespace_WrapType( ns, & DaoxModel_Typer, 0 );
