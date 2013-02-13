@@ -141,6 +141,10 @@ extern DaoType *daox_type_scene_node;
 
 DaoxSceneNode* DaoxSceneNode_New();
 void DaoxSceneNode_Delete( DaoxSceneNode *self );
+
+void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type );
+void DaoxSceneNode_Free( DaoxSceneNode *self );
+
 void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child );
 
 void DaoxSceneNode_ApplyTransform( DaoxSceneNode *self, DaoxMatrix4D matrix );

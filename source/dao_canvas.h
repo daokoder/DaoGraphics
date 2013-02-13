@@ -54,6 +54,7 @@
 
 enum DaoxCanvasShapes
 {
+	DAOX_GS_GROUP ,
 	DAOX_GS_LINE ,
 	DAOX_GS_RECT ,
 	DAOX_GS_CIRCLE ,
@@ -190,6 +191,7 @@ struct DaoxCanvasItem
 };
 
 
+
 /*
 // A line is always defined locally by (0,0)-(1,0).
 // Its actual length and orientation are determined by its transformations.
@@ -249,6 +251,8 @@ struct DaoxCanvas
 	DaoxMatrix3D  transform;
 
 	DaoxColor  background;
+
+	DaoxCanvasItem *active;
 
 	DArray  *items;
 	DArray  *states;

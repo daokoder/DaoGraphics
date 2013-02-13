@@ -371,7 +371,7 @@ void DaoxCanvasItem_Free( DaoxCanvasItem *self )
 DaoxCanvasItem* DaoxCanvasItem_New( DaoType *type )
 {
 	DaoxCanvasItem *self = (DaoxCanvasItem*) dao_calloc( 1, sizeof(DaoxCanvasItem) );
-	DaoxCanvasItem_Init( self, daox_type_canvas_item );
+	DaoxCanvasItem_Init( self, type );
 	return self;
 }
 void DaoxCanvasItem_Delete( DaoxCanvasItem *self )
@@ -426,17 +426,19 @@ void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas )
 		}
 		path = self->path;
 
-		if( path->first->refined.first == NULL )
-			DaoxPath_Preprocess( path, canvas->utility->triangulator );
+		if( path ){
+			if( path->first->refined.first == NULL )
+				DaoxPath_Preprocess( path, canvas->utility->triangulator );
 
-		if( strokeWidth > EPSILON && (strokeAlpha > EPSILON || strokeGradient != NULL) ){
-			int refine = state->dash || strokeGradient != NULL;
-			if( self->strokes == NULL ) self->strokes = DaoxPathMesh_New();
-			if( self->strokes->points->size == 0 ){
-				DaoxPath_ComputeStroke( path, self->strokes, strokeWidth, refine );
+			if( strokeWidth > EPSILON && (strokeAlpha > EPSILON || strokeGradient != NULL) ){
+				int refine = state->dash || strokeGradient != NULL;
+				if( self->strokes == NULL ) self->strokes = DaoxPathMesh_New();
+				if( self->strokes->points->size == 0 ){
+					DaoxPath_ComputeStroke( path, self->strokes, strokeWidth, refine );
+				}
+			}else{
+				if( self->strokes ) DaoxPathMesh_Reset( self->strokes );
 			}
-		}else{
-			if( self->strokes ) DaoxPathMesh_Reset( self->strokes );
 		}
 		self->dataChanged = 0;
 	}
@@ -558,7 +560,7 @@ DaoxCanvasImage* DaoxCanvasImage_New()
 void DaoxCanvasImage_Delete( DaoxCanvasImage *self )
 {
 	DaoxCanvasItem_Free( self );
-	DaoGC_DecRC( self->data.texture );
+	DaoGC_DecRC( (DaoValue*) self->data.texture );
 	dao_free( self );
 }
 
@@ -702,7 +704,7 @@ DaoxCanvas* DaoxCanvas_New()
 	DaoxMatrix3D X4 = { 4.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
 
 	DaoxCanvas *self = (DaoxCanvas*) dao_calloc( 1, sizeof(DaoxCanvas) );
-	DaoxSceneNode_Init( self, daox_type_canvas );
+	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_canvas );
 	self->utility = DaoxCanvasUtility_New();
 	self->items = DArray_New(D_VALUE);
 	self->states = DArray_New(D_VALUE);
@@ -712,7 +714,8 @@ DaoxCanvas* DaoxCanvas_New()
 }
 void DaoxCanvas_Delete( DaoxCanvas *self )
 {
-	DaoxSceneNode_Free( self );
+	if( self->active ) DaoGC_DecRC( (DaoValue*) self->active );
+	DaoxSceneNode_Free( (DaoxSceneNode*) self );
 	DaoxCanvasUtility_Delete( self->utility );
 	DArray_Delete( self->items );
 	DArray_Delete( self->states );
@@ -793,10 +796,22 @@ void DaoxCanvas_SetFont( DaoxCanvas *self, DaoxFont *font, float size )
 
 void DaoxCanvas_AddItem( DaoxCanvas *self, DaoxCanvasItem *item )
 {
-	DArray_PushBack( self->items, item );
+	if( self->active ){
+		if( self->active->children == NULL ) self->active->children = DArray_New(D_VALUE);
+		DArray_PushBack( self->active->children, item );
+	}else{
+		DArray_PushBack( self->items, item );
+	}
 	item->depth = 2*self->states->size;
 	item->state = DaoxCanvas_GetOrPushState( self );
-	DaoGC_IncRC( item->state );
+	DaoGC_IncRC( (DaoValue*) item->state );
+}
+
+DaoxCanvasItem* DaoxCanvas_AddGroup( DaoxCanvas *self )
+{
+	DaoxCanvasLine *item = DaoxCanvasItem_New( daox_type_canvas_item );
+	DaoxCanvas_AddItem( self, item );
+	return item;
 }
 
 #if 0
@@ -850,7 +865,7 @@ DaoxCanvasPolygon* DaoxCanvas_AddPolygon( DaoxCanvas *self )
 DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path )
 {
 	DaoxCanvasPath *item = DaoxCanvasPath_New();
-	DaoGC_IncRC( path );
+	DaoGC_IncRC( (DaoValue*) path );
 	item->path = path;
 	DaoxCanvas_AddItem( self, item );
 	return item;
@@ -979,6 +994,32 @@ static void ITEM_SetVisible( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvasItem *self = (DaoxCanvasItem*) p[0];
 	self->visible = p[1]->xEnum.value;
 }
+static void ITEM_SetTransform( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCanvasItem *self = (DaoxCanvasItem*) p[0];
+	DaoArray *array = (DaoArray*) p[1];
+	daoint n = array->size;
+	if( n != 4 && n != 6 ){
+		DaoProcess_RaiseException( proc, DAO_ERROR_PARAM, "need matrix with 4 or 6 elements" );
+		return;
+	}
+	DaoxMatrix3D_Set( & self->transform, array->data.f, n );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static void ITEM_MulTransform( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxMatrix3D transform;
+	DaoxCanvasItem *self = (DaoxCanvasItem*) p[0];
+	DaoArray *array = (DaoArray*) p[1];
+	daoint n = array->size;
+	if( n != 4 && n != 6 ){
+		DaoProcess_RaiseException( proc, DAO_ERROR_PARAM, "need matrix with 4 or 6 elements" );
+		return;
+	}
+	DaoxMatrix3D_Set( & transform, array->data.f, n );
+	DaoxMatrix3D_Multiply( & self->transform, transform );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
 
 static void DaoxCanvasItem_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
 {
@@ -991,6 +1032,8 @@ static void DaoxCanvasItem_GetGCFields( void *p, DArray *values, DArray *arrays,
 static DaoFuncItem DaoxCanvasItemMeths[]=
 {
 	{ ITEM_SetVisible,  "SetVisible( self : CanvasItem, visible :enum<false,true> )" },
+	{ ITEM_SetTransform, "SetTransform( self : CanvasItem, transform : array<float> ) => CanvasItem" },
+	{ ITEM_MulTransform, "MulTransform( self : CanvasItem, transform : array<float> ) => CanvasItem" },
 	{ NULL, NULL }
 };
 
@@ -1414,6 +1457,19 @@ static void CANVAS_SetBackground( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvas_SetBackground( self, color );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void CANVAS_SetActiveItem( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCanvas *self = (DaoxCanvas*) p[0];
+	DaoxCanvasItem *item = (DaoxCanvasItem*) p[1];
+	DaoGC_ShiftRC( (DaoValue*) item, (DaoValue*) self->active );
+	self->active = item;
+}
+static void CANVAS_AddGroup( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCanvas *self = (DaoxCanvas*) p[0];
+	DaoxCanvasLine *item = DaoxCanvas_AddGroup( self );
+	DaoProcess_PutValue( proc, (DaoValue*) item );
+}
 #if 0
 static void CANVAS_AddLine( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1583,32 +1639,6 @@ static void STATE_SetDash( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvasState_SetDashPattern( self, array->data.f, array->size );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void STATE_SetTransform( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxCanvasState *self = (DaoxCanvasState*) p[0];
-	DaoArray *array = (DaoArray*) p[1];
-	daoint n = array->size;
-	if( n != 4 && n != 6 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR_PARAM, "need matrix with 4 or 6 elements" );
-		return;
-	}
-	//DaoxMatrix3D_Set( & self->transform, array->data.f, n );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
-static void STATE_MulTransform( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxMatrix3D transform;
-	DaoxCanvasState *self = (DaoxCanvasState*) p[0];
-	DaoArray *array = (DaoArray*) p[1];
-	daoint n = array->size;
-	if( n != 4 && n != 6 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR_PARAM, "need matrix with 4 or 6 elements" );
-		return;
-	}
-	DaoxMatrix3D_Set( & transform, array->data.f, n );
-	//DaoxMatrix3D_Multiply( & self->transform, transform );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
 static void STATE_SetStrokeGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvasState *self = (DaoxCanvasState*) p[0];
@@ -1678,6 +1708,8 @@ static DaoFuncItem DaoxCanvasMeths[]=
 
 	{ CANVAS_PopState,    "PopState( self: Canvas )" },
 
+	{ CANVAS_SetActiveItem,   "SetActiveItem( self: Canvas, item : CanvasItem )" },
+	{ CANVAS_AddGroup,   "AddGroup( self: Canvas ) => CanvasItem" },
 #if 0
 	{ CANVAS_AddLine,   "AddLine( self: Canvas, x1: float, y1: float, x2: float, y2: float ) => CanvasLine" },
 
@@ -1727,9 +1759,6 @@ static DaoFuncItem DaoxCanvasStateMeths[]=
 	{ STATE_SetJunction, "SetJunction( self : CanvasState, junction: enum<none,flat,sharp,round> = $sharp ) => CanvasState" },
 
 	{ STATE_SetDash, "SetDashPattern( self : CanvasState, pattern = [3.0,2.0] ) => CanvasState" },
-
-	{ STATE_SetTransform, "SetTransform( self : CanvasState, transform : array<float> ) => CanvasState" },
-	{ STATE_MulTransform, "MulTransform( self : CanvasState, transform : array<float> ) => CanvasState" },
 
 	{ STATE_SetStrokeGradient, "SetStrokeGradient( self : CanvasState ) => ColorGradient" },
 
