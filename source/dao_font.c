@@ -114,6 +114,9 @@ int DaoxFont_Open( DaoxFont *self, const char *file )
 
 	DaoxFont_ResetGlyphs( self );
 	DString_Reset( self->buffer, 0 );
+
+	if( fin == NULL ) return;
+
 	DaoFile_ReadAll( fin, self->buffer, 1 );
 	self->fontData = (uchar_t*)DString_GetMBS( self->buffer );
 	self->fontStart = 0;
@@ -344,7 +347,7 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 
 	printf( "DaoxFont_MakeGlyph: %i\n", glyph_index );
 
-	// TODO reset glyph->shape
+	DaoxPath_Reset( glyph->shape );
 	if( glyph_index < numOfLongHorMetrics ){
 		glyph->advanceWidth = daox_tt_short( hmtx + 4*glyph_index );
 		glyph->leftSideBearing = daox_tt_short( hmtx + 4*glyph_index + 2 );
@@ -472,6 +475,7 @@ DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, int glyph_index )
 	DNode *node = DMap_Find( self->glyphs, (void*)(size_t) glyph_index );
 	DaoxGlyph *glyph = node ? (DaoxGlyph*) node->value.pVoid : NULL;
 	if( glyph && glyph->shape->mesh->triangles->size ) return glyph;
+	if( self->buffer->size == 0 ) return NULL;
 	if( glyph == NULL ){
 		glyph = DaoxGlyph_New();
 		DMap_Insert( self->glyphs, (void*)(size_t) glyph_index, glyph );
@@ -485,6 +489,7 @@ DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, wchar_t ch )
 	DaoxGlyph *glyph = node ? (DaoxGlyph*) node->value.pVoid : NULL;
 	if( glyph && glyph->shape->mesh->triangles->size ) return glyph;
 	glyph = DaoxFont_GetGlyph( self, DaoxFont_FindGlyphIndex( self, ch ) );
+	if( glyph == NULL ) return NULL;
 	glyph->codepoint = ch;
 	if( node == NULL ) DMap_Insert( self->glyphs2, (void*)(size_t) ch, glyph );
 	return glyph;

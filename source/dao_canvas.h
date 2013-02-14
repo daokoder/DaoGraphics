@@ -153,7 +153,8 @@ struct DaoxCanvasState
 	DaoxColorGradient  *strokeGradient;
 	DaoxColorGradient  *fillGradient;
 
-	DaoxFont  *font;
+	DaoxFont        *font;
+	DaoxCanvasItem  *parent;
 };
 DAO_DLL extern DaoType *daox_type_canvas_state;
 
@@ -251,8 +252,6 @@ struct DaoxCanvas
 	DaoxMatrix3D  transform;
 
 	DaoxColor  background;
-
-	DaoxCanvasItem *active;
 
 	DArray  *items;
 	DArray  *states;

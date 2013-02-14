@@ -318,13 +318,16 @@ void DaoxCanvasState_Delete( DaoxCanvasState *self )
 {
 	if( self->strokeGradient ) DaoxColorGradient_Delete( self->strokeGradient );
 	if( self->font ) DaoGC_DecRC( (DaoValue*) self->font );
+	if( self->parent ) DaoGC_DecRC( (DaoValue*) self->parent );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 void DaoxCanvasState_Copy( DaoxCanvasState *self, DaoxCanvasState *other )
 {
 	DaoGC_ShiftRC( (DaoValue*) other->font, (DaoValue*) self->font );
+	DaoGC_ShiftRC( (DaoValue*) other->parent, (DaoValue*) self->parent );
 	self->font = other->font;
+	self->parent = other->parent;
 	self->dash = other->dash;
 	self->junction = other->junction;
 	self->fontSize = other->fontSize;
@@ -345,8 +348,12 @@ void DaoxCanvasState_SetFont( DaoxCanvasState *self, DaoxFont *font, float size 
 	self->font = font;
 	self->fontSize = size;
 }
+void DaoxCanvasState_SetParentItem( DaoxCanvasState *self, DaoxCanvasItem *item )
+{
+	DaoGC_ShiftRC( (DaoValue*) item, (DaoValue*) self->parent );
+	self->parent = item;
+}
 
-DaoxCanvasState* DaoxCanvas_GetOrPushState( DaoxCanvas *self );
 
 
 
@@ -416,15 +423,15 @@ void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas )
 	if( self->stateChanged == 0 ) return;
 
 	if( self->dataChanged && self->state ){
-		DaoxPath *path;
+		DaoxPath *path = NULL;
 		DaoxCanvasState *state = self->state;
 		DaoxColorGradient *strokeGradient = state->strokeGradient;
 		float strokeWidth = state->strokeWidth;
 		float strokeAlpha = state->strokeColor.alpha;
 
 		if( self->ctype == daox_type_canvas_path ){
-		}
 		path = self->path;
+		}
 
 		if( path ){
 			if( path->first->refined.first == NULL )
@@ -714,7 +721,6 @@ DaoxCanvas* DaoxCanvas_New()
 }
 void DaoxCanvas_Delete( DaoxCanvas *self )
 {
-	if( self->active ) DaoGC_DecRC( (DaoValue*) self->active );
 	DaoxSceneNode_Free( (DaoxSceneNode*) self );
 	DaoxCanvasUtility_Delete( self->utility );
 	DArray_Delete( self->items );
@@ -796,15 +802,16 @@ void DaoxCanvas_SetFont( DaoxCanvas *self, DaoxFont *font, float size )
 
 void DaoxCanvas_AddItem( DaoxCanvas *self, DaoxCanvasItem *item )
 {
-	if( self->active ){
-		if( self->active->children == NULL ) self->active->children = DArray_New(D_VALUE);
-		DArray_PushBack( self->active->children, item );
+	DaoxCanvasState *state = DaoxCanvas_GetOrPushState( self );
+	if( state->parent ){
+		if( state->parent->children == NULL ) state->parent->children = DArray_New(D_VALUE);
+		DArray_PushBack( state->parent->children, item );
 	}else{
 		DArray_PushBack( self->items, item );
 	}
-	item->depth = 2*self->states->size;
+	DaoGC_ShiftRC( (DaoValue*) state, (DaoValue*) item->state );
 	item->state = DaoxCanvas_GetOrPushState( self );
-	DaoGC_IncRC( (DaoValue*) item->state );
+	item->depth = 2*self->states->size;
 }
 
 DaoxCanvasItem* DaoxCanvas_AddGroup( DaoxCanvas *self )
@@ -870,16 +877,17 @@ DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path )
 	DaoxCanvas_AddItem( self, item );
 	return item;
 }
-#if 0
-void DaoxCanvasText_AddCharItems( DaoxCanvasText *self, const wchar_t *text, float x, float y, float degrees )
+void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, const wchar_t *text, float x, float y, float degrees )
 {
 	DaoxGlyph *glyph;
+	DaoxCanvasState *state;
 	DaoxCanvasText *chitem;
-	DaoxFont *font = self->state->font;
+	DaoxPath *textPath = textItem->path;
+	DaoxFont *font = textItem->state->font;
 	DaoxMatrix3D transform = {0.0,0.0,0.0,0.0,0.0,0.0};
 	DaoxMatrix3D rotation = {0.0,0.0,0.0,0.0,0.0,0.0};
-	float width = self->state->strokeWidth;
-	float size = self->state->fontSize;
+	float width = textItem->state->strokeWidth;
+	float size = textItem->state->fontSize;
 	float scale = size / (float)font->fontHeight;
 	float offset, advance, angle = degrees * M_PI / 180.0;
 
@@ -890,7 +898,15 @@ void DaoxCanvasText_AddCharItems( DaoxCanvasText *self, const wchar_t *text, flo
 	rotation.A22 = rotation.A11;
 	DaoxMatrix3D_Multiply( & transform, rotation );
 
-	if( self->path ) DaoxPath_Refine( self->path, 8.0/size, 2.0/size );
+	DaoxPath *pt = DaoxPath_New();
+	state = DaoxCanvas_PushState( self );
+	DaoxCanvas_AddPath( self, pt );
+	DaoxCanvas_PopState( self );
+	state->strokeWidth = 3;
+	DaoxPath_MoveTo( pt, 0, 0 );
+
+	state = DaoxCanvas_PushState( self );
+	DaoxCanvasState_SetParentItem( state, textItem );
 
 	offset = x;
 	while( *text ){
@@ -904,36 +920,37 @@ void DaoxCanvasText_AddCharItems( DaoxCanvasText *self, const wchar_t *text, flo
 		bounds = DaoxAABBox2D_Transform( & bounds, & rotation );
 		advance = bounds.right - bounds.left;
 
-		if( self->children == NULL ) self->children = DArray_New(D_VALUE);
-		DaoxCanvas_PushState( self->canvas );
-		chitem = DaoxCanvasItem_New( self->canvas, DAOX_GS_TEXT );
-		DArray_PushBack( self->children, chitem );
-		DaoxCanvas_PopState( self->canvas );
-		/* Set codepoint to zero if the glyph is empty: */
-		chitem->codepoint = glyph->shape->triangles->count ? ch : 0;
+		if( textItem->children == NULL ) textItem->children = DArray_New(D_VALUE);
 
-		if( self->path ){
+		chitem = DaoxCanvasPath_New();
+		DaoxCanvas_AddItem( self, chitem );
+		DaoGC_IncRC( glyph->shape );
+		chitem->path = glyph->shape;
+
+		if( textPath ){
 			float p = 0.0, adv = 0.5 * (scale * advance + width);
-			DaoxPathSegment *seg1 = DaoxPath_LocateByDistance( self->path, offset+adv, &p );
-			DaoxPathSegment *seg2 = DaoxPath_LocateByDistance( self->path, offset, &p );
-			if( seg1 == NULL ) seg1 = seg2;
-			if( seg2 ){
-				float dx = seg1->P2.x - seg1->P1.x;
-				float dy = seg1->P2.y - seg1->P1.y;
+			DaoxPathSegment seg1 = DaoxPath_LocateByDistance( textPath, offset+adv, &p );
+			DaoxPathSegment seg2 = DaoxPath_LocateByDistance( textPath, offset, &p );
+			if( seg1.bezier == 0 ) seg1 = seg2;
+			if( seg2.bezier ){
+				DaoxPath_LineTo( pt, seg1.P2.x, seg1.P2.y );
+				float dx = seg1.P2.x - seg1.P1.x;
+				float dy = seg1.P2.y - seg1.P1.y;
 				DaoxMatrix3D_RotateXAxisTo( & transform, dx, dy );
 				DaoxMatrix3D_Multiply( & transform, rotation );
 				DaoxMatrix3D_SetScale( & transform, scale, scale );
-				transform.B1 = (1.0 - p) * seg2->P1.x + p * seg2->P2.x;
-				transform.B2 = (1.0 - p) * seg2->P1.y + p * seg2->P2.y;
+				transform.B1 = (1.0 - p) * seg2.P1.x + p * seg2.P2.x;
+				transform.B2 = (1.0 - p) * seg2.P1.y + p * seg2.P2.y;
 			}
 		}else{
 			transform.B1 = offset;
 			transform.B2 = y;
 		}
-		chitem->state->transform = transform;
+		chitem->transform = transform;
 		offset += scale * advance + width;
 		chitem = NULL;
 	}
+	DaoxCanvas_PopState( self );
 }
 DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const wchar_t *text, float x, float y, float degrees )
 {
@@ -943,9 +960,9 @@ DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const wchar_t *text, float
 	state = DaoxCanvas_GetOrPushState( self );
 	if( state->font == NULL ) return NULL;
 
-	item = DaoxCanvasItem_New( self, DAOX_GS_TEXT );
-	DArray_PushBack( self->items, item );
-	DaoxCanvasText_AddCharItems( item, text, x, y, degrees );
+	item = DaoxCanvasText_New();
+	DaoxCanvas_AddItem( self, item );
+	DaoxCanvas_AddCharItems( self, item, text, x, y, degrees );
 	return item;
 }
 DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const wchar_t *text, DaoxPath *path, float degrees )
@@ -956,15 +973,17 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const wchar_t *text, D
 	state = DaoxCanvas_GetOrPushState( self );
 	if( state->font == NULL ) return NULL;
 
-	item = DaoxCanvasItem_New( self, DAOX_GS_TEXT );
-	DArray_PushBack( self->items, item );
-	if( item->path == NULL ) item->path = DaoxPath_New();
-	DaoxPath_Reset( item->path );
-	DaoxPath_ImportPath( item->path, path, NULL );
-	DaoxPath_Preprocess( item->path, self->utility->triangulator );
-	DaoxCanvasText_AddCharItems( item, text, 0, 0, degrees );
+	item = DaoxCanvasText_New();
+	DaoxCanvas_AddItem( self, item );
+
+	DaoxPath_Preprocess( path, self->utility->triangulator );
+	DaoGC_ShiftRC( (DaoValue*) path, (DaoValue*) item->path );
+	item->path = path;
+
+	DaoxCanvas_AddCharItems( self, item, text, 0, 0, degrees );
 	return item;
 }
+#if 0
 DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y )
 {
 	DaoxCanvasState *state = DaoxCanvas_GetOrPushState( self );
@@ -1392,7 +1411,6 @@ DaoTypeBase DaoxCanvasPath_Typer =
 
 
 
-#if 0
 static DaoFuncItem DaoxCanvasTextMeths[]=
 {
 	{ NULL, NULL }
@@ -1407,6 +1425,7 @@ DaoTypeBase DaoxCanvasText_Typer =
 
 
 
+#if 0
 static DaoFuncItem DaoxCanvasImageMeths[]=
 {
 	{ NULL, NULL }
@@ -1456,13 +1475,6 @@ static void CANVAS_SetBackground( DaoProcess *proc, DaoValue *p[], int N )
 	color.alpha = p[4]->xFloat.value;
 	DaoxCanvas_SetBackground( self, color );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
-static void CANVAS_SetActiveItem( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxCanvas *self = (DaoxCanvas*) p[0];
-	DaoxCanvasItem *item = (DaoxCanvasItem*) p[1];
-	DaoGC_ShiftRC( (DaoValue*) item, (DaoValue*) self->active );
-	self->active = item;
 }
 static void CANVAS_AddGroup( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1520,12 +1532,7 @@ static void CANVAS_AddPolygon( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvasPolygon *item = DaoxCanvas_AddPolygon( self );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
-static void CANVAS_AddPath( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxCanvas *self = (DaoxCanvas*) p[0];
-	DaoxCanvasPath *item = DaoxCanvas_AddPath( self );
-	DaoProcess_PutValue( proc, (DaoValue*) item );
-}
+#endif
 static void CANVAS_AddText( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
@@ -1545,14 +1552,15 @@ static void CANVAS_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 	float a = p[3]->xFloat.value;
 	wchar_t *text = DaoValue_TryGetWCString( p[1] );
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
-	DaoxCanvasPath *path = (DaoxCanvasPath*) p[2];
-	DaoxCanvasText *item = DaoxCanvas_AddPathText( self, text, path->path, a );
+	DaoxPath *path = (DaoxPath*) p[2];
+	DaoxCanvasText *item = DaoxCanvas_AddPathText( self, text, path, a );
 	if( item == NULL ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
 		return;
 	}
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
+#if 0
 static void CANVAS_AddImage( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
@@ -1676,6 +1684,13 @@ static void STATE_SetFont( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvasState_SetFont( self, font, p[2]->xFloat.value );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void STATE_SetParentItem( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCanvasState *self = (DaoxCanvasState*) p[0];
+	DaoxCanvasItem *item = (DaoxCanvasItem*) p[1];
+	DaoGC_ShiftRC( (DaoValue*) item, (DaoValue*) self->parent );
+	self->parent = item;
+}
 static void CANVAS_Test( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
@@ -1708,7 +1723,6 @@ static DaoFuncItem DaoxCanvasMeths[]=
 
 	{ CANVAS_PopState,    "PopState( self: Canvas )" },
 
-	{ CANVAS_SetActiveItem,   "SetActiveItem( self: Canvas, item : CanvasItem )" },
 	{ CANVAS_AddGroup,   "AddGroup( self: Canvas ) => CanvasItem" },
 #if 0
 	{ CANVAS_AddLine,   "AddLine( self: Canvas, x1: float, y1: float, x2: float, y2: float ) => CanvasLine" },
@@ -1723,11 +1737,7 @@ static DaoFuncItem DaoxCanvasMeths[]=
 
 	{ CANVAS_AddPolygon,   "AddPolygon( self: Canvas ) => CanvasPolygon" },
 
-	{ CANVAS_AddPath,      "AddPath( self: Canvas ) => CanvasPath" },
 
-	{ CANVAS_AddText,      "AddText( self: Canvas, text : string, x :float, y :float, degrees = 0.0 ) => CanvasText" },
-
-	{ CANVAS_AddText2,     "AddText( self: Canvas, text : string, path :CanvasPath, degrees = 0.0 ) => CanvasText" },
 
 	{ CANVAS_AddImage,     "AddImage( self: Canvas, image: Image, x :float, y :float ) => CanvasImage" },
 
@@ -1735,6 +1745,9 @@ static DaoFuncItem DaoxCanvasMeths[]=
 	{ CANVAS_Test,         "Test( self: Canvas )" },
 #endif
 	{ CANVAS_AddPath,      "AddPath( self: Canvas, path : Path ) => CanvasPath" },
+	{ CANVAS_AddText,      "AddText( self: Canvas, text : string, x :float, y :float, degrees = 0.0 ) => CanvasText" },
+
+	{ CANVAS_AddText2,     "AddText( self: Canvas, text : string, path :Path, degrees = 0.0 ) => CanvasText" },
 	{ NULL, NULL }
 };
 
@@ -1769,6 +1782,7 @@ static DaoFuncItem DaoxCanvasStateMeths[]=
 	//{ STATE_SetPathGradient,   "SetPathGradient( self : CanvasState ) => PathGradient" },
 
 	{ STATE_SetFont,      "SetFont( self: CanvasState, font : Font, size = 12.0 ) => CanvasState" },
+	{ STATE_SetParentItem,   "SetParentItem( self: CanvasState, item : CanvasItem )" },
 	{ NULL, NULL }
 };
 
@@ -1852,10 +1866,10 @@ DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_canvas_polyline = DaoNamespace_WrapType( ns, & DaoxCanvasPolyline_Typer, 0 );
 	daox_type_canvas_polygon = DaoNamespace_WrapType( ns, & DaoxCanvasPolygon_Typer, 0 );
 	daox_type_canvas_path = DaoNamespace_WrapType( ns, & DaoxCanvasPath_Typer, 0 );
-	daox_type_canvas_text = DaoNamespace_WrapType( ns, & DaoxCanvasText_Typer, 0 );
 	daox_type_canvas_image = DaoNamespace_WrapType( ns, & DaoxCanvasImage_Typer, 0 );
 #endif
 	daox_type_canvas_path = DaoNamespace_WrapType( ns, & DaoxCanvasPath_Typer, 0 );
+	daox_type_canvas_text = DaoNamespace_WrapType( ns, & DaoxCanvasText_Typer, 0 );
 
 	DaoTriangulator_OnLoad( vmSpace, ns );
 	return 0;

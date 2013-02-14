@@ -178,8 +178,8 @@ void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff );
 void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width, int refine );
 
 
-DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p );
-DaoxPathSegment* DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, float *p );
+DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p );
+DaoxPathSegment DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, float *p );
 
 void DaoxPathSegment_Divide( DaoxPathSegment *self, float at );
 void DaoxPathSegment_ComputeLengthAndDelta( DaoxPathSegment *self );

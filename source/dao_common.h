@@ -355,6 +355,8 @@ struct DaoxPlainArray
 		DaoxTriangle  *triangles;
 
 		DaoxColor     *colors;
+
+		struct DaoxPathSegment  *segments;
 	} pod;
 
 	uint_t  size;
