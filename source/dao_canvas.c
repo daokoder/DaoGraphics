@@ -898,13 +898,6 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, const 
 	rotation.A22 = rotation.A11;
 	DaoxMatrix3D_Multiply( & transform, rotation );
 
-	DaoxPath *pt = DaoxPath_New();
-	state = DaoxCanvas_PushState( self );
-	DaoxCanvas_AddPath( self, pt );
-	DaoxCanvas_PopState( self );
-	state->strokeWidth = 3;
-	DaoxPath_MoveTo( pt, 0, 0 );
-
 	state = DaoxCanvas_PushState( self );
 	DaoxCanvasState_SetParentItem( state, textItem );
 
@@ -933,7 +926,6 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, const 
 			DaoxPathSegment seg2 = DaoxPath_LocateByDistance( textPath, offset, &p );
 			if( seg1.bezier == 0 ) seg1 = seg2;
 			if( seg2.bezier ){
-				DaoxPath_LineTo( pt, seg1.P2.x, seg1.P2.y );
 				float dx = seg1.P2.x - seg1.P1.x;
 				float dy = seg1.P2.y - seg1.P1.y;
 				DaoxMatrix3D_RotateXAxisTo( & transform, dx, dy );

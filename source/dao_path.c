@@ -707,6 +707,11 @@ void DaoxPathSegment_SubSegments( DaoxPathSegment *self, DaoxPlainArray *segment
 	DaoxPathSegment *segment;
 	int i, start = segments->size;
 
+	if( start ){
+		DaoxPathSegment *segment = DaoxPlainArray_Get( segments, start-1 );
+		segment->next = (DaoxPathSegment*) (daoint) start;
+	}
+
 	segment = (DaoxPathSegment*) DaoxPlainArray_Push( segments );
 	*segment = *self;
 	segment->first = segment->second = segment->next = NULL;
@@ -733,15 +738,6 @@ void DaoxPathSegment_SubSegments( DaoxPathSegment *self, DaoxPlainArray *segment
 		*seg = segment2;
 		segment->next = (DaoxPathSegment*) (daoint)(segments->size - 1);
 		seg->next = next;
-	}
-	for(i=start+1; i<segments->size; ++i){
-		DaoxPathSegment seg1 = segments->pod.segments[i-1];
-		DaoxPathSegment seg2 = segments->pod.segments[i];
-		daoint index = (daoint) seg1.next;
-		if( index != i ){
-			segments->pod.segments[i] = segments->pod.segments[index];
-			segments->pod.segments[index] = seg2;
-		}
 	}
 }
 double DaoxPathSegment_Length( DaoxPathSegment *self )
@@ -819,7 +815,7 @@ void DaoxPath_SubSegments( DaoxPath *self, DaoxPlainArray *segments, float maxle
 DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p )
 {
 	DaoxPlainArray *segments;
-	DaoxPathSegment seg = {0};
+	DaoxPathSegment *S, seg = {0};
 	double offset = 0.0;
 	int i;
 
@@ -827,17 +823,19 @@ DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float
 	segments = DaoxPlainArray_New( sizeof(DaoxPathSegment) );
 
 	DaoxPath_SubSegments( self, segments, 1E6, 1E-3 );
-	for(i=0; i<segments->size; ++i){
-		DaoxPathSegment *segment = & segments->pod.segments[i];
-		double max = DaoxPathSegment_MaxLength( segment );
-		double min = DaoxVector2D_Dist( segment->P1, segment->P2 );
-		double len = 0.5 * (min + max);
+
+	S = (DaoxPathSegment*) DaoxPlainArray_Get( segments, 0 );
+	while( S ){
+		double max = DaoxPathSegment_MaxLength( S );
+		double min = DaoxVector2D_Dist( S->P1, S->P2 );
+		double len = 0.5 * (max + min);
 
 		if( distance >= offset && distance <= (offset + len) ){
 			if( p ) *p = (distance - offset) / len;
-			return *segment;
+			return *S;
 		}
 		offset += len;
+		S = S->next ? DaoxPlainArray_Get( segments, (daoint) S->next ) : NULL;
 	}
 	DaoxPlainArray_Delete( segments );
 	return seg;

@@ -432,7 +432,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 	//DaoxPainter_PaintItemData( self, canvas, item );
-	DaoxVG_PaintItemData( & self->shader, & self->buffer, canvas, item );
+	if( item->visible ) DaoxVG_PaintItemData( & self->shader, & self->buffer, canvas, item );
 	//if( item->texture ) DaoxPainter_PaintImageItem( self, item );
 
 	for(i=0; i<n; i++){
@@ -578,7 +578,7 @@ void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D view
 	camera.nearPlane = 0.01*W;
 	camera.farPlane = W;
 
-	DaoxCamera_MoveXYZ( & camera, 0.0, 0.0, 0.3*W );
+	DaoxCamera_MoveXYZ( & camera, 0.0, 0.0, 0.5*W );
 	DaoxCamera_LookAtXYZ( & camera, CX, CY, -1.0 );
 
 	//DaoxCamera_MoveXYZ( & camera, 0.0, 0.0+70, 0.1*W );
