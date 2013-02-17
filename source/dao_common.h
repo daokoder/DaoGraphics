@@ -296,6 +296,8 @@ struct DaoxOBBox2D
 void DaoxOBBox2D_ResetBox( DaoxOBBox2D *self, DaoxVector2D points[], int count );
 int  DaoxOBBox2D_Intersect( DaoxOBBox2D *self, DaoxOBBox2D *other );
 int  DaoxOBBox2D_Intersect2( DaoxOBBox2D *self, DaoxOBBox2D *other, double tolerance );
+DaoxOBBox2D DaoxOBBox2D_InitRect( float left, float right, float top, float bottom );
+DaoxOBBox2D DaoxOBBox2D_Scale( DaoxOBBox2D *self, float scale );
 DaoxOBBox2D DaoxOBBox2D_Transform( DaoxOBBox2D *self, DaoxMatrix3D *transfrom );
 DaoxOBBox2D DaoxOBBox2D_CopyWithMargin( DaoxOBBox2D *self, double margin );
 

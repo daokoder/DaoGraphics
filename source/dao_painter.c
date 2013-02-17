@@ -104,45 +104,45 @@ void DaoxPainter_PaintCanvasText( DaoxPainter *self, DaoxCanvasText *text )
 
 
 
-void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points )
+void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points, float scale )
 {
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex2D *glvertex = glvertices + i;
 		DaoxVector3D point = points->pod.vectors3d[i];
-		glvertex->point.x = point.x;
-		glvertex->point.y = point.y;
+		glvertex->point.x = point.x * scale;
+		glvertex->point.y = point.y * scale;
 		glvertex->texKLMO.k = 0;
 		glvertex->texKLMO.l = 0;
 		glvertex->texKLMO.m = 0;
-		glvertex->texKLMO.o = point.z;
+		glvertex->texKLMO.o = point.z * scale;
 		//printf( "%6i: %9f\n", i, point.z );
 	}
 }
-void DaoxVG_BufferPatches2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points )
+void DaoxVG_BufferPatches2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points, float scale )
 {
 	DaoxTexturedPoint *points2 = (DaoxTexturedPoint*) points->pod.data;
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex2D *glvertex = glvertices + i;
 		DaoxTexturedPoint point = points2[i];
-		glvertex->point.x = point.point.x;
-		glvertex->point.y = point.point.y;
+		glvertex->point.x = point.point.x * scale;
+		glvertex->point.y = point.point.y * scale;
 		glvertex->texKLMO.k = point.klm.x;
 		glvertex->texKLMO.l = point.klm.y;
 		glvertex->texKLMO.m = point.klm.z;
-		glvertex->texKLMO.o = point.offset;
+		glvertex->texKLMO.o = point.offset * scale;
 		//printf( "%6i: %9f\n", i, point.offset );
 	}
 }
-void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *points )
+void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *points, float scale )
 {
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex3DVG *glvertex = glvertices + i;
 		DaoxVector3D point = points->pod.vectors3d[i];
-		glvertex->point.x = point.x;
-		glvertex->point.y = point.y;
+		glvertex->point.x = point.x * scale;
+		glvertex->point.y = point.y * scale;
 		glvertex->point.z = 0;
 		glvertex->norm.x = 0;
 		glvertex->norm.y = 0;
@@ -150,19 +150,19 @@ void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *point
 		glvertex->texKLMO.k = 0;
 		glvertex->texKLMO.l = 0;
 		glvertex->texKLMO.m = 0;
-		glvertex->texKLMO.o = point.z;
+		glvertex->texKLMO.o = point.z * scale;
 		//printf( "%6i: %9f\n", i, point.z );
 	}
 }
-void DaoxVG_BufferPatches3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *points )
+void DaoxVG_BufferPatches3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *points, float scale )
 {
 	DaoxTexturedPoint *points2 = (DaoxTexturedPoint*) points->pod.data;
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex3DVG *glvertex = glvertices + i;
 		DaoxTexturedPoint point = points2[i];
-		glvertex->point.x = point.point.x;
-		glvertex->point.y = point.point.y;
+		glvertex->point.x = point.point.x * scale;
+		glvertex->point.y = point.point.y * scale;
 		glvertex->point.z = 0;
 		glvertex->norm.x = 0;
 		glvertex->norm.y = 0;
@@ -170,24 +170,24 @@ void DaoxVG_BufferPatches3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *points
 		glvertex->texKLMO.k = point.klm.x;
 		glvertex->texKLMO.l = point.klm.y;
 		glvertex->texKLMO.m = point.klm.z;
-		glvertex->texKLMO.o = point.offset;
+		glvertex->texKLMO.o = point.offset * scale;
 		//printf( "%6i: %9f\n", i, point.offset );
 	}
 }
-void DaoxVG_BufferVertices( DaoxBuffer *buffer, void *glvertices, DaoxPlainArray *points )
+void DaoxVG_BufferVertices( DaoxBuffer *buffer, void *glvertices, DaoxPlainArray *points, float scale )
 {
 	if( buffer->vertexSize == sizeof(DaoGLVertex2D) ){
-		DaoxVG_BufferVertices2D( (DaoGLVertex2D*) glvertices, points );
+		DaoxVG_BufferVertices2D( (DaoGLVertex2D*) glvertices, points, scale );
 	}else if( buffer->vertexSize == sizeof(DaoGLVertex3DVG) ){
-		DaoxVG_BufferVertices3D( (DaoGLVertex3DVG*) glvertices, points );
+		DaoxVG_BufferVertices3D( (DaoGLVertex3DVG*) glvertices, points, scale );
 	}
 }
-void DaoxVG_BufferPatches( DaoxBuffer *buffer, void *glvertices, DaoxPlainArray *points )
+void DaoxVG_BufferPatches( DaoxBuffer *buffer, void *glvertices, DaoxPlainArray *points, float scale )
 {
 	if( buffer->vertexSize == sizeof(DaoGLVertex2D) ){
-		DaoxVG_BufferPatches2D( (DaoGLVertex2D*) glvertices, points );
+		DaoxVG_BufferPatches2D( (DaoGLVertex2D*) glvertices, points, scale );
 	}else if( buffer->vertexSize == sizeof(DaoGLVertex3DVG) ){
-		DaoxVG_BufferPatches3D( (DaoGLVertex3DVG*) glvertices, points );
+		DaoxVG_BufferPatches3D( (DaoGLVertex3DVG*) glvertices, points, scale );
 	}
 }
 void DaoxVG_BufferTriangles( DaoGLTriangle *gltriangles, DaoxPlainArray *triangles, int offset )
@@ -206,8 +206,9 @@ void DaoxVG_BufferTriangles( DaoGLTriangle *gltriangles, DaoxPlainArray *triangl
 void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *canvas, DaoxCanvasItem *item )
 {
 	DaoxCanvasState *state = item->state;
-	float scale = DaoxCanvas_Scale( canvas );
-	float stroke = state->strokeWidth / (scale + 1E-16);
+	float resolution = DaoxCanvas_Scale( canvas );
+	float scale = item->scale;
+	float stroke = state->strokeWidth * scale / (resolution + 1E-16);
 	int i, fill = item->path != NULL;
 	int fillVertexCount = 0;
 	int fillVertexCount2 = 0;
@@ -245,14 +246,14 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 
 	//printf( "buffering: %15p %15p\n", fillVertices, fillTriangles );
 	if( fill ){
-		DaoxVG_BufferVertices( buffer, fillVertices, item->path->mesh->points );
-		DaoxVG_BufferPatches( buffer, fillVertices2, item->path->mesh->patches );
+		DaoxVG_BufferVertices( buffer, fillVertices, item->path->mesh->points, scale );
+		DaoxVG_BufferPatches( buffer, fillVertices2, item->path->mesh->patches, scale );
 		DaoxVG_BufferTriangles( fillTriangles, item->path->mesh->triangles, fillOffset );
 	}
 
 	if( item->strokes ){
-		DaoxVG_BufferVertices( buffer, strokeVertices, item->strokes->points );
-		DaoxVG_BufferPatches( buffer, strokeVertices2, item->strokes->patches );
+		DaoxVG_BufferVertices( buffer, strokeVertices, item->strokes->points, scale );
+		DaoxVG_BufferPatches( buffer, strokeVertices2, item->strokes->patches, scale );
 		DaoxVG_BufferTriangles( strokeTriangles, item->strokes->triangles, strokeOffset );
 	}
 

@@ -143,6 +143,8 @@ struct DaoxPath
 
 	DaoxPathMesh  *mesh;
 
+	DMap  *strokes;
+
 	float  length;
 
 	uchar_t cmdRelative;
@@ -183,5 +185,7 @@ DaoxPathSegment DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, f
 
 void DaoxPathSegment_Divide( DaoxPathSegment *self, float at );
 void DaoxPathSegment_ComputeLengthAndDelta( DaoxPathSegment *self );
+
+DaoxPathMesh* DaoxPath_GetStrokes( DaoxPath *self, float width, int refine );
 
 #endif

@@ -668,6 +668,17 @@ void DaoxMatrix4D_Print( DaoxMatrix4D *self )
 
 
 
+DaoxOBBox2D DaoxOBBox2D_InitRect( float left, float right, float top, float bottom )
+{
+	DaoxOBBox2D obbox;
+	obbox.O.x = left;
+	obbox.O.y = bottom;
+	obbox.X.x = right;
+	obbox.X.y = bottom;
+	obbox.Y.x = left;
+	obbox.Y.y = top;
+	return obbox;
+}
 int DaoxOBBox2D_Contain( DaoxOBBox2D *self, DaoxVector2D point )
 {
 	DaoxVector2D X = DaoxVector2D_Sub( & self->X, & self->O );
@@ -860,12 +871,21 @@ double DaoxOBBox2D_Area( DaoxOBBox2D *self )
 	//printf( "DaoxOBBox2D_Area: %25.20f %25.20f; %25.20f\n", W, H, W*H );
 	return W*H;
 }
+DaoxOBBox2D DaoxOBBox2D_Scale( DaoxOBBox2D *self, float scale )
+{
+	DaoxOBBox2D obbox;
+	obbox.O = DaoxVector2D_Scale( & obbox.O, scale );
+	obbox.X = DaoxVector2D_Scale( & obbox.X, scale );
+	obbox.Y = DaoxVector2D_Scale( & obbox.Y, scale );
+	return obbox;
+}
 DaoxOBBox2D DaoxOBBox2D_Transform( DaoxOBBox2D *self, DaoxMatrix3D *transfrom )
 {
 	DaoxOBBox2D obbox;
 	obbox.O = DaoxMatrix3D_MulVector( transfrom, & self->O, 1 );
 	obbox.X = DaoxMatrix3D_MulVector( transfrom, & self->X, 1 );
 	obbox.Y = DaoxMatrix3D_MulVector( transfrom, & self->Y, 1 );
+	return obbox;
 }
 DaoxOBBox2D DaoxOBBox2D_CopyWithMargin( DaoxOBBox2D *self, double margin )
 {

@@ -214,9 +214,9 @@ vec4 ComputeCubicBezier( vec3 p, vec4 color )\n\
 	float sd = -(p.x*p.x*p.x - p.y*p.z) / sqrt(fx*fx + fy*fy); \n\
                                                               \n\
 	// Linear alpha: \n\
-	float alpha = 0.5 - sd; \n\
+	float alpha = 0.25 - sd; \n\
 	if( alpha < 0.0 ) discard; \n\
-	if( alpha < 1.0 ) color.a *= alpha; \n\
+	if( alpha < 0.5 ) color.a *= 2*alpha; \n\
 	return color; \n\
 }\n\
 \n\

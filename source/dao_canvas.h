@@ -52,20 +52,6 @@
 #define DAOX_ARCS 18
 
 
-enum DaoxCanvasShapes
-{
-	DAOX_GS_GROUP ,
-	DAOX_GS_LINE ,
-	DAOX_GS_RECT ,
-	DAOX_GS_CIRCLE ,
-	DAOX_GS_ELLIPSE ,
-	DAOX_GS_POLYLINE ,
-	DAOX_GS_POLYGON ,
-	DAOX_GS_PATH ,
-	DAOX_GS_TEXT ,
-	DAOX_GS_IMAGE
-};
-
 
 typedef struct DaoxCanvasUtility   DaoxCanvasUtility;
 typedef struct DaoxCanvasState     DaoxCanvasState;
@@ -172,14 +158,15 @@ struct DaoxCanvasItem
 	uchar_t  visible;
 	uchar_t  dataChanged;  /* geometry changed; */
 	uchar_t  stateChanged; /* orientation, stroke width etc. changed; */
-	uint_t   depth;
+
+	float    scale;  /* shape scale, no effects on the strokes and children items; */
 
 	DaoxOBBox2D       obbox;      /* local coordinates; */
 	DaoxMatrix3D      transform;  /* local to parent; */
 	DaoxCanvasState  *state;
 
-	DaoxCanvasItem   *parent;    /* parent item; */
-	DArray           *children;  /* children items; */
+	DaoxCanvasItem   *parent;     /* parent item; */
+	DArray           *children;   /* children items; */
 
 	DaoxPath      *path;     /* may be filled with filling color; */
 	DaoxPathMesh  *strokes;  /* may be filled with stroking color; */
@@ -256,7 +243,14 @@ struct DaoxCanvas
 	DArray  *items;
 	DArray  *states;
 
+	DMap  *rects;
 	DMap  *glyphs;
+
+	DaoxPath  *unitLine;
+	DaoxPath  *unitRect;
+	DaoxPath  *unitCircle1;
+	DaoxPath  *unitCircle2;
+	DaoxPath  *unitCircle3;
 
 	DaoxCanvasUtility  *utility;
 };
@@ -296,7 +290,7 @@ DAO_DLL void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas );
 
 DAO_DLL void DaoxCanvasLine_Set( DaoxCanvasLine *self, float x1, float y1, float x2, float y2 );
 
-DAO_DLL void DaoxCanvasRect_Set( DaoxCanvasRect *self, float x1, float y1, float x2, float y2, float rx, float ry );
+//DAO_DLL void DaoxCanvasRect_Set( DaoxCanvasRect *self, float x1, float y1, float x2, float y2, float rx, float ry );
 
 DAO_DLL void DaoxCanvasCircle_Set( DaoxCanvasCircle *self, float x, float y, float r );
 

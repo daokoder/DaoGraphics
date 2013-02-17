@@ -135,6 +135,11 @@ DaoxPath* DaoxPath_New()
 }
 void DaoxPath_Delete( DaoxPath *self )
 {
+	DNode *it;
+	for(it=DMap_First(self->strokes); it; it=DMap_Next(self->strokes,it)){
+		DaoxPathMesh *pm = (DaoxPathMesh*) it->value.pVoid;
+		DaoxPathMesh_Delete( pm );
+	}
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoxPath_Reset( self );
 	while( self->freeComponents ){
@@ -772,31 +777,6 @@ void DaoxPathComponent_Refine( DaoxPathComponent *self, float maxlen, float maxd
 }
 
 
-#if 0
-DaoxPathSegment* DaoxPathSegment_LocateByDistance( DaoxPathSegment *self, float distance, float offset, float *p )
-{
-	if( distance < offset || distance > (offset + self->length) ) return NULL;
-	if( p ) *p = (distance - offset) / self->length;
-	if( self->refined == 0 ) return self;
-	if( distance <= (offset + self->first->length) ){
-		return DaoxPathSegment_LocateByDistance( self->first, distance, offset, p );
-	}
-	return DaoxPathSegment_LocateByDistance( self->second, distance, offset + self->first->length, p );
-}
-
-DaoxPathSegment* DaoxPathComponent_LocateByDistance( DaoxPathComponent *self, float distance, float offset, float *p, DaoxPlainArray *segments )
-{
-	DaoxPathSegment *first = self->first;
-	DaoxPathSegment *segment = first;
-	do {
-		DaoxPathSegment *seg = DaoxPathSegment_LocateByDistance( segment, distance, offset, p );
-		if( seg ) return seg;
-		offset += segment->length;
-		segment = segment->next;
-	} while( segment && segment != first );
-	return NULL;
-}
-#endif
 
 void DaoxPath_SubSegments( DaoxPath *self, DaoxPlainArray *segments, float maxlen, float maxdiff )
 {
@@ -1628,4 +1608,20 @@ void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width,
 	}
 	DaoxPlainArray_Delete( segments );
 	printf( "DaoxPath_ComputeStroke: %i\n", strokes->points->size );
+}
+DaoxPathMesh* DaoxPath_GetStrokes( DaoxPath *self, float width, int refine )
+{
+	size_t key = ((size_t)refine<<31) | (size_t)(width * 1E5);
+	DaoxPathMesh *pm;
+	DNode *it;
+
+	if( self->strokes == NULL ) return NULL;
+
+	it = DMap_Find( self->strokes, (void*) key );
+	if( it ) return (DaoxPathMesh*) it->value.pVoid;
+		
+	pm = DaoxPathMesh_New();
+	DaoxPath_ComputeStroke( self, pm, width, refine );
+	DMap_Insert( self->strokes, (void*) key, pm );
+	return pm;
 }
