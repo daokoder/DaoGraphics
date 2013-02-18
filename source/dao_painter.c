@@ -282,46 +282,65 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 
 void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasItem *item )
 {
-#if 0
 	int i;
-	int x = item->points->vectors[0].x;
-	int y = item->points->vectors[0].y;
-	int w = item->texture->image->width;
-	int h = item->texture->image->height;
-	DaoxColor alpha = { 1.0, 1.0, 1.0, 1.0 };
-	DaoGLVertex2D *vertices;
+	int w = item->data.texture->image->width;
+	int h = item->data.texture->image->height;
 	DaoGLTriangle *triangles;
 	void *indices;
 
-	DaoxTexture_glInitTexture( item->texture );
-	if( item->texture->tid == 0 ) return;
+	DaoxTexture_glInitTexture( item->data.texture );
+	printf( "DaoxPainter_PaintImageItem %i\n", item->data.texture->tid );
+	if( item->data.texture->tid == 0 ) return;
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, item->texture->tid);
-	glUniform1i(self->shader.uniforms.textureCount, 1 );
-	glUniform1i(self->shader.uniforms.textures[0], 0);
-	glUniform4fv( self->shader.uniforms.alpha, 1, & alpha.red );
+	glBindTexture(GL_TEXTURE_2D, item->data.texture->tid);
+	glUniform1i( self->shader.uniforms.textureCount, 1 );
+	glUniform1i( self->shader.uniforms.textures[0], 0 );
+	glUniform1f( self->shader.uniforms.alphaBlending, 1.0 );
+	glUniform1i( self->shader.uniforms.dashCount, 0 );
 
-	vertices = DaoxBuffer_MapVertices2D( & self->buffer, 4 );
+	if( self->buffer.vertexSize == sizeof(DaoGLVertex2D) ){
+		DaoGLVertex2D *vertices = DaoxBuffer_MapVertices2D( & self->buffer, 4 );
+		vertices[0].point.x = 0;
+		vertices[0].point.y = 0;
+		vertices[1].point.x = w;
+		vertices[1].point.y = 0;
+		vertices[2].point.x = w;
+		vertices[2].point.y = h;
+		vertices[3].point.x = 0;
+		vertices[3].point.y = h;
+		vertices[0].texKLMO.k = 0;
+		vertices[0].texKLMO.l = 0;
+		vertices[1].texKLMO.k = 1;
+		vertices[1].texKLMO.l = 0;
+		vertices[2].texKLMO.k = 1;
+		vertices[2].texKLMO.l = 1;
+		vertices[3].texKLMO.k = 0;
+		vertices[3].texKLMO.l = 1;
+		for(i=0; i<4; ++i){
+			vertices[i].texKLMO.m = 0.0;
+			vertices[i].texKLMO.o = 0.0;
+		}
+	}else if( self->buffer.vertexSize == sizeof(DaoGLVertex3DVG) ){
+		DaoGLVertex3D *vertices = DaoxBuffer_MapVertices3D( & self->buffer, 4 );
+		vertices[0].point.x = 0;
+		vertices[0].point.y = 0;
+		vertices[1].point.x = w;
+		vertices[1].point.y = 0;
+		vertices[2].point.x = w;
+		vertices[2].point.y = h;
+		vertices[3].point.x = 0;
+		vertices[3].point.y = h;
+		for(i=0; i<4; ++i){
+			vertices[i].point.z = 0;
+			vertices[i].norm.x = 0;
+			vertices[i].norm.y = 0;
+			vertices[i].norm.z = 1;
+			vertices[i].texUV.x = 0;
+			vertices[i].texUV.y = 1;
+		}
+	}
 	triangles = DaoxBuffer_MapTriangles( & self->buffer, 2 );
-	vertices[0].point.x = x;
-	vertices[0].point.y = y;
-	vertices[1].point.x = x+w;
-	vertices[1].point.y = y;
-	vertices[2].point.x = x+w;
-	vertices[2].point.y = y+h;
-	vertices[3].point.x = x;
-	vertices[3].point.y = y+h;
-	vertices[0].color.r = 0.0;
-	vertices[0].color.g = 0.0;
-	vertices[1].color.r = 1.0;
-	vertices[1].color.g = 0.0;
-	vertices[2].color.r = 1.0;
-	vertices[2].color.g = 1.0;
-	vertices[3].color.r = 0.0;
-	vertices[3].color.g = 1.0;
-	for(i=0; i<4; ++i) vertices[i].color.b = vertices[i].color.a = 0.0;
-
 	triangles[0].index[0] = self->buffer.vertexOffset;
 	triangles[0].index[1] = self->buffer.vertexOffset + 1;
 	triangles[0].index[2] = self->buffer.vertexOffset + 2;
@@ -330,6 +349,7 @@ void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasItem *item )
 	triangles[1].index[2] = self->buffer.vertexOffset;
 
 	indices = (void*)(self->buffer.triangleOffset*sizeof(GLint)*3);
+
 	glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices );
 
 	self->buffer.vertexOffset += 4;
@@ -338,7 +358,6 @@ void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasItem *item )
 	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#endif
 }
 void DaoxGraphics_TransfromMatrix( DaoxMatrix3D transform, GLfloat matrix[16] )
 {
@@ -399,8 +418,11 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 	//DaoxPainter_PaintItemData( self, canvas, item );
-	if( item->visible ) DaoxVG_PaintItemData( & self->shader, & self->buffer, canvas, item );
-	//if( item->texture ) DaoxPainter_PaintImageItem( self, item );
+	if( item->visible ){
+		DaoxVG_PaintItemData( & self->shader, & self->buffer, canvas, item );
+		if( item->ctype == daox_type_canvas_image && item->data.texture )
+			DaoxPainter_PaintImageItem( self, item );
+	}
 
 	for(i=0; i<n; i++){
 		DaoxCanvasItem *it = (DaoxCanvasItem*) item->children->items.pVoid[i];

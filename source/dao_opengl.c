@@ -42,6 +42,7 @@
 
 static const char *const daox_vector_graphics_shader_150 =
 "//#version 150\n\
+uniform int   textureCount; \n\
 uniform float alphaBlending; \n\
 uniform vec4  brushColor; \n\
 uniform float pathLength; \n\
@@ -53,6 +54,7 @@ uniform vec2  gradientPoint2;    // end for linear; focal for radial; \n\
 uniform float gradientRadius;    // radius of radial gradient; \n\
 uniform sampler1D dashSampler;   // dash,gap,dash,gap,... \n\
 uniform sampler1D gradientSampler; // (s,0,0,0),(s,0,0,0),(r,g,b,a),(r,g,b,a); \n\
+uniform sampler2D textures[2]; \n\
 \n\
 \n\
 vec4 InterpolateColor( vec4 C1, vec4 C2, float start, float mid, float end ) \n\
@@ -221,7 +223,7 @@ vec4 ComputeCubicBezier( vec3 p, vec4 color )\n\
 }\n\
 \n\
 \n\
-vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, float pathOffset ) \n\
+vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, vec2 texUV, float pathOffset ) \n\
 { \n\
 	float alphaBlending2 = alphaBlending; \n\
 	vec4 fragColor = brushColor; \n\
@@ -233,7 +235,7 @@ vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, float pathOffset
 	//} \n\
 	if( dashCount > 0 ) alphaBlending2 *= HandleDash( pathOffset ); \n\
 	if( gradientType > 0 ) fragColor = ComputeGradient( vertexPosition, pathOffset ); \n\
-	//if( textureCount > 0 ) fragColor = texture( textures[0], vec2(texcoord) ); \n\
+	if( textureCount > 0 ) fragColor = texture( textures[0], texUV ); \n\
 	float klm = abs( bezierKLM[0] ) + abs( bezierKLM[1] ) + abs( bezierKLM[2] ); \n\
 	if( klm > 1E-16 ) fragColor = ComputeCubicBezier( bezierKLM, fragColor ); \n\
 	//fragColor = ComputeQuadraticBezier( vec2( texcoord ), fragColor ); \n\
@@ -246,11 +248,9 @@ vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, float pathOffset
 
 static const char *const daox_vertex_shader2d_150 =
 "//#version 150 \n\
-uniform int  textureCount; \n\
 uniform mat4 modelMatrix; \n\
 uniform mat4 viewMatrix; \n\
 uniform mat4 projMatrix; \n\
-uniform sampler2D textures[2]; \n\
 \n\
 in  vec2  position; \n\
 in  vec4  texKLMO; \n\
@@ -271,11 +271,9 @@ void main(void) \n\
 static const char *const daox_fragment_shader2d_150 =
 "//#version 150\n\
 //include daox_vector_graphics_shader_150 \n\
-uniform int textureCount; \n\
-uniform sampler2D textures[2]; \n\
 \n\
 in  vec2  vertexPosition; \n\
-in  vec4  texcoord; \n\
+in  vec2  texcoord; \n\
 in  vec3  bezierKLM; \n\
 in  float pathOffset; \n\
 out vec4  fragColor; \n\
@@ -283,7 +281,7 @@ out vec4  fragColor; \n\
 \n\
 void main(void) \n\
 { \n\
-	fragColor = RenderVectorGraphics( vertexPosition, bezierKLM, pathOffset ); \n\
+	fragColor = RenderVectorGraphics( vertexPosition, bezierKLM, texcoord, pathOffset ); \n\
 }";
 
 
@@ -302,7 +300,6 @@ uniform vec4 specularColor;\n\
 uniform vec3 cameraPosition;\n\
 uniform mat4 projMatrix;\n\
 uniform mat4 viewMatrix;\n\
-uniform sampler2D textures[2];\n\
 \n\
 in vec3 position;\n\
 in vec3 normal;\n\
@@ -357,10 +354,8 @@ static const char *const daox_fragment_shader3d_150 =
 "//#version 150\n\
 uniform int  vectorGraphics;\n\
 uniform int  lightCount;\n\
-uniform int  textureCount;\n\
 uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
-uniform sampler2D textures[2];\n\
 \n\
 in  vec2 vertexPosition; \n\
 in  vec2 texCoord2;\n\
@@ -390,7 +385,7 @@ void main(void)\n\
 		if( lightCount == 0 ) fragColor = texColor;\n\
 	}\n\
 	if( vectorGraphics > 0 ){ \n\
-		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, pathOffset ); \n\
+		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, texCoord2, pathOffset ); \n\
 		fragColor = vertexColor * color; \n\
 	}\n\
 }\n";

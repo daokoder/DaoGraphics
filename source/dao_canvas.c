@@ -1137,24 +1137,23 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const wchar_t *text, D
 	DaoxCanvas_AddCharItems( self, item, text, 0, 0, degrees );
 	return item;
 }
-#if 0
 DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y )
 {
 	DaoxCanvasState *state = DaoxCanvas_GetOrPushState( self );
-	DaoxCanvasPath *item = DaoxCanvasItem_New( self, DAOX_GS_IMAGE );
+	DaoxCanvasPath *item = DaoxCanvasImage_New();
 	DaoxTexture *texture = DaoxTexture_New();
 
+	item->transform = DaoxMatrix3D_Identity();
+	item->transform.B1 = x;
+	item->transform.B2 = y;
+
 	DaoxTexture_SetImage( texture, image );
-	DArray_PushBack( self->items, item );
-	DaoxPlainArray_Resize( item->points, 1 );
-	item->points->pod.vectors2d[0].x = x;
-	item->points->pod.vectors2d[0].y = y;
-	DaoGC_ShiftRC( (DaoValue*) texture, (DaoValue*) item->texture );
-	item->texture = texture;
+	DaoxCanvas_AddItem( self, item );
+	DaoGC_ShiftRC( (DaoValue*) texture, (DaoValue*) item->data.texture );
+	item->data.texture = texture;
 	return item;
 }
 
-#endif
 
 
 
@@ -1584,7 +1583,6 @@ DaoTypeBase DaoxCanvasText_Typer =
 
 
 
-#if 0
 static DaoFuncItem DaoxCanvasImageMeths[]=
 {
 	{ NULL, NULL }
@@ -1596,7 +1594,6 @@ DaoTypeBase DaoxCanvasImage_Typer =
 	{ & DaoxCanvasItem_Typer, NULL }, { NULL },
 	(FuncPtrDel)DaoxCanvasItem_Delete, DaoxCanvasItem_GetGCFields
 };
-#endif
 
 
 
@@ -1717,7 +1714,6 @@ static void CANVAS_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
-#if 0
 static void CANVAS_AddImage( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
@@ -1728,6 +1724,7 @@ static void CANVAS_AddImage( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
 
+#if 0
 #warning"DaoxCanvas_glDrawSceneImage"
 //void DaoxCanvas_glDrawSceneImage( DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, int width, int height );
 
@@ -1894,10 +1891,10 @@ static DaoFuncItem DaoxCanvasMeths[]=
 	{ CANVAS_AddPolygon,   "AddPolygon( self: Canvas ) => CanvasPolygon" },
 
 
-#if 0
 
 	{ CANVAS_AddImage,     "AddImage( self: Canvas, image: Image, x :float, y :float ) => CanvasImage" },
 
+#if 0
 	{ CANVAS_RenderToImage,  "RenderToImage( self: Canvas, image: Image, width :float, height :float )" },
 	{ CANVAS_Test,         "Test( self: Canvas )" },
 #endif
@@ -2023,9 +2020,7 @@ DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_canvas_polygon = DaoNamespace_WrapType( ns, & DaoxCanvasPolygon_Typer, 0 );
 	daox_type_canvas_path = DaoNamespace_WrapType( ns, & DaoxCanvasPath_Typer, 0 );
 	daox_type_canvas_text = DaoNamespace_WrapType( ns, & DaoxCanvasText_Typer, 0 );
-#if 0
 	daox_type_canvas_image = DaoNamespace_WrapType( ns, & DaoxCanvasImage_Typer, 0 );
-#endif
 
 	DaoTriangulator_OnLoad( vmSpace, ns );
 	return 0;

@@ -1031,6 +1031,9 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	DaoxVectorD4 dets;
 	DaoxVector2D SP2, SC1, norm;
 	double d0, d1, d2, d3, delta, dot;
+	float len1, len2, len3;
+	float at1 = 0.5;
+	float at2 = 0.5;
 	int i;
 
 	if( segment->bezier < 2 ) return;
@@ -1040,7 +1043,10 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	norm = DaoxMatrix3D_RotateVector( SP2, -0.5*M_PI );
 	dot = DaoxVector2D_Dot( & SC1, & norm );
 	if( (dot * segment->convexness) > 0 ){
+		double tmp = start;
 		/* Reverse the segment, so that the right side is inside: */
+		start = end;
+		end = tmp;
 		orientedSegment.P1 = segment->P2;
 		orientedSegment.P2 = segment->P1;
 		if( segment->bezier == 3 ){
@@ -1064,7 +1070,10 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	memset( & F, 0, sizeof(DaoxMatrixD4X4) );
 	F.A.A14 = 1.0;
 
+	len1 = DaoxVector2D_Dist( segment->P1, segment->C1 );
 	if( segment->bezier == 2 ){
+		len2 = DaoxVector2D_Dist( segment->P2, segment->C1 );
+		at1 = len1 / (len1 + len2 + EPSILON);
 		DaoxPlainArray_Reserve( self->patches, self->patches->size + 3 );
 		P0 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
 		P1 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
@@ -1076,7 +1085,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		P1->klm.x = P1->klm.y = P1->klm.z = 1.0;
 		P2->klm.x = P2->klm.z = 0.5;  P2->klm.y = 0.0;
 		P0->offset = start;
-		P1->offset = 0.5*(start + end);
+		P1->offset = at1 * start + (1.0 - at1) * end;
 		P2->offset = end;
 		return;
 	}
@@ -1137,6 +1146,10 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	}else{ /* d1 == d2 == d3 == 0.0, line */
 		return;
 	}
+	len2 = DaoxVector2D_Dist( segment->C1, segment->C2 );
+	len3 = DaoxVector2D_Dist( segment->C2, segment->P2 );
+	at1 = len1 / (len1 + len2 + len3 + EPSILON);
+	at2 = (len1 + len2) / (len1 + len2 + len3 + EPSILON);
 
 	/* Reserve first, so that DaoxPlainArray_Push will return 6 valid pointers: */
 	DaoxPlainArray_Reserve( self->patches, self->patches->size + 6 );
@@ -1150,8 +1163,10 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	P1->point = segment->C1;
 	P2->point = segment->C2;
 	P3->point = segment->P2;
-	P0->offset = P1->offset = start;
-	P2->offset = P3->offset = end;
+	P0->offset = start;
+	P1->offset = at1 * start + (1.0 - at1) * end;
+	P2->offset = at2 * start + (1.0 - at2) * end;
+	P3->offset = end;
 
 	M3F = DaoxMatrixD4X4_MulMatrix( & M3INV, & F );
 	P0->klm.x = M3F.A.A11;  P0->klm.y = M3F.A.A12;  P0->klm.z = M3F.A.A13;
@@ -1593,7 +1608,7 @@ double DaoxPathMesh_AddStroke( DaoxPathMesh *strokes, DaoxPathSegment *seg, doub
 		}
 	}
 
-	if( refine ) maxlen = width < 0.1 ? width : 0.1;
+	if( refine ) maxlen = width < 2 ? width : 2;
 	if( (maxlen - minlen) > width ) maxdiff = width / maxlen;
 	
 	segments->size = 0;
