@@ -69,41 +69,6 @@ void DaoxPainter_Reset( DaoxPainter *self, DaoxCanvasItem *item )
 
 
 
-#if 0
-void DaoxPainter_PaintCanvasText( DaoxPainter *self, DaoxCanvasText *text )
-{
-	int i, j, jt = DAOX_JUNCTION_FLAT;
-	float scale, offset, maxlen, maxdiff;
-	float gscale = DaoxCanvas_Scale( self->canvas );
-	float width = text->state->strokeWidth;
-	float size = text->state->fontSize;
-	DaoxFont *font = text->state->font;
-	DaoxGlyph *glyph;
-
-	if( text->codepoint == 0 ) return;
-	if( font == NULL ) return;
-	
-	scale = size / (float)font->fontHeight;
-	maxlen = 8.0 * font->fontHeight / size; 
-	maxdiff = 2.0 / size;
-
-	DaoxPainter_Reset( self, text );
-	self->junction = DAOX_JUNCTION_FLAT;
-	self->maxlen = maxlen;
-	self->maxdiff = maxdiff;
-	self->strokeWidth /= scale + 1E-16;
-
-	glyph = DaoxFont_GetCharGlyph( font, text->codepoint );
-	DaoxPainter_PaintPath( self, glyph->shape );
-}
-#endif
-
-
-
-
-
-
-
 void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points, float scale )
 {
 	int i, vertexCount = points->size;
@@ -265,6 +230,7 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 
 	if( fill ){
 		void *indices = (void*) (buffer->triangleOffset*sizeof(GLint)*3);
+		glUniform1i( shader->uniforms.dashCount, 0 );
 		glUniform1f( shader->uniforms.alphaBlending, 1.0 );
 		glUniform4fv( shader->uniforms.brushColor, 1, & item->state->fillColor.red );
 		DaoxShader_MakeGradientSampler( shader, item->state->fillGradient, 1 );

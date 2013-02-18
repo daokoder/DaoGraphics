@@ -244,6 +244,7 @@ struct DaoxCanvas
 	DArray  *states;
 
 	DMap  *rects;
+	DMap  *ellipses;
 	DMap  *glyphs;
 
 	DaoxPath  *unitLine;

@@ -127,7 +127,7 @@ void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMe
 		}
 		chunks = self->visibleChunks->items.pArray[m];
 		chunks->size = 0;
-		DMap_Insert( self->mapMaterials, chunk->unit->material, m );
+		DMap_Insert( self->mapMaterials, chunk->unit->material, (daoint)m );
 	}
 	chunks = self->visibleChunks->items.pArray[m];
 	DArray_Append( chunks, model );

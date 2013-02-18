@@ -507,6 +507,7 @@ DaoxVector2D DaoxLine_Intersect2( DaoxLine *self, DaoxLine *other )
 {
 	float S = 0, T = 0;
 	int i = DaoxLine_Intersect( self->start, self->end, other->start, other->end, & S, & T );
+	if( S > 1000 ) printf( "S = %9.2f\n", S );
 	return Interpolate( self->start, self->end, S );
 }
 
@@ -1381,6 +1382,15 @@ DaoxLine DaoxLine_Copy( DaoxVector2D start, DaoxVector2D end, float displacement
 	line.end = DaoxVector2D_Add( & end, & delta );
 	return line;
 }
+static DaoxVector2D DaoxLine_MeanNorm( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C )
+{
+	DaoxVector2D BA = DaoxVector2D_Sub( & B, & A );
+	DaoxVector2D CB = DaoxVector2D_Sub( & C, & B );
+	DaoxVector2D NAB = DaoxMatrix3D_RotateVector( BA, -0.5*M_PI );
+	DaoxVector2D NBC = DaoxMatrix3D_RotateVector( CB, -0.5*M_PI );
+	DaoxVector2D NABC = DaoxVector2D_Add( & NAB, & NBC );
+	return NABC;
+}
 DaoxPathSegment DaoxPathSegment_LinearStroke( DaoxPathSegment *self, float displacement )
 {
 	DaoxPathSegment segment = *self;
@@ -1398,7 +1408,7 @@ DaoxPathSegment DaoxPathSegment_QuadraticStroke( DaoxPathSegment *self, float di
 	DaoxVector2D P1 = self->P1;
 	DaoxVector2D P2 = self->P2;
 	DaoxVector2D C1 = self->C1;
-	DaoxLine Q01, Q12;
+	DaoxLine Q01, Q12, NC1;
 
 	if( DaoxVector2D_Dist( P1, C1 ) < EPSILON || DaoxVector2D_Dist( C1, P2 ) < EPSILON ){
 		C1 = Interpolate( P1, P2, 0.5 );
@@ -1406,9 +1416,12 @@ DaoxPathSegment DaoxPathSegment_QuadraticStroke( DaoxPathSegment *self, float di
 
 	Q01 = DaoxLine_Copy( P1, C1, displacement );
 	Q12 = DaoxLine_Copy( C1, P2, displacement );
+	NC1.start = C1;
+	NC1.end = DaoxLine_MeanNorm( P1, C1, P2 );
+	NC1.end = DaoxVector2D_Add( & NC1.start, & NC1.end );
 	segment.P1 = Q01.start;
 	segment.P2 = Q12.end;
-	segment.C1 = DaoxLine_Intersect2( & Q01, & Q12 );
+	segment.C1 = DaoxLine_Intersect2( & Q01, & NC1 );
 	segment.C2 = segment.C1;
 	return segment;
 }
@@ -1419,17 +1432,24 @@ DaoxPathSegment DaoxPathSegment_CubicStroke( DaoxPathSegment *self, float displa
 	DaoxVector2D P2 = self->P2;
 	DaoxVector2D C1 = self->C1;
 	DaoxVector2D C2 = self->C2;
-	DaoxLine Q01, Q12, Q23;
+	DaoxLine Q01, Q12, Q23, NC1, NC2;
 
+	//printf( "DaoxPathSegment_CubicStroke: %f\n", DaoxPathSegment_Length( self ) );
 	if( DaoxVector2D_Dist( P1, C1 ) < EPSILON ) C1 = Interpolate( P1, P2, 0.2 );
 	if( DaoxVector2D_Dist( C2, P2 ) < EPSILON ) C2 = Interpolate( P1, P2, 0.8 );
 	Q01 = DaoxLine_Copy( P1, C1, displacement );
 	Q12 = DaoxLine_Copy( C1, C2, displacement );
 	Q23 = DaoxLine_Copy( C2, P2, displacement );
+	NC1.start = C1;
+	NC2.start = C2;
+	NC1.end = DaoxLine_MeanNorm( P1, C1, C2 );
+	NC2.end = DaoxLine_MeanNorm( C1, C2, P2 );
+	NC1.end = DaoxVector2D_Add( & NC1.start, & NC1.end );
+	NC2.end = DaoxVector2D_Add( & NC2.start, & NC2.end );
 	segment.P1 = Q01.start;
 	segment.P2 = Q23.end;
-	segment.C1 = DaoxLine_Intersect2( & Q01, & Q12 );
-	segment.C2 = DaoxLine_Intersect2( & Q23, & Q12 );
+	segment.C1 = DaoxLine_Intersect2( & Q01, & NC1 );
+	segment.C2 = DaoxLine_Intersect2( & Q23, & NC2 );
 	//printf( "DaoxPathSegment_CubicStroke: %f\n", DaoxPathSegment_Length( self ) );
 	return segment;
 }
@@ -1573,7 +1593,7 @@ double DaoxPathMesh_AddStroke( DaoxPathMesh *strokes, DaoxPathSegment *seg, doub
 		}
 	}
 
-	if( refine ) maxlen = 2.0;
+	if( refine ) maxlen = width < 0.1 ? width : 0.1;
 	if( (maxlen - minlen) > width ) maxdiff = width / maxlen;
 	
 	segments->size = 0;

@@ -115,7 +115,7 @@ int DaoxFont_Open( DaoxFont *self, const char *file )
 	DaoxFont_ResetGlyphs( self );
 	DString_Reset( self->buffer, 0 );
 
-	if( fin == NULL ) return;
+	if( fin == NULL ) return 0;
 
 	DaoFile_ReadAll( fin, self->buffer, 1 );
 	self->fontData = (uchar_t*)DString_GetMBS( self->buffer );
