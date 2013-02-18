@@ -1085,7 +1085,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		P1->klm.x = P1->klm.y = P1->klm.z = 1.0;
 		P2->klm.x = P2->klm.z = 0.5;  P2->klm.y = 0.0;
 		P0->offset = start;
-		P1->offset = at1 * start + (1.0 - at1) * end;
+		P1->offset = (1.0 - at1) * start + at1 * end;
 		P2->offset = end;
 		return;
 	}
@@ -1164,8 +1164,8 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	P2->point = segment->C2;
 	P3->point = segment->P2;
 	P0->offset = start;
-	P1->offset = at1 * start + (1.0 - at1) * end;
-	P2->offset = at2 * start + (1.0 - at2) * end;
+	P1->offset = (1.0 - at1) * start + at1 * end;
+	P2->offset = (1.0 - at2) * start + at2 * end;
 	P3->offset = end;
 
 	M3F = DaoxMatrixD4X4_MulMatrix( & M3INV, & F );
