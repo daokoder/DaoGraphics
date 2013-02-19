@@ -440,6 +440,8 @@ void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas )
 		float strokeWidth = state->strokeWidth / (self->scale + EPSILON);
 		float strokeAlpha = state->strokeColor.alpha;
 		int refine = state->dash || strokeGradient != NULL;
+		int junction = state->junction;
+		int cap = state->linecap;
 
 		if( ctype == daox_type_canvas_polyline || ctype == daox_type_canvas_polygon ){
 			if( self->path == NULL ){
@@ -473,7 +475,7 @@ void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas )
 
 			if( strokeWidth > EPSILON && (strokeAlpha > EPSILON || strokeGradient != NULL) ){
 				if( path->strokes == NULL ) path->strokes = DMap_New(0,0);
-				self->strokes = DaoxPath_GetStrokes( path, strokeWidth, refine );
+				self->strokes = DaoxPath_GetStrokes( path, strokeWidth, cap, junction, refine );
 			}
 		}
 		self->dataChanged = 0;

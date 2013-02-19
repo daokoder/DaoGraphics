@@ -103,6 +103,8 @@ struct DaoxPathSegment
 	char  bezier;      /* 0: open; 1: linear; 2: quadratic; 3: cubic; */
 	char  convexness;  /* 0: flat; 1: locally convex; -1: locally concave; */
 	char  refined;
+	char  subStart : 4;
+	char  subEnd   : 4;
 
 	DaoxVector2D  P1; /* start point; */
 	DaoxVector2D  P2; /* end point; */
@@ -177,7 +179,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator );
 
 void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff );
 
-void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width, int refine );
+void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width, int cap, int junction, int refine );
 
 
 DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p );
@@ -186,6 +188,6 @@ DaoxPathSegment DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, f
 void DaoxPathSegment_Divide( DaoxPathSegment *self, float at );
 void DaoxPathSegment_ComputeLengthAndDelta( DaoxPathSegment *self );
 
-DaoxPathMesh* DaoxPath_GetStrokes( DaoxPath *self, float width, int refine );
+DaoxPathMesh* DaoxPath_GetStrokes( DaoxPath *self, float width, int cap, int junction, int refine );
 
 #endif
