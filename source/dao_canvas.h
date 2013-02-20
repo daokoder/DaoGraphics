@@ -53,7 +53,6 @@
 
 
 
-typedef struct DaoxCanvasUtility   DaoxCanvasUtility;
 typedef struct DaoxCanvasState     DaoxCanvasState;
 typedef struct DaoxColorGradient   DaoxColorGradient;
 
@@ -61,28 +60,6 @@ typedef struct DaoxColorGradient   DaoxColorGradient;
 typedef struct DaoxCanvas          DaoxCanvas;
 typedef struct DaoxCanvasItem      DaoxCanvasItem;
 
-
-
-
-
-struct DaoxCanvasUtility
-{
-	DaoxPath  *quarterArc; 
-	DaoxPath  *quarterCircle; 
-
-	DaoxPath  *smallCircle; 
-	DaoxPath  *largeCircle;
-
-	DaoxPath  *wideEllipse; 
-	DaoxPath  *narrowEllipse; 
-
-	DaoxPath  *smallArcs[DAOX_ARCS];
-	DaoxPath  *largeArcs[DAOX_ARCS];
-
-	DaoxTriangulator  *triangulator;
-};
-DaoxCanvasUtility* DaoxCanvasUtility_New();
-void DaoxCanvasUtility_Delete( DaoxCanvasUtility *self );
 
 
 
@@ -253,7 +230,7 @@ struct DaoxCanvas
 	DaoxPath  *unitCircle2;
 	DaoxPath  *unitCircle3;
 
-	DaoxCanvasUtility  *utility;
+	DaoxTriangulator  *triangulator;
 };
 DAO_DLL extern DaoType *daox_type_canvas;
 

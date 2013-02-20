@@ -1688,6 +1688,127 @@ void DaoxPathMesh_PushQuad( DaoxPathMesh *self, DaoxVector2D A, DaoxVector2D B, 
 	DaoxPlainArray_PushTriangleIJK( self->triangles, IA, IB, IC );
 	DaoxPlainArray_PushTriangleIJK( self->triangles, IA, IC, ID );
 }
+void DaoxPathMesh_AddJunction( DaoxPathMesh *self, DaoxPathSegment *seg, float width, int junction, float offset )
+{
+	float w2 = 0.5 * width;
+	float S = 0, T = 0;
+	DaoxVector3D zero3 = {0.0, 0.0, 0.0};
+	DaoxTexturedPoint *P1, *P2, *P3, *P4, *P5, *P6;
+	DaoxLine first = DaoxPathSegment_GetEndTangent( seg );
+	DaoxLine second = DaoxPathSegment_GetStartTangent( seg->next );
+	DaoxLine L1 = DaoxLine_Copy( first.start, first.end, -w2 );
+	DaoxLine R1 = DaoxLine_Copy( first.start, first.end, w2 );
+	DaoxLine L2 = DaoxLine_Copy( second.start, second.end, -w2 );
+	DaoxLine R2 = DaoxLine_Copy( second.start, second.end, w2 );
+	DaoxPathSegment round = {0};
+	float angle = acos( DaoxTriangle_AngleCosine( first.end, L1.end, L2.start ) );
+
+	DaoxPlainArray_Reserve( self->patches, self->patches->size + 6 );
+	P1 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+	P2 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+	P3 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+	P1->klm = P2->klm = P3->klm = zero3;
+	P1->offset = P2->offset = P3->offset = offset;
+	P1->point = seg->P2;
+
+	if( junction == DAOX_JUNCTION_SHARP ){
+		P4 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P5 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P6 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P4->klm = P5->klm = P6->klm = zero3;
+		P4->offset = P5->offset = P6->offset = offset;
+	}
+	DaoxLine_Intersect( L1.start, L1.end, L2.start, L2.end, & S, & T );
+	if( S <= 1.0 && T >= 0.0 ){
+		float dx = R2.start.x - R1.end.x;
+		float dy = R2.start.y - R1.end.y;
+		P2->point = R1.end;
+		P3->point = R2.start;
+		round.P1 = R1.end;
+		if( junction == DAOX_JUNCTION_SHARP ){
+			P4->point = DaoxLine_Intersect2( & R1, & R2 );
+			P5->point = P3->point;
+			P6->point = P2->point;
+		}else if( junction == DAOX_JUNCTION_ROUND ){
+			DaoxPathSegment_MakeArc( & round, dx, dy, w2, angle );
+		}
+	}else{
+		float dx = L1.end.x - L2.start.x;
+		float dy = L1.end.y - L2.start.y;
+		P2->point = L2.start;
+		P3->point = L1.end;
+		round.P1 = L2.start;
+		if( junction == DAOX_JUNCTION_SHARP ){
+			P4->point = DaoxLine_Intersect2( & L1, & L2 );
+			P5->point = P3->point;
+			P6->point = P2->point;
+		}else if( junction == DAOX_JUNCTION_ROUND ){
+			DaoxPathSegment_MakeArc( & round, dx, dy, w2, angle );
+		}
+	}
+	round.convexness = 1;
+	DaoxPathMesh_HandleSegment( self, & round, offset, offset );
+	//printf( ">>>>>>>>>>>>>>>>>>>>>>> %f %f\n", S, T );
+}
+void DaoxPathMesh_AddCap( DaoxPathMesh *self, DaoxPathComponent *com, float width, int cap, float offset, float offset2 )
+{
+	float w2 = 0.5 * width;
+	DaoxVector3D zero3 = {0.0, 0.0, 0.0};
+	DaoxTexturedPoint *P1, *P2, *P3, *P4, *P5, *P6;
+	DaoxVector2D H1, H2, T1, T2;
+	DaoxLine head, tail;
+	DaoxLine first = DaoxPathSegment_GetStartTangent( com->first );
+	DaoxLine second = DaoxPathSegment_GetEndTangent( com->last );
+	DaoxLine R1 = DaoxLine_Copy( first.start, first.end, w2 );
+	DaoxLine L2 = DaoxLine_Copy( second.start, second.end, -w2 );
+	float dx1 = 2.0*(first.start.x - R1.start.x);
+	float dy1 = 2.0*(first.start.y - R1.start.y);
+	float dx2 = 2.0*(second.end.x - L2.end.x);
+	float dy2 = 2.0*(second.end.y - L2.end.y);
+
+	H1 = R1.start;
+	T1 = L2.end;
+	H2.x = H1.x + dx1;
+	H2.y = H1.y + dy1;
+	T2.x = T1.x + dx2;
+	T2.y = T1.y + dy2;
+
+	if( cap == DAOX_LINECAP_FLAT ){
+		head = DaoxLine_Copy( H1, H2, -width );
+		tail = DaoxLine_Copy( T1, T2, -width );
+		DaoxPathMesh_PushQuad( self, H1, H2, head.end, head.start, offset );
+		DaoxPathMesh_PushQuad( self, T1, T2, tail.end, tail.start, offset2 );
+	}else if( cap == DAOX_LINECAP_SHARP ){
+		head = DaoxLine_Copy( H1, H2, -w2 );
+		tail = DaoxLine_Copy( T1, T2, -w2 );
+		DaoxPlainArray_Reserve( self->patches, self->patches->size + 6 );
+		P1 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P2 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P3 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P4 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P5 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P6 = (DaoxTexturedPoint*) DaoxPlainArray_Push( self->patches );
+		P1->klm = P2->klm = P3->klm = zero3;
+		P4->klm = P5->klm = P6->klm = zero3;
+		P1->offset = P2->offset = P3->offset = offset;
+		P4->offset = P5->offset = P6->offset = offset2;
+		P1->point = H1;  P2->point = H2;
+		P3->point.x = 0.5*(head.start.x + head.end.x);
+		P3->point.y = 0.5*(head.start.y + head.end.y);
+		P4->point = T1;  P5->point = T2;
+		P6->point.x = 0.5*(tail.start.x + tail.end.x);
+		P6->point.y = 0.5*(tail.start.y + tail.end.y);
+	}else if( cap == DAOX_LINECAP_ROUND ){
+		DaoxPathSegment round = {0};
+		round.convexness = 1;
+		round.P1 = R1.start;
+		DaoxPathSegment_MakeArc( & round, dx1, dy1, w2, -M_PI );
+		DaoxPathMesh_HandleSegment( self, & round, offset, offset );
+		round.P1 = L2.end;
+		DaoxPathSegment_MakeArc( & round, dx2, dy2, w2, -M_PI );
+		DaoxPathMesh_HandleSegment( self, & round, offset2, offset2 );
+	}
+}
 void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width, int cap, int junction, int refine )
 {
 	DaoxPlainArray *segments = DaoxPlainArray_New( sizeof(DaoxPathSegment) );
@@ -1699,7 +1820,7 @@ void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width,
 		DaoxVector3D zero3 = {0.0, 0.0, 0.0};
 		DaoxTexturedPoint *P1, *P2, *P3, *P4, *P5, *P6;
 		DaoxPathSegment *seg;
-		double offset2 = 0.0;
+		double offset2 = offset;
 		float w2 = 0.5 * width;
 		if( com->first->bezier == 0 ) continue;
 		seg = com->refined.first;
@@ -1707,119 +1828,12 @@ void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width,
 			offset = DaoxPathMesh_AddStroke( strokes, seg, offset, width, refine, segments );
 			//printf( "%5i %5i %f\n", seg->bezier, seg->subEnd, offset );
 			if( junction && seg->subEnd && seg->next != NULL ){
-				float S = 0, T = 0;
-				DaoxLine first = DaoxPathSegment_GetEndTangent( seg );
-				DaoxLine second = DaoxPathSegment_GetStartTangent( seg->next );
-				DaoxLine L1 = DaoxLine_Copy( first.start, first.end, -w2 );
-				DaoxLine R1 = DaoxLine_Copy( first.start, first.end, w2 );
-				DaoxLine L2 = DaoxLine_Copy( second.start, second.end, -w2 );
-				DaoxLine R2 = DaoxLine_Copy( second.start, second.end, w2 );
-				DaoxPathSegment round = {0};
-				float angle = acos( DaoxTriangle_AngleCosine( first.end, L1.end, L2.start ) );
-
-				DaoxPlainArray_Reserve( strokes->patches, strokes->patches->size + 6 );
-				P1 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P2 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P3 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P1->klm = P2->klm = P3->klm = zero3;
-				P1->offset = P2->offset = P3->offset = offset;
-				P1->point = seg->P2;
-
-				if( junction == DAOX_JUNCTION_SHARP ){
-					P4 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-					P5 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-					P6 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-					P4->klm = P5->klm = P6->klm = zero3;
-					P4->offset = P5->offset = P6->offset = offset;
-				}
-				DaoxLine_Intersect( L1.start, L1.end, L2.start, L2.end, & S, & T );
-				if( S <= 1.0 && T >= 0.0 ){
-					float dx = R2.start.x - R1.end.x;
-					float dy = R2.start.y - R1.end.y;
-					P2->point = R1.end;
-					P3->point = R2.start;
-					round.P1 = R1.end;
-					if( junction == DAOX_JUNCTION_SHARP ){
-						P4->point = DaoxLine_Intersect2( & R1, & R2 );
-						P5->point = P3->point;
-						P6->point = P2->point;
-					}else if( junction == DAOX_JUNCTION_ROUND ){
-						DaoxPathSegment_MakeArc( & round, dx, dy, w2, angle );
-					}
-				}else{
-					float dx = L1.end.x - L2.start.x;
-					float dy = L1.end.y - L2.start.y;
-					P2->point = L2.start;
-					P3->point = L1.end;
-					round.P1 = L2.start;
-					if( junction == DAOX_JUNCTION_SHARP ){
-						P4->point = DaoxLine_Intersect2( & L1, & L2 );
-						P5->point = P3->point;
-						P6->point = P2->point;
-					}else if( junction == DAOX_JUNCTION_ROUND ){
-						DaoxPathSegment_MakeArc( & round, dx, dy, w2, angle );
-					}
-				}
-				round.convexness = 1;
-				DaoxPathMesh_HandleSegment( strokes, & round, offset, offset );
-				//printf( ">>>>>>>>>>>>>>>>>>>>>>> %f %f\n", S, T );
+				DaoxPathMesh_AddJunction( strokes, seg, width, junction, offset );
 			}
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
 		if( cap && com->last->next != com->first ){
-			DaoxVector2D H1, H2, T1, T2;
-			DaoxLine head, tail;
-			DaoxLine first = DaoxPathSegment_GetStartTangent( com->first );
-			DaoxLine second = DaoxPathSegment_GetEndTangent( com->last );
-			DaoxLine R1 = DaoxLine_Copy( first.start, first.end, w2 );
-			DaoxLine L2 = DaoxLine_Copy( second.start, second.end, -w2 );
-			float dx1 = 2.0*(first.start.x - R1.start.x);
-			float dy1 = 2.0*(first.start.y - R1.start.y);
-			float dx2 = 2.0*(second.end.x - L2.end.x);
-			float dy2 = 2.0*(second.end.y - L2.end.y);
-
-			H1 = R1.start;
-			T1 = L2.end;
-			H2.x = H1.x + dx1;
-			H2.y = H1.y + dy1;
-			T2.x = T1.x + dx2;
-			T2.y = T1.y + dy2;
-
-			if( cap == DAOX_LINECAP_FLAT ){
-				head = DaoxLine_Copy( H1, H2, -width );
-				tail = DaoxLine_Copy( T1, T2, -width );
-				DaoxPathMesh_PushQuad( strokes, H1, H2, head.end, head.start, offset2 );
-				DaoxPathMesh_PushQuad( strokes, T1, T2, tail.end, tail.start, offset );
-			}else if( cap == DAOX_LINECAP_SHARP ){
-				head = DaoxLine_Copy( H1, H2, -w2 );
-				tail = DaoxLine_Copy( T1, T2, -w2 );
-				DaoxPlainArray_Reserve( strokes->patches, strokes->patches->size + 6 );
-				P1 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P2 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P3 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P4 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P5 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P6 = (DaoxTexturedPoint*) DaoxPlainArray_Push( strokes->patches );
-				P1->klm = P2->klm = P3->klm = zero3;
-				P4->klm = P5->klm = P6->klm = zero3;
-				P1->offset = P2->offset = P3->offset = offset2;
-				P4->offset = P5->offset = P6->offset = offset;
-				P1->point = H1;  P2->point = H2;
-				P3->point.x = 0.5*(head.start.x + head.end.x);
-				P3->point.y = 0.5*(head.start.y + head.end.y);
-				P4->point = T1;  P5->point = T2;
-				P6->point.x = 0.5*(tail.start.x + tail.end.x);
-				P6->point.y = 0.5*(tail.start.y + tail.end.y);
-			}else if( cap == DAOX_LINECAP_ROUND ){
-				DaoxPathSegment round = {0};
-				round.convexness = 1;
-				round.P1 = R1.start;
-				DaoxPathSegment_MakeArc( & round, dx1, dy1, w2, -M_PI );
-				DaoxPathMesh_HandleSegment( strokes, & round, offset2, offset2 );
-				round.P1 = L2.end;
-				DaoxPathSegment_MakeArc( & round, dx2, dy2, w2, -M_PI );
-				DaoxPathMesh_HandleSegment( strokes, & round, offset, offset );
-			}
+			DaoxPathMesh_AddCap( strokes, com, width, cap, offset2, offset );
 		}
 	}
 	DaoxPlainArray_Delete( segments );

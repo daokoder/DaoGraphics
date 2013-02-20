@@ -51,23 +51,16 @@ struct DaoxPainter
 {
 	DAO_CSTRUCT_COMMON;
 
-	DaoxAABBox2D  bounds;
-	DaoxAABBox2D  viewport;
-
-	DaoxMatrix3D  *transform;  /* for path only; */
+	DaoxOBBox2D   obbox;
+	DaoxVector3D  campos;
 
 	DaoxShader  shader;
 	DaoxBuffer  buffer;
-
-	DaoxCanvas         *canvas; 
-	DaoxCanvasItem     *item; 
-	DaoxCanvasUtility  *utility;
 };
 extern DaoType *daox_type_painter;
 
 DaoxPainter* DaoxPainter_New();
 void DaoxPainter_Delete( DaoxPainter *self );
-void DaoxPainter_Reset( DaoxPainter *self, DaoxCanvasItem *item );
 
 void DaoxPainter_InitShaders( DaoxPainter *self );
 void DaoxPainter_InitBuffers( DaoxPainter *self );

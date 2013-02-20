@@ -246,6 +246,10 @@ struct DaoxViewFrustum
 	DaoxVector3D  viewDirection;    /* world coordinates; */
 	DaoxVector3D  nearViewCenter;   /* world coordinates; */
 	DaoxVector3D  farViewCenter;    /* world coordinates; */
+	DaoxVector3D  topLeftEdge;      /* world coordinates; */
+	DaoxVector3D  topRightEdge;     /* world coordinates; */
+	DaoxVector3D  bottomLeftEdge;   /* world coordinates; */
+	DaoxVector3D  bottomRightEdge;  /* world coordinates; */
 	DaoxVector3D  leftPlaneNorm;    /* world coordinates; */
 	DaoxVector3D  rightPlaneNorm;   /* world coordinates; */
 	DaoxVector3D  topPlaneNorm;     /* world coordinates; */

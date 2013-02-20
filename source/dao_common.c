@@ -266,6 +266,14 @@ double DaoxVector3D_Norm2( DaoxVector3D *self )
 	norm2 += self->z * self->z;
 	return norm2;
 }
+DaoxVector3D DaoxVector3D_Interpolate( DaoxVector3D A, DaoxVector3D B, float t )
+{
+	DaoxVector3D point;
+	point.x = (1.0 - t) * A.x + t * B.x;
+	point.y = (1.0 - t) * A.y + t * B.y;
+	point.z = (1.0 - t) * A.z + t * B.z;
+	return point;
+}
 DaoxVector3D  DaoxVector3D_Add( DaoxVector3D *self, DaoxVector3D *other )
 {
 	DaoxVector3D res;
@@ -342,6 +350,10 @@ double DaoxVector3D_Dist2( DaoxVector3D *self, DaoxVector3D *other )
 	res += (self->z - other->z) * (self->z - other->z);
 	return res;
 }
+double DaoxVector3D_Dist( DaoxVector3D *self, DaoxVector3D *other )
+{
+	return sqrt( DaoxVector3D_Dist2( self, other ) );
+}
 double DaoxVector3D_Difference( DaoxVector3D *self, DaoxVector3D *other )
 {
 	double diff, max = 0.0;
@@ -363,6 +375,14 @@ DaoxVector3D DaoxTriangle_Normal( DaoxVector3D *A, DaoxVector3D *B, DaoxVector3D
 	DaoxVector3D N = DaoxVector3D_Cross( & AB, & BC );
 	double norm = DaoxVector3D_Norm2( & N );
 	return DaoxVector3D_Scale( & N, 1.0 / sqrt( norm ) );
+}
+DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D point, DaoxVector3D norm, DaoxVector3D P1, DaoxVector3D P2 )
+{
+	double P1N = DaoxVector3D_Dot( & P1, & norm );
+	double P2N = DaoxVector3D_Dot( & P2, & norm );
+	double PN = DaoxVector3D_Dot( & point, & norm );
+	double T = (PN - P1N) / (P2N - P1N);
+	return DaoxVector3D_Interpolate( P1, P2, T );
 }
 
 
@@ -458,14 +478,14 @@ void DaoxMatrix3D_Multiply( DaoxMatrix3D *self, DaoxMatrix3D other )
 	float A12 = self->A11 * other.A12 + self->A12 * other.A22;
 	float A21 = self->A21 * other.A11 + self->A22 * other.A21;
 	float A22 = self->A21 * other.A12 + self->A22 * other.A22;
-	float Bx = self->A11 * other.B1 + self->A12 * other.B2 + self->B1;
-	float By = self->A21 * other.B1 + self->A22 * other.B2 + self->B2;
+	float B1 = self->A11 * other.B1 + self->A12 * other.B2 + self->B1;
+	float B2 = self->A21 * other.B1 + self->A22 * other.B2 + self->B2;
 	self->A11 = A11;
 	self->A12 = A12;
 	self->A21 = A21;
 	self->A22 = A22;
-	self->B1 = Bx;
-	self->B2 = By;
+	self->B1 = B1;
+	self->B2 = B2;
 }
 DaoxVector2D DaoxMatrix3D_TransformXY( DaoxMatrix3D *self, float x, float y )
 {
@@ -837,11 +857,6 @@ static int CheckBox2( DaoxOBBox2D *self, DaoxOBBox2D *other )
 
 	return MAYBE;
 }
-/*
-// Return  1, if "self" contains "other";
-// Return  0, if "self" intersects "other";
-// Return -1, if "self" does not intersect "other";
-*/
 int DaoxOBBox2D_Intersect( DaoxOBBox2D *self, DaoxOBBox2D *other )
 {
 	DaoxVector2D C1, C2;
@@ -874,9 +889,9 @@ double DaoxOBBox2D_Area( DaoxOBBox2D *self )
 DaoxOBBox2D DaoxOBBox2D_Scale( DaoxOBBox2D *self, float scale )
 {
 	DaoxOBBox2D obbox;
-	obbox.O = DaoxVector2D_Scale( & obbox.O, scale );
-	obbox.X = DaoxVector2D_Scale( & obbox.X, scale );
-	obbox.Y = DaoxVector2D_Scale( & obbox.Y, scale );
+	obbox.O = DaoxVector2D_Scale( & self->O, scale );
+	obbox.X = DaoxVector2D_Scale( & self->X, scale );
+	obbox.Y = DaoxVector2D_Scale( & self->Y, scale );
 	return obbox;
 }
 DaoxOBBox2D DaoxOBBox2D_Transform( DaoxOBBox2D *self, DaoxMatrix3D *transfrom )
@@ -892,8 +907,8 @@ DaoxOBBox2D DaoxOBBox2D_CopyWithMargin( DaoxOBBox2D *self, double margin )
 	DaoxOBBox2D res;
 	DaoxVector2D dX, X = DaoxVector2D_Sub( & self->X, & self->O );
 	DaoxVector2D dY, Y = DaoxVector2D_Sub( & self->Y, & self->O );
-	double W = sqrt( DaoxVector2D_Norm2( & X ) );
-	double H = sqrt( DaoxVector2D_Norm2( & Y ) );
+	double W = sqrt( DaoxVector2D_Norm2( & X ) ) + EPSILON;
+	double H = sqrt( DaoxVector2D_Norm2( & Y ) ) + EPSILON;
 	if( margin < -0.5*W ) margin = -0.5*W;
 	if( margin < -0.5*H ) margin = -0.5*H;
 	dX = DaoxVector2D_Scale( & X, margin / W );

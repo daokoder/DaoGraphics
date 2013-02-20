@@ -153,14 +153,18 @@ DaoxVector3D  DaoxVector3D_Mul( DaoxVector3D *self, DaoxVector3D *other );
 DaoxVector3D  DaoxVector3D_Scale( DaoxVector3D *self, double scale );
 DaoxVector3D  DaoxVector3D_Cross( DaoxVector3D *self, DaoxVector3D *other );
 DaoxVector3D  DaoxVector3D_Normalize( DaoxVector3D *self );
+DaoxVector3D  DaoxVector3D_Interpolate( DaoxVector3D A, DaoxVector3D B, float t );
 double DaoxVector3D_Norm2( DaoxVector3D *self );
 double DaoxVector3D_Dot( DaoxVector3D *self, DaoxVector3D *other );
 double DaoxVector3D_Angle( DaoxVector3D *self, DaoxVector3D *other );
 double DaoxVector3D_Dist2( DaoxVector3D *self, DaoxVector3D *other );
+double DaoxVector3D_Dist( DaoxVector3D *self, DaoxVector3D *other );
 double DaoxVector3D_Difference( DaoxVector3D *self, DaoxVector3D *other );
 void DaoxVector3D_Print( DaoxVector3D *self );
 
 DaoxVector3D DaoxTriangle_Normal( DaoxVector3D *A, DaoxVector3D *B, DaoxVector3D *C );
+
+DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D point, DaoxVector3D norm, DaoxVector3D P1, DaoxVector3D P2 );
 
 
 
@@ -294,7 +298,14 @@ struct DaoxOBBox2D
 	DaoxVector2D  Y;
 };
 void DaoxOBBox2D_ResetBox( DaoxOBBox2D *self, DaoxVector2D points[], int count );
+
+/*
+// Return  1, if "self" contains "other";
+// Return  0, if "self" intersects "other";
+// Return -1, if "self" does not intersect "other";
+*/
 int  DaoxOBBox2D_Intersect( DaoxOBBox2D *self, DaoxOBBox2D *other );
+
 int  DaoxOBBox2D_Intersect2( DaoxOBBox2D *self, DaoxOBBox2D *other, double tolerance );
 DaoxOBBox2D DaoxOBBox2D_InitRect( float left, float right, float top, float bottom );
 DaoxOBBox2D DaoxOBBox2D_Scale( DaoxOBBox2D *self, float scale );

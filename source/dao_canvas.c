@@ -221,90 +221,6 @@ DaoTypeBase DaoxPathGradient_Typer =
 
 
 
-DaoxCanvasUtility* DaoxCanvasUtility_New()
-{
-	int i;
-	DaoxMatrix3D X2 = { 2.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
-	DaoxMatrix3D X4 = { 4.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
-	DaoxCanvasUtility *self = (DaoxCanvasUtility*) dao_calloc( 1, sizeof(DaoxCanvasUtility) );
-	self->triangulator = DaoxTriangulator_New();
-	self->quarterArc = DaoxPath_New();
-	self->quarterCircle = DaoxPath_New();
-	self->smallCircle = DaoxPath_New();
-	self->largeCircle = DaoxPath_New();
-	self->wideEllipse = DaoxPath_New();
-	self->narrowEllipse = DaoxPath_New();
-
-	DaoxPath_MoveTo( self->quarterArc,  100.0, 0.0 );
-	DaoxPath_ArcBy( self->quarterArc,  0.0, 0.0, 90 );
-
-	DaoxPath_MoveTo( self->quarterCircle, 0, 0 );
-	DaoxPath_LineTo( self->quarterCircle,  100.0, 0.0 );
-	DaoxPath_ArcTo( self->quarterCircle,  0.0, 100.0, 90 );
-	DaoxPath_Close( self->quarterCircle );
-
-	/* less accurate approximation for small circle: */
-	DaoxPath_MoveTo( self->smallCircle, -10.0, 0 );
-	DaoxPath_ArcTo2( self->smallCircle,  10.0, 0, 180, 180 );
-	DaoxPath_ArcTo2( self->smallCircle, -10.0, 0, 180, 180 );
-	DaoxPath_Close( self->smallCircle );
-
-	DaoxPath_MoveTo( self->largeCircle, -100, 0 );
-	DaoxPath_ArcTo( self->largeCircle,  100.0, 0, 180 );
-	DaoxPath_ArcTo( self->largeCircle, -100.0, 0, 180 );
-	DaoxPath_Close( self->largeCircle );
-
-	DaoxPath_ImportPath( self->wideEllipse, self->largeCircle, & X2 );
-	DaoxPath_ImportPath( self->narrowEllipse, self->largeCircle, & X4 );
-
-	DaoxPath_Preprocess( self->quarterArc, self->triangulator );
-	DaoxPath_Preprocess( self->quarterCircle, self->triangulator );
-	DaoxPath_Preprocess( self->smallCircle, self->triangulator );
-	DaoxPath_Preprocess( self->largeCircle, self->triangulator );
-	DaoxPath_Preprocess( self->wideEllipse, self->triangulator );
-	DaoxPath_Preprocess( self->narrowEllipse, self->triangulator );
-
-	for(i=0; i<DAOX_ARCS; i++){
-		float angle2 = (i+1.0) * 180  / (float)DAOX_ARCS;
-		float angle  = (i+1.0) * M_PI / (float)DAOX_ARCS;
-		float cosine = cos( 0.5 * angle );
-		float sine = sin( 0.5 * angle );
-		self->smallArcs[i] = DaoxPath_New();
-		self->largeArcs[i] = DaoxPath_New();
-		DaoxPath_MoveTo( self->smallArcs[i], 0.0, 0.0 );
-		DaoxPath_MoveTo( self->largeArcs[i], 0.0, 0.0 );
-		DaoxPath_LineTo( self->smallArcs[i], 10.0*cosine, -10.0*sine );
-		DaoxPath_LineTo( self->largeArcs[i], 100.0*cosine, -100.0*sine );
-		DaoxPath_ArcTo2( self->smallArcs[i], 10.0*cosine, 10.0*sine, angle2, 180.0 );
-		DaoxPath_ArcTo( self->largeArcs[i],  100.0*cosine, 100.0*sine, angle2 );
-		DaoxPath_Close( self->smallArcs[i] );
-		DaoxPath_Close( self->largeArcs[i] );
-		DaoxPath_Preprocess( self->smallArcs[i], self->triangulator );
-		DaoxPath_Preprocess( self->largeArcs[i], self->triangulator );
-	}
-	return self;
-}
-void DaoxCanvasUtility_Delete( DaoxCanvasUtility *self )
-{
-	int i;
-	for(i=0; i<DAOX_ARCS; i++){
-		DaoxPath_Delete( self->smallArcs[i] );
-		DaoxPath_Delete( self->largeArcs[i] );
-	}
-	DaoxPath_Delete( self->quarterArc );
-	DaoxPath_Delete( self->quarterCircle );
-	DaoxPath_Delete( self->smallCircle );
-	DaoxPath_Delete( self->largeCircle );
-	DaoxPath_Delete( self->wideEllipse );
-	DaoxPath_Delete( self->narrowEllipse );
-	DaoxTriangulator_Delete( self->triangulator );
-}
-
-
-
-
-
-
 
 
 DaoxCanvasState* DaoxCanvasState_New()
@@ -412,9 +328,9 @@ void DaoxCanvasItem_MarkStateChanged( DaoxCanvasItem *self )
 static void DaoxPlainArray_PushOBBoxVertexPoints2D( DaoxPlainArray *self, DaoxOBBox2D *box )
 {
 	DaoxVector2D *point1, *point2, *point3, *point4;
-	DaoxVector2D dX = DaoxVector2D_Sub( & box->X, & box->O );
 	DaoxVector2D dY = DaoxVector2D_Sub( & box->Y, & box->O );
 
+	DaoxPlainArray_Reserve( self, self->size + 4 );
 	point1 = DaoxPlainArray_PushVector2D( self );
 	point2 = DaoxPlainArray_PushVector2D( self );
 	point3 = DaoxPlainArray_PushVector2D( self );
@@ -422,8 +338,7 @@ static void DaoxPlainArray_PushOBBoxVertexPoints2D( DaoxPlainArray *self, DaoxOB
 	*point1 = box->O;
 	*point2 = box->X;
 	*point3 = box->Y;
-	*point4 = DaoxVector2D_Add( & box->O, & dX );
-	*point4 = DaoxVector2D_Add( point4, & dY );
+	*point4 = DaoxVector2D_Add( & box->X, & dY );
 }
 void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas )
 {
@@ -466,12 +381,12 @@ void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas )
 				}
 				DaoxPath_Close( self->path );
 			}
-			DaoxPath_Preprocess( path, canvas->utility->triangulator );
+			DaoxPath_Preprocess( path, canvas->triangulator );
 		}
 		path = self->path;
 		if( path ){
 			if( path->first->refined.first == NULL )
-				DaoxPath_Preprocess( path, canvas->utility->triangulator );
+				DaoxPath_Preprocess( path, canvas->triangulator );
 
 			if( strokeWidth > EPSILON && (strokeAlpha > EPSILON || strokeGradient != NULL) ){
 				if( path->strokes == NULL ) path->strokes = DMap_New(0,0);
@@ -751,25 +666,21 @@ void DaoxCanvasPath_Close( DaoxCanvasPath *self )
 
 DaoxCanvas* DaoxCanvas_New()
 {
-	DaoxMatrix3D X2 = { 2.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
-	DaoxMatrix3D X4 = { 4.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
-
 	DaoxCanvas *self = (DaoxCanvas*) dao_calloc( 1, sizeof(DaoxCanvas) );
 	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_canvas );
-	self->utility = DaoxCanvasUtility_New();
+	self->triangulator = DaoxTriangulator_New();
 	self->items = DArray_New(D_VALUE);
 	self->states = DArray_New(D_VALUE);
 	self->rects = DMap_New(0,D_VALUE);
 	self->ellipses = DMap_New(0,D_VALUE);
-	self->transform = X2;
-	self->transform.A11 = 1.0;
+	self->transform = DaoxMatrix3D_Identity();
 
 	self->unitLine = DaoxPath_New();
 	self->unitLine->strokes = DMap_New(0,0);
 	DaoxPath_MoveTo( self->unitLine, 0, 0 );
 	DaoxPath_LineTo( self->unitLine, UNIT, 0 );
 	DaoGC_IncRC( (DaoValue*) self->unitLine );
-	DaoxPath_Preprocess( self->unitLine, self->utility->triangulator );
+	DaoxPath_Preprocess( self->unitLine, self->triangulator );
 
 	self->unitRect = DaoxPath_New();
 	self->unitRect->strokes = DMap_New(0,0);
@@ -779,7 +690,7 @@ DaoxCanvas* DaoxCanvas_New()
 	DaoxPath_LineTo( self->unitRect, 0, UNIT );
 	DaoxPath_Close( self->unitRect );
 	DaoGC_IncRC( (DaoValue*) self->unitRect );
-	DaoxPath_Preprocess( self->unitRect, self->utility->triangulator );
+	DaoxPath_Preprocess( self->unitRect, self->triangulator );
 
 	self->unitCircle1 = DaoxPath_New();
 	self->unitCircle1->strokes = DMap_New(0,0);
@@ -787,7 +698,7 @@ DaoxCanvas* DaoxCanvas_New()
 	DaoxPath_ArcTo2( self->unitCircle1,  UNIT, 0, 180, 180 );
 	DaoxPath_ArcTo2( self->unitCircle1, -UNIT, 0, 180, 180 );
 	DaoxPath_Close( self->unitCircle1 );
-	DaoxPath_Preprocess( self->unitCircle1, self->utility->triangulator );
+	DaoxPath_Preprocess( self->unitCircle1, self->triangulator );
 
 	self->unitCircle2 = DaoxPath_New();
 	self->unitCircle2->strokes = DMap_New(0,0);
@@ -795,7 +706,7 @@ DaoxCanvas* DaoxCanvas_New()
 	DaoxPath_ArcTo2( self->unitCircle2,  UNIT, 0, 180, 60 );
 	DaoxPath_ArcTo2( self->unitCircle2, -UNIT, 0, 180, 60 );
 	DaoxPath_Close( self->unitCircle2 );
-	DaoxPath_Preprocess( self->unitCircle2, self->utility->triangulator );
+	DaoxPath_Preprocess( self->unitCircle2, self->triangulator );
 
 	self->unitCircle3 = DaoxPath_New();
 	self->unitCircle3->strokes = DMap_New(0,0);
@@ -803,13 +714,13 @@ DaoxCanvas* DaoxCanvas_New()
 	DaoxPath_ArcTo2( self->unitCircle3,  UNIT, 0, 180, 20 );
 	DaoxPath_ArcTo2( self->unitCircle3, -UNIT, 0, 180, 20 );
 	DaoxPath_Close( self->unitCircle3 );
-	DaoxPath_Preprocess( self->unitCircle3, self->utility->triangulator );
+	DaoxPath_Preprocess( self->unitCircle3, self->triangulator );
 	return self;
 }
 void DaoxCanvas_Delete( DaoxCanvas *self )
 {
 	DaoxSceneNode_Free( (DaoxSceneNode*) self );
-	DaoxCanvasUtility_Delete( self->utility );
+	DaoxTriangulator_Delete( self->triangulator );
 	DaoGC_DecRC( (DaoValue*) self->unitLine );
 	DaoGC_DecRC( (DaoValue*) self->unitRect );
 	DaoGC_DecRC( (DaoValue*) self->unitCircle1 );
@@ -900,6 +811,7 @@ void DaoxCanvas_AddItem( DaoxCanvas *self, DaoxCanvasItem *item )
 	if( state->parent ){
 		if( state->parent->children == NULL ) state->parent->children = DArray_New(D_VALUE);
 		DArray_PushBack( state->parent->children, item );
+		DaoxCanvasItem_MarkDataChanged( state->parent );
 	}else{
 		DArray_PushBack( self->items, item );
 	}
@@ -962,7 +874,7 @@ DaoxCanvasRect* DaoxCanvas_AddRect( DaoxCanvas *self, float x1, float y1, float 
 			DaoxPath_LineTo( path, -UNIT, 0.0 );
 		}
 		DaoxPath_Close( path );
-		DaoxPath_Preprocess( path, self->utility->triangulator );
+		DaoxPath_Preprocess( path, self->triangulator );
 	}else{
 		path = (DaoxPath*) it->value.pVoid;
 	}
@@ -1007,7 +919,7 @@ DaoxCanvasEllipse* DaoxCanvas_AddEllipse( DaoxCanvas *self, float x, float y, fl
 		path = DaoxPath_New();
 		path->strokes = DMap_New(0,0);
 		DaoxPath_ImportPath( path, self->unitCircle3, & mat );
-		DaoxPath_Preprocess( path, self->utility->triangulator );
+		DaoxPath_Preprocess( path, self->triangulator );
 	}else{
 		path = (DaoxPath*) it->value.pVoid;
 	}
@@ -1131,7 +1043,7 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const wchar_t *text, D
 	item = DaoxCanvasText_New();
 	DaoxCanvas_AddItem( self, item );
 
-	DaoxPath_Preprocess( path, self->utility->triangulator );
+	DaoxPath_Preprocess( path, self->triangulator );
 	DaoGC_ShiftRC( (DaoValue*) path, (DaoValue*) item->path );
 	item->path = path;
 	item->visible = 0;

@@ -32,7 +32,6 @@ DaoxPainter* DaoxPainter_New()
 {
 	DaoxPainter *self = (DaoxPainter*)dao_calloc(1,sizeof(DaoxPainter));
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_painter );
-	self->utility = DaoxCanvasUtility_New();
 	DaoxPainter_InitShaders( self );
 	DaoxPainter_InitBuffers( self );
 	return self;
@@ -41,7 +40,6 @@ void DaoxPainter_Delete( DaoxPainter *self )
 {
 	DaoxShader_Free( & self->shader );
 	DaoCstruct_Free( (DaoCstruct*) self );
-	DaoxCanvasUtility_Delete( self->utility );
 	dao_free( self );
 }
 void DaoxPainter_InitShaders( DaoxPainter *self )
@@ -54,11 +52,6 @@ void DaoxPainter_InitBuffers( DaoxPainter *self )
 	int pos  = self->shader.attributes.position;
 	int texKLMO = self->shader.attributes.texKLMO;
 	DaoxBuffer_Init2D( & self->buffer, pos, texKLMO );
-}
-void DaoxPainter_Reset( DaoxPainter *self, DaoxCanvasItem *item )
-{
-	self->transform = NULL;
-	self->item = item;
 }
 
 
@@ -376,7 +369,9 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 {
 	DaoxOBBox2D obbox;
 	DaoxMatrix3D inverse;
+	DaoxVector3D itempos = {0.0,0.0,0.0};
 	GLfloat modelMatrix[16] = {0};
+	float distance, diameter;
 	float scale = DaoxCanvas_Scale( canvas );
 	float stroke = item->state->strokeWidth / (scale + 1E-16);
 	int n = item->children ? item->children->size : 0;
@@ -384,40 +379,20 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 	int m = stroke >= 1E-3;
 	int i, triangles;
 
+	DaoxCanvasItem_Update( item, canvas );
 	DaoxMatrix3D_Multiply( & transform, item->transform );
 	obbox = DaoxOBBox2D_Transform( & item->obbox, & transform );
-
-#if 0
-	if( n == 0 && (item->bounds.right > item->bounds.left + 1E-6) ){
-		DaoxAABBox2D box = DaoxAABBox2D_Transform( & item->bounds, & transform );
-
-		if( box.left > canvas->viewport.right + 1 ) return;
-		if( box.right < canvas->viewport.left - 1 ) return;
-		if( box.bottom > canvas->viewport.top + 1 ) return;
-		if( box.top < canvas->viewport.bottom - 1 ) return;
-	}
-#if 0
-#endif
-
-	inverse = DaoxMatrix3D_Inverse( & transform );
-	bounds = DaoxAABBox2D_Transform( & item->canvas->viewport, & inverse );
-	//DaoxAABBox2D_AddMargin( & bounds, 0.1 * (bounds.right - bounds.left) );
-	DaoxAABBox2D_AddMargin( & bounds, item->state->strokeWidth + 1 );
-	//DaoxAABBox2D_Print( & bounds );
-	if( DaoxAABBox2D_Contain( & self->bounds, item->bounds ) == 0 ){
-//		if( DaoxAABBox2D_Contain( & self->bounds, bounds ) == 0 )
-//			DaoxPainter_Reset( self );
-	}
-	self->bounds = bounds;
-#endif
-	DaoxCanvasItem_Update( item, canvas );
-
-	//if( triangles == 0 && n == 0 && item->texture == NULL ) return;
-
+	itempos.x = obbox.O.x;
+	itempos.y = obbox.O.y;
+	distance = DaoxVector3D_Dist( & self->campos, & itempos );
+	diameter = DaoxVector3D_Dist( & obbox.X, & obbox.Y );
+	//printf( "DaoxPainter_PaintItem 1: %f\n", scale );
+	if( diameter < 1E-5 * distance * scale ) return;
+	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
+	//printf( "DaoxPainter_PaintItem 2\n" );
 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
-	//DaoxPainter_PaintItemData( self, canvas, item );
 	if( item->visible ){
 		DaoxVG_PaintItemData( & self->shader, & self->buffer, canvas, item );
 		if( item->ctype == daox_type_canvas_image && item->data.texture )
@@ -433,7 +408,12 @@ void MakeProjectionMatrix( DaoxViewFrustum *frustum, DaoxCamera *cam, GLfloat ma
 
 void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera *camera )
 {
+	DaoxVector3D origin = {0.0, 0.0, 0.0};
+	DaoxVector3D norm = {0.0, 0.0, 1.0};
+	DaoxVector3D points3d[4];
+	DaoxVector2D points2d[4];
 	DaoxMatrix4D viewMatrix;
+	DaoxMatrix4D worldToCanvas;
 	DaoxViewFrustum frustum;
 	DaoxColor bgcolor = canvas->background;
 	GLfloat matrix[16] = {0};
@@ -441,14 +421,31 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	GLfloat matrix3[16] = {0};
 	int i, n = canvas->items->size;
 
-	self->canvas = canvas;
-
 	viewMatrix = DaoxSceneNode_GetWorldTransform( & camera->base );
 	viewMatrix = DaoxMatrix4D_Inverse( & viewMatrix );
 	DaoxMatrix4D_Export( & viewMatrix, matrix3 );
 
 	DaoxViewFrustum_Init( & frustum, camera );
 	MakeProjectionMatrix( & frustum, camera, matrix2 );
+
+	worldToCanvas = DaoxSceneNode_GetWorldTransform( & canvas->base );
+	worldToCanvas = DaoxMatrix4D_Inverse( & worldToCanvas );
+	frustum = DaoxViewFrustum_Transform( & frustum, & worldToCanvas );
+	self->campos = frustum.cameraPosition;
+	points3d[0] = DaoxVector3D_Add( & self->campos, & frustum.topLeftEdge );
+	points3d[1] = DaoxVector3D_Add( & self->campos, & frustum.topRightEdge );
+	points3d[2] = DaoxVector3D_Add( & self->campos, & frustum.bottomLeftEdge );
+	points3d[3] = DaoxVector3D_Add( & self->campos, & frustum.bottomRightEdge );
+	points3d[0] = DaoxPlaneLineIntersect( origin, norm, self->campos, points3d[0] );
+	points3d[1] = DaoxPlaneLineIntersect( origin, norm, self->campos, points3d[1] );
+	points3d[2] = DaoxPlaneLineIntersect( origin, norm, self->campos, points3d[2] );
+	points3d[3] = DaoxPlaneLineIntersect( origin, norm, self->campos, points3d[3] );
+	for(i=0; i<4; ++i){
+		points2d[i].x = points3d[i].x;
+		points2d[i].y = points3d[i].y;
+		//DaoxVector2D_Print( points2d + i );
+	}
+	DaoxOBBox2D_ResetBox( & self->obbox, points2d, 4 );
 
 	glUseProgram( self->shader.program );
 	glUniformMatrix4fv( self->shader.uniforms.projMatrix, 1, 0, matrix2 );
@@ -467,8 +464,6 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	glBindTexture(GL_TEXTURE_1D, self->shader.textures.dashSampler);
 	glUniform1i(self->shader.uniforms.dashSampler, DAOX_DASH_SAMPLER );
 
-#if 0
-#endif
 
 	glBindVertexArray( self->buffer.vertexVAO );
 	glBindBuffer( GL_ARRAY_BUFFER, self->buffer.vertexVBO );
@@ -487,69 +482,10 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 
-#if 0
-	glColor4f( 0.0, 1.0, 0.0, 0.5 );
-	glBegin( GL_TRIANGLES );
-	glVertex2f( 0.0, 0.0 );
-	glVertex2f( 1.0, 0.0 );
-	glVertex2f( 0.0, 1.0 );
-	glEnd();
-#endif
-
-#if 0
-	DaoGLVertex2D *vertices;
-	DaoGLTriangle *triangles;
-	void *indices;
-	int x = -200;
-	int y = -200;
-	int w = 400;
-	int h = 400;
-	vertices = DaoxBuffer_MapVertices2D( & self->buffer, 3 );
-	triangles = DaoxBuffer_MapTriangles( & self->buffer, 1 );
-	vertices[0].point.x = x;
-	vertices[0].point.y = y;
-	vertices[1].point.x = x+w;
-	vertices[1].point.y = y;
-	vertices[2].point.x = x;
-	vertices[2].point.y = y+h;
-	vertices[0].color.r = 0.0;
-	vertices[0].color.g = 0.0;
-	vertices[1].color.r = 0.5;
-	vertices[1].color.g = 0.0;
-	vertices[2].color.r = 1.0;
-	vertices[2].color.g = 1.0;
-	vertices[2].color.g = 0.5;
-	for(i=0; i<3; ++i) vertices[i].color.b = vertices[i].color.a = 0.0;
-
-	triangles[0].index[0] = self->buffer.vertexOffset;
-	triangles[0].index[1] = self->buffer.vertexOffset + 1;
-	triangles[0].index[2] = self->buffer.vertexOffset + 2;
-
-	indices = (void*)(self->buffer.triangleOffset*sizeof(GLint)*3);
-	glDrawElements( GL_TRIANGLES, 3, GL_UNSIGNED_INT, indices );
-
-	self->buffer.vertexOffset += 3;
-	self->buffer.triangleOffset += 1;
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-
-	return;
-#endif
-
-#ifdef USE_STENCIL
-	glClearStencil(0);
-	glClear(GL_STENCIL_BUFFER_BIT);
-#endif
-
-	printf( "DaoxPainter_Paint1: %i %i\n", self->buffer.vertexOffset, self->buffer.triangleOffset );
 	for(i=0; i<n; i++){
 		DaoxCanvasItem *it = (DaoxCanvasItem*) canvas->items->items.pVoid[i];
 		DaoxPainter_PaintItem( self, canvas, it, canvas->transform );
 	}
-	printf( "DaoxPainter_Paint2: %i %i\n", self->buffer.vertexCapacity, self->buffer.triangleCapacity );
 	glBindVertexArray(0);
 }
 void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport )
@@ -587,8 +523,6 @@ void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D view
 
 	//DaoxCamera_MoveXYZ( & camera, 0.0+170, 0.0+130, 0.1*W );
 	//DaoxCamera_LookAtXYZ( & camera, CX+170, CY+130, -1.0 );
-
-	self->viewport = viewport;
 
 	DaoxPainter_PaintCanvas( self, canvas, & camera );
 }

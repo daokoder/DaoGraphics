@@ -447,7 +447,9 @@ void DaoxRenderer_RenderCanvasItem( DaoxRenderer *self, DaoxCanvas *canvas, Daox
 {
 	DaoxOBBox2D obbox;
 	DaoxMatrix3D inverse;
+	DaoxVector3D itempos = {0.0,0.0,0.0};
 	GLfloat modelMatrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+	float distance, diameter;
 	float scale = 1;//DaoxCanvas_Scale( canvas );
 	float stroke = item->state->strokeWidth / (scale + 1E-16);
 	int n = item->children ? item->children->size : 0;
@@ -455,16 +457,26 @@ void DaoxRenderer_RenderCanvasItem( DaoxRenderer *self, DaoxCanvas *canvas, Daox
 	int m = stroke >= 1E-3;
 	int i;
 
+	DaoxCanvasItem_Update( item, canvas );
 	DaoxMatrix3D_Multiply( & transform, item->transform );
 	obbox = DaoxOBBox2D_Transform( & item->obbox, & transform );
+#if 0
+	itempos.x = obbox.O.x;
+	itempos.y = obbox.O.y;
+	distance = DaoxVector3D_Dist( & self->campos, & itempos );
+	diameter = DaoxVector3D_Dist( & obbox.X, & obbox.Y );
+	//printf( "DaoxPainter_PaintItem 1: %f\n", scale );
+	if( diameter < 1E-5 * distance * scale ) return;
+	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
+	//printf( "DaoxPainter_PaintItem 2\n" );
+#endif
 
-	DaoxCanvasItem_Update( item, canvas );
-
-	//DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
-	//DaoxRenderer_PaintItemData( self, canvas, item );
-	DaoxVG_PaintItemData( & self->shader, & self->bufferVG, canvas, item );
-	//if( item->texture ) DaoxRenderer_PaintImageItem( self, item );
+	if( item->visible ){
+		DaoxVG_PaintItemData( & self->shader, & self->bufferVG, canvas, item );
+		//if( item->ctype == daox_type_canvas_image && item->data.texture )
+		//	DaoxPainter_PaintImageItem( self, item );
+	}
 
 	for(i=0; i<n; i++){
 		DaoxCanvasItem *it = (DaoxCanvasItem*) item->children->items.pVoid[i];
