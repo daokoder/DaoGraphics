@@ -88,10 +88,10 @@ struct DaoxColorGradient
 	DaoxVector2D  points[2];
 	float         radius;
 };
-DAO_DLL extern DaoType *daox_type_color_gradient;
-DAO_DLL extern DaoType *daox_type_linear_gradient;
-DAO_DLL extern DaoType *daox_type_radial_gradient;
-DAO_DLL extern DaoType *daox_type_path_gradient;
+DAO_DLL DaoType *daox_type_color_gradient;
+DAO_DLL DaoType *daox_type_linear_gradient;
+DAO_DLL DaoType *daox_type_radial_gradient;
+DAO_DLL DaoType *daox_type_path_gradient;
 
 
 
@@ -119,7 +119,7 @@ struct DaoxCanvasState
 	DaoxFont        *font;
 	DaoxCanvasItem  *parent;
 };
-DAO_DLL extern DaoType *daox_type_canvas_state;
+DAO_DLL DaoType *daox_type_canvas_state;
 
 
 
@@ -190,16 +190,16 @@ typedef DaoxCanvasItem  DaoxCanvasText;
 
 
 
-DAO_DLL extern DaoType *daox_type_canvas_item;
-DAO_DLL extern DaoType *daox_type_canvas_line;
-DAO_DLL extern DaoType *daox_type_canvas_rect;
-DAO_DLL extern DaoType *daox_type_canvas_circle;
-DAO_DLL extern DaoType *daox_type_canvas_ellipse;
-DAO_DLL extern DaoType *daox_type_canvas_polyline;
-DAO_DLL extern DaoType *daox_type_canvas_polygon;
-DAO_DLL extern DaoType *daox_type_canvas_path;
-DAO_DLL extern DaoType *daox_type_canvas_text;
-DAO_DLL extern DaoType *daox_type_canvas_image;
+DAO_DLL DaoType *daox_type_canvas_item;
+DAO_DLL DaoType *daox_type_canvas_line;
+DAO_DLL DaoType *daox_type_canvas_rect;
+DAO_DLL DaoType *daox_type_canvas_circle;
+DAO_DLL DaoType *daox_type_canvas_ellipse;
+DAO_DLL DaoType *daox_type_canvas_polyline;
+DAO_DLL DaoType *daox_type_canvas_polygon;
+DAO_DLL DaoType *daox_type_canvas_path;
+DAO_DLL DaoType *daox_type_canvas_text;
+DAO_DLL DaoType *daox_type_canvas_image;
 
 
 
@@ -232,7 +232,7 @@ struct DaoxCanvas
 
 	DaoxTriangulator  *triangulator;
 };
-DAO_DLL extern DaoType *daox_type_canvas;
+DAO_DLL DaoType *daox_type_canvas;
 
 
 

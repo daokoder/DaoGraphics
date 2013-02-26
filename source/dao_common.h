@@ -311,6 +311,7 @@ DaoxOBBox2D DaoxOBBox2D_InitRect( float left, float right, float top, float bott
 DaoxOBBox2D DaoxOBBox2D_Scale( DaoxOBBox2D *self, float scale );
 DaoxOBBox2D DaoxOBBox2D_Transform( DaoxOBBox2D *self, DaoxMatrix3D *transfrom );
 DaoxOBBox2D DaoxOBBox2D_CopyWithMargin( DaoxOBBox2D *self, double margin );
+double DaoxOBBox2D_Area( DaoxOBBox2D *self );
 
 
 

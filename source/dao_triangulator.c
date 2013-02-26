@@ -150,14 +150,7 @@ int DaoxTriangulator_CloseContour( DaoxTriangulator *self )
 void DaoxTriangulator_MakeTriangle( DaoxTriangulator *self, DaoxVertexData *A )
 {
 	int I = A->prev->index, J = A->index, K = A->next->index;
-	DaoxVector2D P1 = self->points->pod.vectors2d[I];
-	DaoxVector2D P2 = self->points->pod.vectors2d[J];
-	DaoxVector2D P3 = self->points->pod.vectors2d[K];
-	if( DaoxTriangle_Area( P1, P2, P3 ) > 0.0 ){
-		DaoxPlainArray_PushTriangleIJK( self->triangles, I, J, K );
-	}else{
-		DaoxPlainArray_PushTriangleIJK( self->triangles, I, K, J );
-	}
+	DaoxPlainArray_PushTriangleIJK( self->triangles, I, J, K );
 }
 
 void DaoxTriangulator_QuickSortVertices( DaoxTriangulator *self, DaoxVertexData *vertices[], int first, int last )

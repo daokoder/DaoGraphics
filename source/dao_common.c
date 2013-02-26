@@ -859,11 +859,8 @@ static int CheckBox2( DaoxOBBox2D *self, DaoxOBBox2D *other )
 }
 int DaoxOBBox2D_Intersect( DaoxOBBox2D *self, DaoxOBBox2D *other )
 {
-	DaoxVector2D C1, C2;
-	C1.x = 0.5*(self->X.x + self->Y.x);
-	C1.y = 0.5*(self->X.y + self->Y.y);
-	C2.x = 0.5*(other->X.x + other->Y.x);
-	C2.y = 0.5*(other->X.y + other->Y.y);
+	DaoxVector2D C1 = DaoxVector2D_Interpolate( self->X, self->Y, 0.5 );
+	DaoxVector2D C2 = DaoxVector2D_Interpolate( other->X, other->Y, 0.5 );
 	double R1 = DaoxVector2D_Dist( self->X, C1 );
 	double R2 = DaoxVector2D_Dist( other->X, C2 );
 

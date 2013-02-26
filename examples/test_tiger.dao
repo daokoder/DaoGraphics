@@ -1,0 +1,73 @@
+
+load graphics
+load test_tiger_paths
+
+routine LoadTiger( canvas : Graphics::Canvas )
+{
+	group = canvas.AddGroup()
+	group.SetTransform( [-1.0, 0, 0, -1.0, 100, 100] );
+	state = canvas.PushState()
+	state.SetParentItem( group );
+	for( i = 0 : pathCount-1 ){
+	#for( i = pathCount-60 : pathCount-50 ){
+		commands = commandArrays[i]
+		points = dataArrays[i]
+		style = styleArrays[i];
+
+		state = canvas.PushState()
+		state.SetStrokeColor( style[0], style[1], style[2], style[3] )
+		state.SetFillColor( style[4], style[5], style[6], style[7] )
+
+		# vgDrawPath(path,paintModes), style[9] is the paintModes:
+		strokeWidth = (((int)style[9]) & 1) ? style[8] : 0;
+		state.SetStrokeWidth( strokeWidth )
+		
+		path = Graphics::Path();
+		canvas.AddPath( path );
+		k = 0;
+		for( j = 0 : commandCounts[i]-1 ){
+			switch( commands[j] ){
+			case VG_MOVE_TO_ABS  :
+				path.MoveTo( points[k], points[k+1] );
+				k += 2;
+			case VG_LINE_TO_ABS  :
+				path.LineAbsTo( points[k], points[k+1] );
+				k += 2;
+			case VG_CUBIC_TO_ABS :
+				path.CubicAbsTo( points[k], points[k+1], points[k+2], points[k+3], points[k+4], points[k+5] );
+				k += 6;
+			case VG_CLOSE_PATH   :
+				path.Close();
+			}
+		}
+		canvas.PopState()
+	}
+	canvas.PopState()
+}
+
+routine main( fps_limit = 30, compute_fps = 0 )
+{
+	Graphics::glutInit( 1000, 800, 'Dao Graphics Demo: Tiger', fps_limit, compute_fps )
+	canvas = Graphics::Canvas();
+	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
+	LoadTiger( canvas );
+
+	painter = Graphics::Painter();
+	Graphics::glutDisplay( painter, canvas )
+}
+routine main( save : string, width = 1200, height = 900 )
+{
+	width = 160
+	height = 120
+	painter = Graphics::Painter();
+	canvas = Graphics::Canvas();
+	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
+	LoadTiger( canvas );
+	Graphics::glutInit( 800, 600, 'Dao Graphics Demo: Tiger', 1, 0 )
+	Graphics::glutSetGraphics( painter, canvas );
+
+	image = Graphics::Image();
+	canvas.SetViewport( -400, 400, -300, 300 );
+	#canvas.RenderToImage( image, width, height );
+	image.Save( save );
+}
