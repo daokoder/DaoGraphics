@@ -4,16 +4,16 @@
 //
 // Copyright (c) 2013, Limin Fu
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
-// 
+//
 // * Redistributions of source code must retain the above copyright notice,
 //   this list of conditions and the following disclaimer.
 // * Redistributions in binary form must reproduce the above copyright notice,
 //   this list of conditions and the following disclaimer in the documentation
 //   and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 // OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
@@ -385,7 +385,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 	itempos.x = obbox.O.x;
 	itempos.y = obbox.O.y;
 	distance = DaoxVector3D_Dist( & self->campos, & itempos );
-	diameter = DaoxVector3D_Dist( & obbox.X, & obbox.Y );
+	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
 	//printf( "DaoxPainter_PaintItem 1: %f\n", scale );
 	if( diameter < 1E-5 * distance * scale ) return;
 	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;

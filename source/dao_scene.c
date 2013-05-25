@@ -4,16 +4,16 @@
 //
 // Copyright (c) 2012, Limin Fu
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
-// 
+//
 // * Redistributions of source code must retain the above copyright notice,
 //   this list of conditions and the following disclaimer.
 // * Redistributions in binary form must reproduce the above copyright notice,
 //   this list of conditions and the following disclaimer in the documentation
 //   and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 // OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
@@ -47,6 +47,7 @@
 
 
 
+void DaoxTexture_glFreeTexture( DaoxTexture *self );
 
 DaoxTexture* DaoxTexture_New()
 {
@@ -59,6 +60,7 @@ DaoxTexture* DaoxTexture_New()
 }
 void DaoxTexture_Delete( DaoxTexture *self )
 {
+	if( self->tid ) DaoxTexture_glFreeTexture( self );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoGC_DecRC( self->image );
 	DString_Delete( self->file );
@@ -81,7 +83,7 @@ void DaoxTexture_LoadImage( DaoxTexture *self, const char *file )
 }
 void DaoxTexture_glFreeTexture( DaoxTexture *self )
 {
-	GLint tid = self->tid;
+	GLuint tid = self->tid;
 	if( tid == 0 ) return;
 	glDeleteTextures( 1, & tid );
 	self->tid = 0;
@@ -90,7 +92,7 @@ void DaoxTexture_glInitTexture( DaoxTexture *self )
 {
 	uchar_t *data;
 	int W, H;
-	GLint tid = 0;
+	GLuint tid = 0;
 
 	if( self->tid ) return;
 	if( self->file->size ){
@@ -182,7 +184,7 @@ void DaoxViewFrustum_Init( DaoxViewFrustum *self, DaoxCamera *camera )
 	float xtan = tan( 0.5 * camera->fovAngle * M_PI / 180.0 );
 	float scale, scale2;
 
-	self->right = camera->nearPlane * xtan; 
+	self->right = camera->nearPlane * xtan;
 	self->left = - self->right;
 	self->top = self->right / camera->aspectRatio;
 	self->bottom = - self->top;
@@ -665,7 +667,7 @@ void DaoxModel_TransformMesh( DaoxModel *self )
 		DaoxPlainArray *points = (DaoxPlainArray*) self->points->items.pVoid[i];
 		DaoxPlainArray *vnorms = (DaoxPlainArray*) self->vnorms->items.pVoid[i];
 		DaoxPlainArray *tnorms = (DaoxPlainArray*) self->tnorms->items.pVoid[i];
-		if( points->size == unit->vertices->size 
+		if( points->size == unit->vertices->size
 				&& vnorms->size == unit->vertices->size
 				&& tnorms->size == unit->triangles->size ) continue;
 		DaoxPlainArray_ResetSize( points, unit->vertices->size );
@@ -806,7 +808,7 @@ double DaoxBinaryParser_DecodeFloatLE( DaoxBinaryParser *self )
 	uint_t bits = DaoxBinaryParser_DecodeUInt32LE( self );
 	uint_t negative = bits & (1<<31);
 	int i, expon;
-	
+
 	if( (self->source + 4) > self->end ){
 		self->source = self->error;
 		return 0;

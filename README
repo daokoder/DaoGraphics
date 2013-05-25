@@ -11,7 +11,13 @@ Features
 
 
 License
-
+-------
 The engine is released under the Simplified BSD License.
 
 The fonts accompanying the engine were released under the Apache License by Google.
+
+
+How to compile
+--------------
+Place it as a subdirectory "DaoGraphics" under "dao/modules/",
+then compile Dao using "make -f Makefile.daomake PLATFORM".

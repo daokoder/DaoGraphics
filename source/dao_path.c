@@ -4,16 +4,16 @@
 //
 // Copyright (c) 2012,2013, Limin Fu
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
-// 
+//
 // * Redistributions of source code must retain the above copyright notice,
 //   this list of conditions and the following disclaimer.
 // * Redistributions in binary form must reproduce the above copyright notice,
 //   this list of conditions and the following disclaimer in the documentation
 //   and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 // OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
@@ -234,7 +234,7 @@ DaoxPathSegment* DaoxPath_LineTo( DaoxPath *self, float x, float y )
 /*
 // Quoted from: http://en.wikipedia.org/wiki/Bezier_spline
 // We may compose a circle of radius R from an arbitrary number of cubic Bezier curves.
-// Let the arc start at point A and end at point B, placed at equal distances above 
+// Let the arc start at point A and end at point B, placed at equal distances above
 // and below the x-axis, spanning an arc of angle theta=2*phi:
 //     AX = cos(phi)
 //     AY = sin(phi)
@@ -1361,7 +1361,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 	DaoxOBBox2D_ResetBox( & self->obbox, points->pod.vectors2d, points->size );
 	printf( "DaoxPath_Preprocess: %i %i\n", self->mesh->points->size, self->mesh->patches->size );
 	//self->mesh->patches->size = 0;
-	
+
 	DaoxPlainArray_Delete( boxes );
 	DaoxPlainArray_Delete( points );
 	DArray_Delete( segments );
@@ -1821,7 +1821,7 @@ DaoxPathMesh* DaoxPath_GetStrokes( DaoxPath *self, float width, int cap, int jun
 
 	it = DMap_Find( self->strokes, (void*) key );
 	if( it ) return (DaoxPathMesh*) it->value.pVoid;
-		
+
 	pm = DaoxPathMesh_New();
 	DaoxPath_ComputeStroke( self, pm, width, cap, junction, refine );
 	DMap_Insert( self->strokes, (void*) key, pm );

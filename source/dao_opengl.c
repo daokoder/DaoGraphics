@@ -4,16 +4,16 @@
 //
 // Copyright (c) 2012, Limin Fu
 // All rights reserved.
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
-// 
+//
 // * Redistributions of source code must retain the above copyright notice,
 //   this list of conditions and the following disclaimer.
 // * Redistributions in binary form must reproduce the above copyright notice,
 //   this list of conditions and the following disclaimer in the documentation
 //   and/or other materials provided with the distribution.
-// 
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 // OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
@@ -67,13 +67,14 @@ vec4 InterpolateColor( vec4 C1, vec4 C2, float start, float mid, float end ) \n\
 float GradientSampler_GetStop( int i ) \n\
 { \n\
 	float gradientMaxStops = float( textureSize( gradientSampler, 0 ) ); \n\
-	return texture( gradientSampler, 2.0*i/gradientMaxStops )[0]; \n\
+	return texture( gradientSampler, i/gradientMaxStops )[0]; \n\
 } \n\
 \n\
 vec4 GradientSampler_GetColor( int i ) \n\
 { \n\
 	float gradientMaxStops = float( textureSize( gradientSampler, 0 ) ); \n\
-	return texture( gradientSampler, (2*i+1)/gradientMaxStops ); \n\
+	return texture( gradientSampler, (i + gradientStops)/gradientMaxStops ); \n\
+	return texture( gradientSampler, 0.5 + i/gradientMaxStops ); \n\
 } \n\
 \n\
 vec4 SampleGradientColor( float at ) \n\
@@ -392,6 +393,7 @@ void main(void)\n\
 
 
 
+void DaoxShader_CompileShader( DaoxShader *self, int type, DArray *strings );
 
 void DaoxShader_Init( DaoxShader *self )
 {
@@ -613,8 +615,8 @@ void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradie
 	memset( data, 0, n*2*4*sizeof(GLfloat) );
 	for(i=0; i<n; ++i){
 		DaoxColor color = gradient->colors->pod.colors[i];
-		GLfloat *stop = data + 8*i;
-		GLfloat *rgba = data + 8*i + 4;
+		GLfloat *stop = data + 4*i;
+		GLfloat *rgba = data + 4*(i+n);
 		stop[0] = gradient->stops->pod.floats[i];
 		rgba[0] = color.red;
 		rgba[1] = color.green;
