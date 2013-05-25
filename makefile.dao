@@ -1,0 +1,65 @@
+
+
+project_headers = 
+{
+	"source/dao_common.h" ,
+	"source/dao_font.h" ,
+	"source/dao_image.h" ,
+	"source/dao_path.h" ,
+	"source/dao_canvas.h" ,
+	"source/dao_mesh.h" ,
+	"source/dao_scene.h" ,
+	"source/dao_triangulator.h" ,
+	"source/dao_painter.h" ,
+	"source/dao_renderer.h" ,
+#	"source/dao_graphics.h" ,
+	"source/dao_resource.h" ,
+	"source/dao_xml.h" ,
+	"source/dao_collada.h" ,
+	"source/dao_opengl.h" ,
+	"source/dao_glut.h" 
+}
+
+project_sources = 
+{
+	"source/dao_common.c" ,
+	"source/dao_font.c" ,
+	"source/dao_image.c" ,
+	"source/dao_path.c" ,
+	"source/dao_canvas.c" ,
+	"source/dao_mesh.c" ,
+	"source/dao_scene.c" ,
+	"source/dao_triangulator.c" ,
+	"source/dao_painter.c" ,
+	"source/dao_renderer.c" ,
+	"source/dao_graphics.c" ,
+	"source/dao_resource.c" ,
+	"source/dao_xml.c" ,
+	"source/dao_collada.c" ,
+	"source/dao_opengl.c" ,
+	"source/dao_glut.c" 
+}
+
+
+project = DaoMake::Project( "DaoGraphics" ) 
+
+daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
+opengl = DaoMake::FindPackage( "OpenGL", $OPTIONAL )
+glut   = DaoMake::FindPackage( "GLUT",   $OPTIONAL )
+
+if( daovm == none or opengl == none ) return
+if( glut == none ) return # TODO: make it optional;
+
+project.UseImportLibrary( daovm )
+project.UseSharedLibrary( opengl )
+if( glut ) project.UseSharedLibrary( glut )
+
+
+project_objs = project.AddObjects( project_sources, project_headers )
+project_dll  = project.AddSharedLibrary( "dao_graphics", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_graphics", project_objs )
+
+
+project.GenerateFinder( $TRUE );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
+project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );
