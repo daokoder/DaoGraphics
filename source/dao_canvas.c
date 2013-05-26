@@ -992,7 +992,7 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, const 
 
 		chitem = DaoxCanvasPath_New();
 		DaoxCanvas_AddItem( self, chitem );
-		DaoGC_IncRC( glyph->shape );
+		DaoGC_IncRC( (DaoValue*) glyph->shape );
 		chitem->path = glyph->shape;
 		chitem->scale = scale;
 

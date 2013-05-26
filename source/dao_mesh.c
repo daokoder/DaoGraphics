@@ -27,6 +27,7 @@
 
 
 #include "dao_mesh.h"
+#include "dao_scene.h"
 
 
 int DaoxOBBox3D_Contain( DaoxOBBox3D *self, DaoxVector3D point )
@@ -214,7 +215,7 @@ void DaoxMeshUnit_Delete( DaoxMeshUnit *self )
 }
 void DaoxMeshUnit_SetMaterial( DaoxMeshUnit *self, DaoxMaterial *material )
 {
-	DaoGC_ShiftRC( material, self->material );
+	DaoGC_ShiftRC( (DaoValue*) material, (DaoValue*) self->material );
 	self->material = material;
 }
 
@@ -359,7 +360,7 @@ void DaoxMesh_Delete( DaoxMesh *self )
 DaoxMeshUnit* DaoxMesh_AddUnit( DaoxMesh *self )
 {
 	DaoxMeshUnit *unit = DaoxMeshUnit_New();
-	DaoGC_IncRC( self );
+	DaoGC_IncRC( (DaoValue*) self );
 	DaoGC_IncRC( (DaoValue*) unit );
 	unit->mesh = self;
 	unit->index = self->units->size;
@@ -390,6 +391,54 @@ void DaoxMesh_ResetBoundingBox( DaoxMesh *self )
 	}
 	DaoxOBBox3D_ComputeBoundingBox( & self->obbox, points->pod.vectors3d, points->size );
 	DaoxPlainArray_Delete( points );
+}
+static void DaoxMesh_MakeTriangle( DaoxMesh *self, int c, float x, float y, float dx, float dy, float z )
+{
+	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
+	DaoxMaterial *material = DaoxMaterial_New();
+	DaoxVertex *vertices = unit->vertices->pod.vertices;
+	DaoxTriangle *triangles = unit->triangles->pod.triangles;
+	DaoxVector3D norm = {0.0,0.0,1.0};
+	int i;
+
+	DaoxMeshUnit_SetMaterial( unit, material );
+	DaoxPlainArray_Resize( unit->vertices, 3 );
+	DaoxPlainArray_Resize( unit->triangles, 1 );
+	vertices = unit->vertices->pod.vertices;
+	triangles = unit->triangles->pod.triangles;
+	vertices[0].point.x = x;
+	vertices[0].point.y = y;
+	vertices[1].point.x = x + dx;
+	vertices[1].point.y = y;
+	vertices[2].point.x = x;
+	vertices[2].point.y = y + dy;
+	triangles[0].index[0] = 0;
+	triangles[0].index[1] = 1;
+	triangles[0].index[2] = 2;
+	for(i=0; i<3; ++i){
+		vertices[i].point.z = z;
+		vertices[i].norm = norm;
+	}
+	switch( c ){
+	case 0 : material->diffuse = daox_gray_color; break;
+	case 1 : material->diffuse = daox_red_color; break;
+	case 2 : material->diffuse = daox_green_color; break;
+	case 3 : material->diffuse = daox_blue_color; break;
+	}
+}
+void DaoxMesh_MakeViewFrustumCorners( DaoxMesh *self, float fov, float ratio, float near )
+{
+	DaoxVector3D norm = {0.0,0.0,1.0};
+	float xtan = tan( 0.5 * fov * M_PI / 180.0 );
+	float right = near * xtan;
+	float top = right / ratio;
+	float width = 0.05*right;
+	float z = - 1.01*near;
+
+	DaoxMesh_MakeTriangle( self, 0, -right, -top, width, width, z );
+	DaoxMesh_MakeTriangle( self, 1, right, -top, -width, width, z );
+	DaoxMesh_MakeTriangle( self, 2, right, top, -width, -width, z );
+	DaoxMesh_MakeTriangle( self, 3, -right, top, width, -width, z );
 }
 
 

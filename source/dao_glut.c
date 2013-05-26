@@ -26,14 +26,6 @@
 */
 
 
-#if defined(__APPLE__)
-#  include <OpenGL/gl3.h>
-#  include <GLUT/glut.h>
-#else
-#  include <GL/gl3.h>
-#  include <GL/glut.h>
-#endif
-
 #include <math.h>
 #include <stdio.h>
 #include "dao_opengl.h"
@@ -62,7 +54,7 @@ static DaoRoutine* Dao_Get_Object_Method( DaoCstruct *cd, DaoObject **obj, const
 {
   DaoRoutine *meth;
   if( cd == NULL ) return NULL;
-  *obj = DaoCdata_GetObject( cd );
+  *obj = DaoCdata_GetObject( (DaoCdata*) cd );
   if( *obj == NULL ) return NULL;
   return DaoObject_GetMethod( *obj, name );
 }
@@ -71,14 +63,15 @@ void DaoCstruct_CallMethod( DaoCstruct *cdata, const char *method )
 {
 	DaoObject *obj = NULL;
 	DaoRoutine *rout = Dao_Get_Object_Method( cdata, & obj, method );
+	DaoValue *render = (DaoValue*) daox_current_renderer;
 	DaoProcess *proc;
 
 	if( rout == NULL || obj == NULL ) return;
 	proc = DaoVmSpace_AcquireProcess( __daoVmSpace );
 
-	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, & daox_current_renderer, 1 );
+	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, & render, 1 );
 	if( rout == NULL ) goto Finalize;
-	DaoProcess_Call( proc, rout, (DaoValue*) obj, & daox_current_renderer, 1 );
+	DaoProcess_Call( proc, rout, (DaoValue*) obj, & render, 1 );
 Finalize:
 	DaoVmSpace_ReleaseProcess( __daoVmSpace, proc );
 }
@@ -183,7 +176,7 @@ void DaoxCanvas_Zoom( int zoomin )
 void DaoxCanvas_glutKeyboard( unsigned char key, int x, int y )
 {
 	if( daox_current_canvas == NULL ) return;
-	if( DaoCstruct_CallKeyboardMethod( daox_current_canvas, "OnKeyboard", key, x, y ) ) return;
+	if( DaoCstruct_CallKeyboardMethod( (DaoCstruct*) daox_current_canvas, "OnKeyboard", key, x, y ) ) return;
 
 	if( key == '+' ){
 		DaoxCanvas_Zoom( 1 );
@@ -212,7 +205,7 @@ void DaoxCanvas_glutSpecialKeyboard( int key, int x, int y )
 		DaoxCamera_MoveByXYZ( camera, dx, dy, dz );
 	}
 	if( daox_current_canvas == NULL ) return;
-	DaoCstruct_CallKeyboardMethod( daox_current_canvas, "OnKeyboard", key, x, y );
+	DaoCstruct_CallKeyboardMethod( (DaoCstruct*) daox_current_canvas, "OnKeyboard", key, x, y );
 }
 
 enum ActionType
@@ -300,9 +293,22 @@ void DaoxCanvas_glutInit(int width, int height, const char *title)
 	int i, argc = 1;
 	char *argv = "Dao Graphics";
 
+#ifdef FREEGLUT
+	glutInitContextVersion (3, 2);
+	glutInitContextFlags (GLUT_FORWARD_COMPATIBLE
+#ifdef DEBUG
+			| GLUT_DEBUG
+#endif
+	);
+#endif
+
 	glutInit( &argc, &argv );
 
-	glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE|GLUT_DEPTH|GLUT_STENCIL|GLUT_MULTISAMPLE|GLUT_3_2_CORE_PROFILE);
+	glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE|GLUT_DEPTH|GLUT_STENCIL|GLUT_MULTISAMPLE
+#ifndef FREEGLUT
+			|GLUT_3_2_CORE_PROFILE
+#endif
+			);
 	//glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE|GLUT_DEPTH|GLUT_STENCIL|GLUT_MULTISAMPLE);
 
 	glutInitWindowPosition(0,0);
@@ -335,7 +341,7 @@ static void GLUT_Init( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void GLUT_SetGraphics( DaoProcess *proc, DaoValue *p[], int N )
 {
-	daox_current_painter = (DaoxCanvas*) p[0];
+	daox_current_painter = (DaoxPainter*) p[0];
 	daox_current_canvas = (DaoxCanvas*) p[1];
 	daox_current_canvas->defaultWidth = window_width;
 	daox_current_canvas->defaultHeight = window_height;

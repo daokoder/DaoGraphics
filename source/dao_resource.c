@@ -79,11 +79,11 @@ DaoxScene* DaoxSceneResource_GetScene( DaoxSceneResource *self )
 
 
 
-static DaoRoutine* Dao_Get_Object_Method( DaoCdata *cd, DaoObject **obj, const char *name )
+static DaoRoutine* Dao_Get_Object_Method( DaoCstruct *cd, DaoObject **obj, const char *name )
 {
   DaoRoutine *meth;
   if( cd == NULL ) return NULL;
-  *obj = DaoCdata_GetObject( cd );
+  *obj = DaoCdata_GetObject( (DaoCdata*) cd );
   if( *obj == NULL ) return NULL;
   return DaoObject_GetMethod( *obj, name );
 }
@@ -91,7 +91,7 @@ DaoCstruct* DaoxSceneResource_CallMethod( DaoxSceneResource *self, const char *m
 {
 	DaoValue *res = NULL;
 	DaoObject *obj = NULL;
-	DaoRoutine *rout = Dao_Get_Object_Method( self, & obj, method );
+	DaoRoutine *rout = Dao_Get_Object_Method( (DaoCstruct*) self, & obj, method );
 	DaoProcess *proc;
 
 	if( rout == NULL || obj == NULL ) return NULL;

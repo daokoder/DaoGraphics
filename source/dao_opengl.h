@@ -31,13 +31,21 @@
 
 
 #if defined(__APPLE__)
-//#  include <OpenGL/gl.h>
-#  include <OpenGL/gl3.h>
-#  include <GLUT/glut.h>
+
+  //#include <OpenGL/gl.h>
+  #include <OpenGL/gl3.h>
+  #include <GLUT/glut.h>
+
 #else
-//#  include <GL/gl.h>
-#  include <GL/gl3.h>
-#  include <GL/glut.h>
+
+  #define GL3_PROTOTYPES
+  //#include <GL/gl.h>
+  #include <GL/gl3.h>
+  #define __gl_h_
+  #include <GL/glut.h>
+  #ifdef FREEGLUT
+    #include <GL/freeglut.h>
+  #endif
 #endif
 
 
@@ -144,9 +152,11 @@ struct DaoxShader
 	DArray  *fragmentSources;
 };
 
+void DaoxShader_Init2D( DaoxShader *self );
 void DaoxShader_Init3D( DaoxShader *self );
 void DaoxShader_Free( DaoxShader *self );
 void DaoxShader_AddShader( DaoxShader *self, int type, const char *source );
+void DaoxShader_Finalize2D( DaoxShader *self );
 void DaoxShader_Finalize3D( DaoxShader *self );
 void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradient, int fill );
 void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxCanvasState *state );
@@ -189,5 +199,8 @@ DaoGLVertex3DVG* DaoxBuffer_MapVertices3DVG( DaoxBuffer *self, int count );
 DaoGLTriangle*   DaoxBuffer_MapTriangles( DaoxBuffer *self, int count );
 
 
+
+
+void DaoxMatrix4D_Export( DaoxMatrix4D *self, GLfloat matrix[16] );
 
 #endif

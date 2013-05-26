@@ -295,6 +295,7 @@ DaoxRenderer *renderer = NULL;
 DaoxScene* Test_Collada();
 
 DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
+DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
 DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
@@ -320,6 +321,7 @@ DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	return 0;
 }
 
+#if 0
 void Test()
 {
 	//scene = Test_Collada();
@@ -410,16 +412,30 @@ void Test()
 
 	DaoxSceneNode_AddChild( (DaoxSceneNode*) camera, (DaoxSceneNode*) model );
 
-	DaoxVector3D pos = DaoxSceneNode_GetWorldPosition( camera );
+	DaoxVector3D pos = DaoxSceneNode_GetWorldPosition( (DaoxSceneNode*) camera );
 	DaoxVector3D_Print( & pos );
 
 
 	int i, argc = 1;
 	char *argv = "Dao Graphics";
+
+#ifdef FREEGLUT
+	glutInitContextVersion (3, 2);
+	glutInitContextFlags (GLUT_FORWARD_COMPATIBLE
+#ifdef DEBUG
+			| GLUT_DEBUG
+#endif
+	);
+#endif
+
 	glutInit(&argc, &argv);
 	glutInitWindowSize(WIDTH,HEIGHT);
 	glutInitWindowPosition(100,100);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE | GLUT_3_2_CORE_PROFILE);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE
+#ifndef FREEGLUT
+			|GLUT_3_2_CORE_PROFILE
+#endif
+			);
 
 	glutCreateWindow( argv );
 	glutDisplayFunc(display);
@@ -451,6 +467,7 @@ void Test()
 	glutGet(GLUT_ELAPSED_TIME);
 	glutMainLoop();
 }
+#endif
 
 
 void DaoxCanvas_ApplyMaxFPS( int fps_limit );

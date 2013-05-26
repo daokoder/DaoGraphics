@@ -73,7 +73,7 @@ DaoxCamera* DaoxRenderer_GetCurrentCamera( DaoxRenderer *self )
 {
 	if( self->camera ) return self->camera;
 	self->camera = DaoxCamera_New();
-	DaoGC_IncRC( self->camera );
+	DaoGC_IncRC( (DaoValue*) self->camera );
 	return self->camera;
 }
 
@@ -127,7 +127,7 @@ void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMe
 		}
 		chunks = self->visibleChunks->items.pArray[m];
 		chunks->size = 0;
-		DMap_Insert( self->mapMaterials, chunk->unit->material, (daoint)m );
+		MAP_Insert( self->mapMaterials, chunk->unit->material, (daoint)m );
 	}
 	chunks = self->visibleChunks->items.pArray[m];
 	DArray_Append( chunks, model );
@@ -192,25 +192,6 @@ PrepareChildren:
 		DaoxSceneNode *node2 = node->children->items.pVoid[i];
 		DaoxRenderer_PrepareNode( self, node2 );
 	}
-}
-void DaoxMatrix4D_Export( DaoxMatrix4D *self, GLfloat matrix[16] )
-{
-	matrix[0] = self->A11;
-	matrix[1] = self->A21;
-	matrix[2] = self->A31;
-	matrix[3] = 0.0;
-	matrix[4] = self->A12;
-	matrix[5] = self->A22;
-	matrix[6] = self->A32;
-	matrix[7] = 0.0;
-	matrix[8] = self->A13;
-	matrix[9] = self->A23;
-	matrix[10] = self->A33;
-	matrix[11] = 0.0;
-	matrix[12] = self->B1;
-	matrix[13] = self->B2;
-	matrix[14] = self->B3;
-	matrix[15] = 1.0;
 }
 void MakeProjectionMatrix( DaoxViewFrustum *frustum, DaoxCamera *cam, GLfloat matrix[16] )
 {
@@ -516,7 +497,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	}
 	if( cam == NULL && self->camera == NULL ){
 		self->camera = DaoxCamera_New();
-		DaoGC_IncRC( self->camera );
+		DaoGC_IncRC( (DaoValue*) self->camera );
 	}
 	if( cam && cam != self->camera ){
 		DaoGC_ShiftRC( (DaoValue*) cam, (DaoValue*) self->camera );
@@ -566,7 +547,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	}
 	self->frustum = fm;
 
-	cameraPosition = DaoxSceneNode_GetWorldPosition( cam );
+	cameraPosition = DaoxSceneNode_GetWorldPosition( (DaoxSceneNode*) cam );
 	//viewMatrix = DaoxMatrix4D_Identity();
 	DaoxMatrix4D_Export( & viewMatrix, matrix );
 
@@ -592,7 +573,9 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
+#ifdef GL_LIGHTING
 	glEnable(GL_LIGHTING);
+#endif
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_CULL_FACE); /* Not effective for canvas? */
 

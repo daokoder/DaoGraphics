@@ -30,9 +30,9 @@
 #define __DAO_COMMON_H__
 
 
-#include "stdlib.h"
-#include "string.h"
-#include "math.h"
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include "dao.h"
 #include "daoStdtype.h"
 #include "daoValue.h"
@@ -214,6 +214,8 @@ DaoxMatrix4D  DaoxMatrix4D_MulMatrix( DaoxMatrix4D *self, DaoxMatrix4D *other );
 DaoxMatrix4D  DaoxMatrix4D_Inverse( DaoxMatrix4D *self );
 DaoxMatrix4D  DaoxMatrix4D_RotationOnly( DaoxMatrix4D *self );
 DaoxMatrix4D  DaoxMatrix4D_TranslationOnly( DaoxMatrix4D *self );
+
+void DaoxMatrix4D_Print( DaoxMatrix4D *self );
 
 
 

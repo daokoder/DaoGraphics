@@ -508,13 +508,13 @@ DaoxGlyph* DaoxGlyph_New()
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_glyph );
 	self->codepoint = 0;
 	self->shape = DaoxPath_New();
-	DaoGC_IncRC( self->shape );
+	DaoGC_IncRC( (DaoValue*) self->shape );
 	return self;
 }
 void DaoxGlyph_Delete( DaoxGlyph *self )
 {
 	DaoCstruct_Free( (DaoCstruct*) self );
-	DaoGC_DecRC( self->shape );
+	DaoGC_DecRC( (DaoValue*) self->shape );
 	free( self );
 }
 

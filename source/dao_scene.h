@@ -88,6 +88,7 @@ extern DaoType *daox_type_texture;
 DaoxTexture* DaoxTexture_New();
 void DaoxTexture_Delete( DaoxTexture *self );
 void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image );
+void DaoxTexture_glInitTexture( DaoxTexture *self );
 
 
 
@@ -146,6 +147,11 @@ void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type );
 void DaoxSceneNode_Free( DaoxSceneNode *self );
 
 void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child );
+
+void DaoxSceneNode_MoveByXYZ( DaoxSceneNode *self, float dx, float dy, float dz );
+void DaoxSceneNode_MoveXYZ( DaoxSceneNode *self, float x, float y, float z );
+void DaoxSceneNode_MoveBy( DaoxSceneNode *self, DaoxVector3D delta );
+void DaoxSceneNode_Move( DaoxSceneNode *self, DaoxVector3D pos );
 
 void DaoxSceneNode_ApplyTransform( DaoxSceneNode *self, DaoxMatrix4D matrix );
 
@@ -227,6 +233,9 @@ extern DaoType *daox_type_model;
 
 DaoxModel* DaoxModel_New();
 void DaoxModel_Delete( DaoxModel *self );
+void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh );
+void DaoxModel_TransformMesh( DaoxModel *self );
+
 
 
 

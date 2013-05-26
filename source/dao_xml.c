@@ -328,6 +328,7 @@ int DaoXmlParser_ParseDeclaration( DaoXmlParser *self, DString *string )
 	self->source += 2;
 	return 0;
 }
+int DaoXmlParser_ParseNode( DaoXmlParser *self, DaoXmlDOM *dom, DaoXmlNode *node );
 int DaoXmlParser_ParseNodeContent( DaoXmlParser *self, DaoXmlDOM *dom, DaoXmlNode *node )
 {
 	DaoXmlNode *child;

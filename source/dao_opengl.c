@@ -400,7 +400,7 @@ void DaoxShader_Init( DaoxShader *self )
 	int width = 2*DAOX_MAX_GRADIENT_STOPS;
 	GLfloat data[2*DAOX_MAX_GRADIENT_STOPS*4];
 	GLfloat dash[DAOX_MAX_DASH];
-	GLint tid = 0;
+	GLuint tid = 0;
 
 	memset( self, 0, sizeof(DaoxShader) );
 	memset( data, 0, width*4*sizeof(GLfloat) );
@@ -557,16 +557,16 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DArray *strings )
 {
 	daoint i, n = strings->size;
 	uint_t shader = glCreateShader( type );
-	GLchar **sources;
+	const GLchar **sources;
 	GLint length, shader_ok;
 
 	if( shader == 0 ){
 		fprintf(stderr, "Failed to create shader of type %i\n", type );
 		return;
 	}
-	sources = (GLchar**) malloc( n*sizeof(GLchar*) );
+	sources = (const GLchar**) malloc( n*sizeof(GLchar*) );
 	for(i=0; i<n; ++i){
-		sources[i] = (GLchar*) DString_GetMBS( strings->items.pString[i] );
+		sources[i] = (const GLchar*) DString_GetMBS( strings->items.pString[i] );
 		if( i == 0 ) sources[i] += 2; /* skip //; */
 	}
 
@@ -809,3 +809,24 @@ DaoGLTriangle* DaoxBuffer_MapTriangles( DaoxBuffer *self, int count )
 }
 
 
+
+
+void DaoxMatrix4D_Export( DaoxMatrix4D *self, GLfloat matrix[16] )
+{
+	matrix[0] = self->A11;
+	matrix[1] = self->A21;
+	matrix[2] = self->A31;
+	matrix[3] = 0.0;
+	matrix[4] = self->A12;
+	matrix[5] = self->A22;
+	matrix[6] = self->A32;
+	matrix[7] = 0.0;
+	matrix[8] = self->A13;
+	matrix[9] = self->A23;
+	matrix[10] = self->A33;
+	matrix[11] = 0.0;
+	matrix[12] = self->B1;
+	matrix[13] = self->B2;
+	matrix[14] = self->B3;
+	matrix[15] = 1.0;
+}
