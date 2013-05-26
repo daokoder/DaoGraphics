@@ -169,10 +169,11 @@ path.Close()
 
 canvas.PopState()
 
+#{
 image = Graphics::Image();
 image.Load( 'WELLTEXT.JPG' );
-
-#canvas.AddImage( image, -200, -200 );
+canvas.AddImage( image, -200, -200 );
+#}
 
 painter = Graphics::Painter();
 Graphics::glutDisplay( painter, canvas )

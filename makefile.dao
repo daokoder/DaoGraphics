@@ -43,6 +43,9 @@ project_sources =
 
 project = DaoMake::Project( "DaoGraphics" ) 
 
+# In Linux, one may place GL/gl3.h under the current directory:
+DaoMake::Includes.append( project.SourcePath() )
+
 daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
 opengl = DaoMake::FindPackage( "OpenGL3", $OPTIONAL )
 glut   = DaoMake::FindPackage( "GLUT",   $OPTIONAL )
