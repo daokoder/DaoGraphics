@@ -6,7 +6,7 @@ DaoGraphics is a lightweight graphics engine written in C with interfaces to Dao
 Features
 --------
 1. Support for both 2D and 3D graphics;
-2. Resolution independent 2D vector graphics;
+2. Resolution-independent 2D vector graphics;
 3. Minimum dependency (Dao and OpenGL, and optionally GLUT for testing only);
 
 

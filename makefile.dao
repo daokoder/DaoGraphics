@@ -44,7 +44,7 @@ project_sources =
 project = DaoMake::Project( "DaoGraphics" ) 
 
 daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
-opengl = DaoMake::FindPackage( "OpenGL", $OPTIONAL )
+opengl = DaoMake::FindPackage( "OpenGL3", $OPTIONAL )
 glut   = DaoMake::FindPackage( "GLUT",   $OPTIONAL )
 
 if( daovm == none or opengl == none ) return
