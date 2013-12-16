@@ -30,6 +30,8 @@
 #include "math.h"
 #include "dao_common.h"
 
+float daox_graphics_device_width = 300.0;
+float daox_graphics_device_height = 200.0;
 
 const DaoxColor daox_black_color = { 0.0, 0.0, 0.0, 1.0 };
 const DaoxColor daox_white_color = { 1.0, 1.0, 1.0, 1.0 };
@@ -37,7 +39,6 @@ const DaoxColor daox_red_color = { 1.0, 0.0, 0.0, 1.0 };
 const DaoxColor daox_green_color = { 0.0, 1.0, 0.0, 1.0 };
 const DaoxColor daox_blue_color = { 0.0, 0.0, 1.0, 1.0 };
 const DaoxColor daox_gray_color = { 0.5, 0.5, 0.5, 1.0 };
-
 
 
 

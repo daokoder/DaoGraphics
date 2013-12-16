@@ -57,17 +57,16 @@ routine main( fps_limit = 30, compute_fps = 0 )
 }
 routine main( save : string, width = 1200, height = 900 )
 {
-	width = 160
-	height = 120
+    # Must be called before Graphics::Canvas():
+	Graphics::glutInit( 800, 600, 'Dao Graphics Demo: Tiger', 1, 0 )
+
 	painter = Graphics::Painter();
 	canvas = Graphics::Canvas();
 	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 	LoadTiger( canvas );
-	Graphics::glutInit( 800, 600, 'Dao Graphics Demo: Tiger', 1, 0 )
-	Graphics::glutSetGraphics( painter, canvas );
 
 	image = Graphics::Image();
 	canvas.SetViewport( -400, 400, -300, 300 );
-	#canvas.RenderToImage( image, width, height );
+	painter.RenderToImage( canvas, image, width, height );
 	image.Save( save );
 }

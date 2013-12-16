@@ -405,6 +405,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 	}
 }
 void MakeProjectionMatrix( DaoxViewFrustum *frustum, DaoxCamera *cam, GLfloat matrix[16] );
+void MakeOrthographicMatrix( DaoxViewFrustum *frustum, DaoxCamera *cam, GLfloat matrix[16] );
 
 void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera *camera )
 {
@@ -503,26 +504,19 @@ void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D view
 	camera.nearPlane = 0.01*W;
 	camera.farPlane = W;
 
-	DaoxCamera_MoveXYZ( & camera, 0.0, 0.0, 0.5*W );
-	DaoxCamera_LookAtXYZ( & camera, CX, CY, -1.0 );
-
-	//DaoxCamera_MoveXYZ( & camera, 0.0, 0.0+70, 0.1*W );
-	//DaoxCamera_LookAtXYZ( & camera, CX, CY+70, -1.0 );
-
-	//DaoxCamera_MoveXYZ( & camera, 0.0, 0.0-100, 0.3*W );
-	//DaoxCamera_LookAtXYZ( & camera, CX, CY-100, -1.0 );
-
-	//DaoxCamera_MoveXYZ( & camera, 0.0+180, 0.0, 0.1*W );
-	//DaoxCamera_LookAtXYZ( & camera, CX+180, CY, -1.0 );
-
-	//DaoxCamera_MoveXYZ( & camera, 0.0, 0.0, 0.2*W );
-	//DaoxCamera_LookAtXYZ( & camera, CX, CY, -1.0 );
-
-	//DaoxCamera_MoveXYZ( & camera, 0.0+50, 0.0+100, 0.1*W );
-	//DaoxCamera_LookAtXYZ( & camera, CX+50, CY+100, -1.0 );
-
-	//DaoxCamera_MoveXYZ( & camera, 0.0+170, 0.0+130, 0.1*W );
-	//DaoxCamera_LookAtXYZ( & camera, CX+170, CY+130, -1.0 );
+	/*
+	// For DaoxPainter_PaintCanvasImage() when rendering to big image,
+	// with subdivided viewport.
+	//
+	// Don't use:
+	//   DaoxCamera_MoveXYZ( & camera, CX, CY, 0.5*W );
+	//   DaoxCamera_LookAtXYZ( & camera, CX, CY, -1.0 );
+	// which will not correctly orient the camera for rendering correct subimages.
+	*/
+	DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) & camera, CX, CY, 0.5*W );
+	camera.viewTarget.x = CX;
+	camera.viewTarget.y = CY;
+	camera.viewTarget.z = -1.0;
 
 	DaoxPainter_PaintCanvas( self, canvas, & camera );
 }
@@ -534,20 +528,21 @@ void DaoxPainter_Render( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera *came
 void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, DaoxAABBox2D rect )
 {
 	DaoxAABBox2D rect2, subViewport = viewport;
+	DaoxColor bgcolor = canvas->background;
 	int x = rect.left;
 	int y = rect.bottom;
 	int width = rect.right - rect.left + 1;
 	int height = rect.top - rect.bottom + 1;
 	int pixelBytes = 1 + image->depth;
 	uchar_t *imageData = image->imageData + y * image->widthStep + x * pixelBytes;
-	float left = viewport.left;
-	float right = viewport.right;
-	float bottom = viewport.bottom;
-	float top = viewport.top;
-	float canvasWidth = right - left;
-	float canvasHeight = top - bottom;
-	float xmoreScene = 0.0, ymoreScene = 0.0;
-	float margin, canvasRight, canvasTop;
+	int left = viewport.left;
+	int right = viewport.right;
+	int bottom = viewport.bottom;
+	int top = viewport.top;
+	int canvasWidth = right - left;
+	int canvasHeight = top - bottom;
+	int xmoreScene = 0.0, ymoreScene = 0.0;
+	int margin, canvasRight, canvasTop;
 	int destWidth = width, destHeight = height;
 	int xmoreWin = 0, ymoreWin = 0;
 	int xwin = 0, ywin = 0;
@@ -556,15 +551,20 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 	glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
 	glPixelStorei( GL_PACK_ROW_LENGTH, image->width );
 
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor( bgcolor.red, bgcolor.green, bgcolor.blue, bgcolor.alpha );
+
 	if( width > canvas->defaultWidth ){
 		xmoreWin = width - canvas->defaultWidth;
 		xmoreScene = xmoreWin * canvasWidth / width;
 		destWidth = canvas->defaultWidth;
 		subViewport.right = right - xmoreScene;
 	}else{
-		xwin = 0.5 * (canvas->defaultWidth - width);
+		xwin = (canvas->defaultWidth - width);
 		margin = xwin * canvasWidth / width;
-		subViewport.left -= margin;
 		subViewport.right += margin;
 	}
 	if( height > canvas->defaultHeight ){
@@ -573,14 +573,13 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 		destHeight = canvas->defaultHeight;
 		subViewport.top = top - ymoreScene;
 	}else{
-		ywin = 0.5 * (canvas->defaultHeight - height);
+		ywin = (canvas->defaultHeight - height);
 		margin = ywin * canvasHeight / height;
-		subViewport.bottom -= margin;
 		subViewport.top += margin;
 	}
 
 	DaoxPainter_Paint( self, canvas, subViewport );
-	glReadPixels( xwin, ywin, destWidth, destHeight, GL_RGBA, GL_UNSIGNED_BYTE, imageData );
+	glReadPixels( 0, 0, destWidth, destHeight, GL_RGBA, GL_UNSIGNED_BYTE, imageData );
 
 	canvasRight = subViewport.right;
 	canvasTop = subViewport.top;
@@ -613,13 +612,16 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, int width, int height )
 {
 	DaoxAABBox2D rect = { 0.0, 0.0, 0.0, 0.0 };
-	float canvasWidth = viewport.right - viewport.left;
-	float canvasHeight = viewport.top - viewport.bottom;
 
 	image->depth = DAOX_IMAGE_BIT32;
 	DaoxImage_Resize( image, width, height );
 
 	rect.right = width - 1;
 	rect.top = height - 1;
+	/*
+	// XXX: for some reason, rendering once will produce some artifacts
+	// when the output image is big and require subdividing the viewport!
+	*/
+	DaoxPainter_PaintSubSceneImage( self, canvas, viewport, image, rect );
 	DaoxPainter_PaintSubSceneImage( self, canvas, viewport, image, rect );
 }

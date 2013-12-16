@@ -668,6 +668,8 @@ DaoxCanvas* DaoxCanvas_New()
 {
 	DaoxCanvas *self = (DaoxCanvas*) dao_calloc( 1, sizeof(DaoxCanvas) );
 	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_canvas );
+	self->defaultWidth = daox_graphics_device_width;
+	self->defaultHeight = daox_graphics_device_height;
 	self->triangulator = DaoxTriangulator_New();
 	self->items = DArray_New(D_VALUE);
 	self->states = DArray_New(D_VALUE);
@@ -1638,19 +1640,7 @@ static void CANVAS_AddImage( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
 
-#if 0
-#warning"DaoxCanvas_glDrawSceneImage"
-//void DaoxCanvas_glDrawSceneImage( DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, int width, int height );
 
-static void CANVAS_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxCanvas *self = (DaoxCanvas*) p[0];
-	DaoxImage *image = (DaoxImage*) p[1];
-	float width = p[2]->xFloat.value;
-	float height = p[3]->xFloat.value;
-	//DaoxCanvas_glDrawSceneImage( self, self->viewport, image, width, height );
-}
-#endif
 static void CANVAS_AddPath( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
@@ -1809,7 +1799,6 @@ static DaoFuncItem DaoxCanvasMeths[]=
 	{ CANVAS_AddImage,     "AddImage( self: Canvas, image: Image, x :float, y :float ) => CanvasImage" },
 
 #if 0
-	{ CANVAS_RenderToImage,  "RenderToImage( self: Canvas, image: Image, width :float, height :float )" },
 	{ CANVAS_Test,         "Test( self: Canvas )" },
 #endif
 	{ CANVAS_AddPath,      "AddPath( self: Canvas, path : Path ) => CanvasPath" },

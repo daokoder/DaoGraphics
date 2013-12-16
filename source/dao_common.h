@@ -40,6 +40,9 @@
 
 #define EPSILON 1E-16
 
+extern float daox_graphics_device_width;
+extern float daox_graphics_device_height;
+
 
 typedef struct DaoxColor           DaoxColor;
 

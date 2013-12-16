@@ -335,6 +335,8 @@ static void GLUT_Init( DaoProcess *proc, DaoValue *p[], int N )
 	char *title = DaoValue_TryGetMBString( p[2] );
 	window_width = DaoValue_TryGetInteger( p[0] );
 	window_height = DaoValue_TryGetInteger( p[1] );
+	daox_graphics_device_width = window_width;
+	daox_graphics_device_height = window_height;
 	fps_limit = DaoValue_TryGetInteger( p[3] );
 	test_fps = DaoValue_TryGetInteger( p[4] );
 	DaoxCanvas_glutInit( window_width, window_height, title );

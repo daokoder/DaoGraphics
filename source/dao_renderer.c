@@ -206,6 +206,18 @@ void MakeProjectionMatrix( DaoxViewFrustum *frustum, DaoxCamera *cam, GLfloat ma
 	matrix[14] = -(2 * cam->farPlane * cam->nearPlane) / (cam->farPlane - cam->nearPlane);
 	matrix[15] = 0;
 }
+void MakeOrthographicMatrix( DaoxViewFrustum *frustum, DaoxCamera *cam, GLfloat matrix[16] )
+{
+	memset( matrix, 0, 16*sizeof(GLfloat) );
+	matrix[0] = matrix[5] = matrix[10] = matrix[15] = 1.0;
+	matrix[0]  = 2 / (frustum->right - frustum->left);
+	matrix[5]  = 2 / (frustum->top - frustum->bottom);
+	matrix[10] = -2 / (cam->farPlane - cam->nearPlane);
+	matrix[12] = - (frustum->right + frustum->left) / (frustum->right - frustum->left);
+	matrix[13] = - (frustum->top + frustum->bottom) / (frustum->top - frustum->bottom);
+	matrix[14] = - (cam->farPlane + cam->nearPlane) / (cam->farPlane - cam->nearPlane);
+	matrix[15] = 1;
+}
 
 void DaoxRenderer_ReduceData( DaoxRenderer *self, DaoxSceneNode *node )
 {

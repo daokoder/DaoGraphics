@@ -203,9 +203,19 @@ static void PAINTER_New( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxPainter *self = DaoxPainter_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void PAINTER_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxPainter *self = (DaoxPainter*) p[0];
+	DaoxCanvas *canvas = (DaoxCanvas*) p[1];
+	DaoxImage *image = (DaoxImage*) p[2];
+	int width = p[3]->xInteger.value;
+	int height = p[4]->xInteger.value;
+	DaoxPainter_PaintCanvasImage( self, canvas, canvas->viewport, image, width, height );
+}
 static DaoFuncItem DaoxPainterMeths[]=
 {
-	{ PAINTER_New,         "Painter()" },
+	{ PAINTER_New,            "Painter()" },
+	{ PAINTER_RenderToImage,  "RenderToImage( self :Painter, canvas :Canvas, image :Image, width :int, height :int )" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxPainter_Typer =
