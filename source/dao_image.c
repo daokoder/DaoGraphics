@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "dao_image.h"
+#include "dao_png.h"
 
 
 DaoType *daox_type_image = NULL;
@@ -172,6 +173,51 @@ int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
 	return 1;
 }
 
+int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
+{
+	unsigned char *buffer = NULL;
+	unsigned i, j, pixelBytes, width = 0, height = 0;
+	unsigned ret = lodepng_decode32_file( & buffer, & width, & height, file );
+
+	if( ret ){
+		if( buffer ) free( buffer );
+		return 0;
+	}
+	self->depth = DAOX_IMAGE_BIT32;
+	DaoxImage_Resize( self, width, height );
+
+	pixelBytes = 1 + self->depth;
+	for(i=0; i<height; ++i){
+		uchar_t *dest = self->imageData + (height - i - 1) * self->widthStep;
+		uchar_t *src = buffer + i * width * pixelBytes;
+		memcpy( dest, src, width*pixelBytes*sizeof(uchar_t) );
+	}
+	free( buffer );
+	return 1;
+}
+int DaoxImage_SavePNG( DaoxImage *self, const char *file )
+{
+	unsigned i, j, pixelBytes = 1 + self->depth;
+	unsigned char *buffer = dao_malloc( self->width * self->height * pixelBytes );
+
+	for(i=0; i<self->height; ++i){
+		uchar_t *src = self->imageData + (self->height - i - 1) * self->widthStep;
+		uchar_t *dest = buffer + i * self->width * pixelBytes;
+		memcpy( dest, src, self->width*pixelBytes*sizeof(uchar_t) );
+	}
+
+	if( self->depth == DAOX_IMAGE_BIT32 ){
+		lodepng_encode32_file( file, buffer, self->width, self->height );
+	}else if( self->depth == DAOX_IMAGE_BIT24 ){
+		lodepng_encode24_file( file, buffer, self->width, self->height );
+	}else{
+		dao_free( buffer );
+		return 0;
+	}
+	dao_free( buffer );
+	return 1;
+}
+
 
 
 
@@ -184,18 +230,28 @@ static void IMAGE_New( DaoProcess *proc, DaoValue *p[], int N )
 static void IMAGE_Load( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxImage *self = (DaoxImage*) p[0];
-	char *file = DaoValue_TryGetMBString( p[1] );
-	if( DaoxImage_LoadBMP( self, file ) == 0 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "file format not supported" );
+	DString *file = DaoValue_TryGetString( p[1] );
+	int ret = 0;
+	DString_ToMBS( file );
+	if( DString_MatchMBS( file, "<I>%.PNG $", NULL, NULL ) ){
+		ret = DaoxImage_LoadPNG( self, file->mbs );
+	}else if( DString_MatchMBS( file, "<I>%.BMP $", NULL, NULL ) ){
+		ret = DaoxImage_LoadBMP( self, file->mbs );
 	}
+	if( ret == 0 ) DaoProcess_RaiseException( proc, DAO_ERROR, "file format not supported" );
 }
 static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxImage *self = (DaoxImage*) p[0];
-	char *file = DaoValue_TryGetMBString( p[1] );
-	if( DaoxImage_SaveBMP( self, file ) == 0 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "file saving failed" );
+	DString *file = DaoValue_TryGetString( p[1] );
+	int ret = 0;
+	DString_ToMBS( file );
+	if( DString_MatchMBS( file, "<I>%.PNG $", NULL, NULL ) ){
+		ret = DaoxImage_SavePNG( self, file->mbs );
+	}else if( DString_MatchMBS( file, "<I>%.BMP $", NULL, NULL ) ){
+		ret = DaoxImage_SaveBMP( self, file->mbs );
 	}
+	if( ret == 0 ) DaoProcess_RaiseException( proc, DAO_ERROR, "file saving failed" );
 }
 static DaoFuncItem DaoxImageMeths[]=
 {

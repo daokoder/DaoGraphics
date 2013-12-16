@@ -282,7 +282,7 @@ void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasItem *item )
 	void *indices;
 
 	DaoxTexture_glInitTexture( item->data.texture );
-	printf( "DaoxPainter_PaintImageItem %i\n", item->data.texture->tid );
+	//printf( "DaoxPainter_PaintImageItem %i\n", item->data.texture->tid );
 	if( item->data.texture->tid == 0 ) return;
 
 	glActiveTexture(GL_TEXTURE0);
@@ -386,9 +386,11 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 	itempos.y = obbox.O.y;
 	distance = DaoxVector3D_Dist( & self->campos, & itempos );
 	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
-	//printf( "DaoxPainter_PaintItem 1: %f\n", scale );
+	//printf( "DaoxPainter_PaintItem 1: %s %g %g\n", item->ctype->name->mbs, diameter, distance );
 	if( diameter < 1E-5 * distance * scale ) return;
+	//printf( "DaoxPainter_PaintItem 2: %s\n", item->ctype->name->mbs );
 	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
+	//printf( "DaoxPainter_PaintItem 3: %s\n", item->ctype->name->mbs );
 	//printf( "DaoxPainter_PaintItem 2\n" );
 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );

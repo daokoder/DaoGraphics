@@ -346,6 +346,7 @@ void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas )
 	daoint i;
 
 	if( self->stateChanged == 0 ) return;
+	if( self->ctype == daox_type_canvas_image ) return;
 
 	if( self->dataChanged && self->state ){
 		DaoxPath *path = NULL;
@@ -1062,6 +1063,11 @@ DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float 
 	item->transform = DaoxMatrix3D_Identity();
 	item->transform.B1 = x;
 	item->transform.B2 = y;
+	item->obbox.O.x = item->obbox.O.y = 0;
+	item->obbox.X.x = item->obbox.X.y = 0;
+	item->obbox.Y.x = item->obbox.Y.y = 0;
+	item->obbox.X.x = image->width;
+	item->obbox.Y.y = image->height;
 
 	DaoxTexture_SetImage( texture, image );
 	DaoxCanvas_AddItem( self, item );

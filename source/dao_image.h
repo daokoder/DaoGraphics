@@ -75,4 +75,7 @@ void DaoxImage_Resize( DaoxImage *self, int width, int height );
 int DaoxImage_LoadBMP( DaoxImage *self, const char *file );
 int DaoxImage_SaveBMP( DaoxImage *self, const char *file );
 
+int DaoxImage_LoadPNG( DaoxImage *self, const char *file );
+int DaoxImage_SavePNG( DaoxImage *self, const char *file );
+
 #endif
