@@ -307,11 +307,13 @@ DaoxScene* Test_Collada();
 DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
-DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
+DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
+	DaoNamespace *ns;
 	__daoVmSpace = vmSpace;
 	printf( "DaoGraphics3D_OnLoad\n" );
 	ns = DaoVmSpace_GetNamespace( vmSpace, "Graphics" );
+	DaoNamespace_AddConst( nspace, ns->name, (DaoValue*) ns, DAO_DATA_PUBLIC );
 
 	daox_type_mesh_unit = DaoNamespace_WrapType( ns, & DaoxMeshUnit_Typer, 0 );
 	daox_type_mesh = DaoNamespace_WrapType( ns, & DaoxMesh_Typer, 0 );
