@@ -103,7 +103,7 @@ DaoCstruct* DaoxSceneResource_CallMethod( DaoxSceneResource *self, const char *m
 	res = DaoProcess_GetReturned( proc );
 	printf( "DaoxSceneResource_CallMethod %p\n", res );
 	if( res == NULL || res->type != DAO_OBJECT ) return NULL;
-	return DaoObject_CastCdata( (DaoObject*)res, ctype );
+	return DaoObject_CastCstruct( (DaoObject*)res, ctype );
 Finalize:
 	DaoVmSpace_ReleaseProcess( __daoVmSpace, proc );
 	return NULL;

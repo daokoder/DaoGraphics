@@ -264,7 +264,7 @@ DaoxColladaParser* DaoxColladaParser_New()
 	self->string = DString_New(1);
 	self->tags = DHash_New(D_STRING,0);
 	for(i=1; i<=DAE_EXTRA; ++i){
-		DString tag = DString_WrapMBS( collada_tags[i-1] );
+		DString tag = DString_WrapChars( collada_tags[i-1] );
 		DMap_Insert( self->tags, & tag, (void*) i );
 	}
 	return self;
@@ -288,7 +288,7 @@ void DaoxColladaParser_Delete( DaoxColladaParser *self )
 int DString_ParseFloats( DString *self, DaoxPlainArray *values, int append )
 {
 	double value;
-	char *source = self->mbs;
+	char *source = self->bytes;
 	char *end = source + self->size;
 	if( append == 0 ) DaoxPlainArray_ResetSize( values, 0 );
 	while( source < end ){
@@ -303,7 +303,7 @@ int DString_ParseFloats( DString *self, DaoxPlainArray *values, int append )
 int DString_ParseIntegers( DString *self, DaoxPlainArray *values, int append )
 {
 	daoint value;
-	char *source = self->mbs;
+	char *source = self->bytes;
 	char *end = source + self->size;
 	if( append == 0 ) values->size = 0;
 	while( source < end ){
@@ -320,7 +320,7 @@ void* DaoxSceneResource_GetIntanceDef( DaoxSceneResource *self, DMap *lib, DaoXm
 	DNode *it;
 	DString *att = DaoXmlNode_GetAttributeMBS( node, "url" );
 	if( att == NULL ) return NULL;
-	DString_SetMBS( self->collada->string, att->mbs + 1 );
+	DString_SetChars( self->collada->string, att->bytes + 1 );
 	it = DMap_Find( lib, self->collada->string );
 	if( it ) return it->value.pVoid;
 	return NULL;
@@ -357,7 +357,7 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 		int shapeStride = 3;
 
 		child = (DaoXmlNode*) pred->children->items.pVoid[i];
-		if( strcmp( child->name->mbs, "triangles" ) != 0 ) continue;
+		if( strcmp( child->name->bytes, "triangles" ) != 0 ) continue;
 
 		unit = DaoxMesh_AddUnit( mesh );
 		material = DaoxMaterial_New();
@@ -372,37 +372,37 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 		node3 = DaoXmlNode_GetChildWithAttributeMBS( child, "semantic", "TEXCOORD" );
 
 		att2 = DaoXmlNode_GetAttributeMBS( node1, "offset" );
-		if( att2 ) offset1 = strtol( att2->mbs, NULL, 10 );
+		if( att2 ) offset1 = strtol( att2->bytes, NULL, 10 );
 		if( node2 ){
 			att2 = DaoXmlNode_GetAttributeMBS( node2, "offset" );
-			if( att2 ) offset2 = strtol( att2->mbs, NULL, 10 );
+			if( att2 ) offset2 = strtol( att2->bytes, NULL, 10 );
 		}
 		if( node3 ){
 			att2 = DaoXmlNode_GetAttributeMBS( node3, "offset" );
-			if( att2 ) offset3 = strtol( att2->mbs, NULL, 10 );
+			if( att2 ) offset3 = strtol( att2->bytes, NULL, 10 );
 		}
 
 		att2 = DaoXmlNode_GetAttributeMBS( node1, "source" );
-		printf( "%p %s %s\n", att2, att2->mbs, child->name->mbs );
-		node4 = DaoXmlNode_GetChildWithAttributeMBS( pred, "id", att2->mbs + 1 );
+		printf( "%p %s %s\n", att2, att2->bytes, child->name->bytes );
+		node4 = DaoXmlNode_GetChildWithAttributeMBS( pred, "id", att2->bytes + 1 );
 		printf( "%p\n", node4 );
 		node4 = DaoXmlNode_GetChildWithAttributeMBS( node4, "semantic", "POSITION" );
 		att2 = DaoXmlNode_GetAttributeMBS( node4, "source" );
-		node4 = DaoXmlNode_GetChildWithAttributeMBS( pred, "id", att2->mbs + 1 );
+		node4 = DaoXmlNode_GetChildWithAttributeMBS( pred, "id", att2->bytes + 1 );
 		node4 = DaoXmlNode_GetChildMBS( node4, "float_array" );
 		DString_ParseFloats( node4->content, floats, 0 );
 		printf( "floats: %i\n", floats->size );
 
 		if( node2 ){
 			att2 = DaoXmlNode_GetAttributeMBS( node2, "source" );
-			node4 = DaoXmlNode_GetChildWithAttributeMBS( pred, "id", att2->mbs + 1 );
+			node4 = DaoXmlNode_GetChildWithAttributeMBS( pred, "id", att2->bytes + 1 );
 			node4 = DaoXmlNode_GetChildMBS( node4, "float_array" );
 			DString_ParseFloats( node4->content, floats2, 0 );
 		}
 
 		if( node3 ){
 			att2 = DaoXmlNode_GetAttributeMBS( node3, "source" );
-			node4 = DaoXmlNode_GetChildWithAttributeMBS( pred, "id", att2->mbs + 1 );
+			node4 = DaoXmlNode_GetChildWithAttributeMBS( pred, "id", att2->bytes + 1 );
 			node4 = DaoXmlNode_GetChildMBS( node4, "float_array" );
 			DString_ParseFloats( node4->content, floats3, 0 );
 		}
@@ -419,7 +419,7 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 
 		att2 = DaoXmlNode_GetAttributeMBS( child, "count" );
 		if( att2 == NULL ) return 1; // TODO error;
-		count = strtol( att2->mbs, NULL, 10 );
+		count = strtol( att2->bytes, NULL, 10 );
 		vertexStride = offset1;
 		if( node2 && offset2 > vertexStride ) vertexStride = offset2;
 		if( node3 && offset3 > vertexStride ) vertexStride = offset3;
@@ -561,7 +561,7 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 	double dvalue;
 	void *data;
 
-	printf( "%s %i %i\n", node->name->mbs, id, DAE_INSTANCE_GEOMETRY );
+	printf( "%s %i %i\n", node->name->bytes, id, DAE_INSTANCE_GEOMETRY );
 	node->id = id;
 	switch( id ){
 	case DAE_UNSUPPORTED :
@@ -645,7 +645,7 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 	case DAE_ZFAR :
 		camera = (DaoxCamera*) DaoXmlNode_GetAncestorDataMBS( node, "camera", 4 );
 		if( camera == NULL ) break;
-		dvalue = strtod( node->content->mbs, NULL );
+		dvalue = strtod( node->content->bytes, NULL );
 		switch( id ){
 		case DAE_YFOV :         camera->fovAngle = dvalue; break;
 		case DAE_ASPECT_RATIO : camera->aspectRatio = dvalue; break;
@@ -683,10 +683,10 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 
 		pred = DaoXmlNode_GetAncestorMBS( node, "profile_COMMON", 4 );
 		if( pred == NULL ) break;
-		child = DaoXmlNode_GetChildWithAttributeMBS( pred, "sid", att->mbs );
+		child = DaoXmlNode_GetChildWithAttributeMBS( pred, "sid", att->bytes );
 		child = DaoXmlNode_GetChildMBS( child, "sampler2D" );
 		child = DaoXmlNode_GetChildMBS( child, "source" );
-		child = DaoXmlNode_GetChildWithAttributeMBS( pred, "sid", child->content->mbs );
+		child = DaoXmlNode_GetChildWithAttributeMBS( pred, "sid", child->content->bytes );
 		child = DaoXmlNode_GetChildMBS( child, "surface" );
 		child = DaoXmlNode_GetChildMBS( child, "init_from" );
 		it = DMap_Find( self->images, child->content );
@@ -708,11 +708,11 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 		*/
 		for(i=0,k=0; i<node->children->size; ++i){
 			child = (DaoXmlNode*) node->children->items.pVoid[i];
-			if( strncmp( child->name->mbs, "instance_", 9 ) != 0 ) continue;
+			if( strncmp( child->name->bytes, "instance_", 9 ) != 0 ) continue;
 			DaoXmlDOM_Traverse( self->xmlDOM, child, self, DaoxSceneResource_ColladaVisit );
 			node->data = child->data;
 			k += 1;
-			printf( "%3i: %s %p\n", i, child->name->mbs, child->data );
+			printf( "%3i: %s %p\n", i, child->name->bytes, child->data );
 		}
 		sceneNode = (DaoxSceneNode*) node->data;
 		/* Create a group node if there are multiple or none instance_* nodes: */
@@ -723,8 +723,8 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 		}
 		for(i=0; i<node->children->size; ++i){
 			child = (DaoXmlNode*) node->children->items.pVoid[i];
-			printf( "%3i: %s %p\n", i, child->name->mbs, child->data );
-			if( strncmp( child->name->mbs, "instance_", 9 ) == 0 && child->data != NULL ){
+			printf( "%3i: %s %p\n", i, child->name->bytes, child->data );
+			if( strncmp( child->name->bytes, "instance_", 9 ) == 0 && child->data != NULL ){
 				sceneNode2 = (DaoxSceneNode*) child->data;
 				if( sceneNode != sceneNode2 ) DaoxSceneNode_AddChild( sceneNode, sceneNode2 );
 				continue;
@@ -771,7 +771,7 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 		if( model == NULL || model->mesh == NULL ) break; // XXX;
 		if( (att = DaoXmlNode_GetAttributeMBS( node, "symbol" )) == NULL ) goto ErrorMissingID;
 		if( (att2 = DaoXmlNode_GetAttributeMBS( node, "target" )) == NULL ) goto ErrorMissingID;
-		DString_SetMBS( string, att2->mbs + 1 );
+		DString_SetChars( string, att2->bytes + 1 );
 		it = DMap_Find( self->materials, string );
 		printf( "%p\n", it );
 		if( it == NULL ) break; //XXX
@@ -780,7 +780,7 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 		for(i=0; i<model->mesh->units->size; ++i){
 			DaoxMeshUnit *unit = (DaoxMeshUnit*) model->mesh->units->items.pVoid[i];
 			if( unit->material == NULL ) continue;
-			printf( "%i %s, %s  %p %p\n", i, unit->material->name->mbs, att->mbs, unit, unit->material );
+			printf( "%i %s, %s  %p %p\n", i, unit->material->name->bytes, att->bytes, unit, unit->material );
 			if( DString_EQ( unit->material->name, att ) == 0 ) continue;
 			DaoxMaterial_CopyFrom( unit->material, material );
 		}

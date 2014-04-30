@@ -464,7 +464,7 @@ void DaoxShader_Finalize( DaoxShader *self )
 		DString *log = DString_New(1);
 		glGetProgramiv( self->program, GL_INFO_LOG_LENGTH, &length );
 		DString_Resize( log, length );
-		log2 = DString_GetMBS(log);
+		log2 = DString_GetData(log);
 		glGetProgramInfoLog( self->program, length, NULL, (char*)log2 );
 		fprintf(stderr, "Failed to link shader program with error message: %s\n", log2 );
 		glDeleteProgram(self->program);
@@ -543,7 +543,7 @@ void DaoxShader_Free( DaoxShader *self )
 }
 void DaoxShader_AddShader( DaoxShader *self, int type, const char *codes )
 {
-	DString source = DString_WrapMBS( codes );
+	DString source = DString_WrapChars( codes );
 	switch( type ){
 	case GL_VERTEX_SHADER :
 		DArray_Append( self->vertexSources, & source );
@@ -566,7 +566,7 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DArray *strings )
 	}
 	sources = (const GLchar**) malloc( n*sizeof(GLchar*) );
 	for(i=0; i<n; ++i){
-		sources[i] = (const GLchar*) DString_GetMBS( strings->items.pString[i] );
+		sources[i] = (const GLchar*) DString_GetData( strings->items.pString[i] );
 		if( i == 0 ) sources[i] += 2; /* skip //; */
 	}
 
@@ -580,7 +580,7 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DArray *strings )
 		DString *log = DString_New(1);
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length );
 		DString_Resize( log, length );
-		log2 = DString_GetMBS(log);
+		log2 = DString_GetData(log);
 		glGetShaderInfoLog( shader, length, NULL, (char*)log2 );
 		fprintf(stderr, "Failed to compile shader!\nWith error message: %s", log2 );
 		glDeleteShader(shader);

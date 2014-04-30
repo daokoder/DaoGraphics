@@ -59,7 +59,7 @@ DString* DaoXmlNode_GetAttribute( DaoXmlNode *self, DString *name )
 }
 DString* DaoXmlNode_GetAttributeMBS( DaoXmlNode *self, const char *name )
 {
-	DString name2 = DString_WrapMBS( name );
+	DString name2 = DString_WrapChars( name );
 	return DaoXmlNode_GetAttribute( self, & name2 );
 }
 DaoXmlNode* DaoXmlNode_GetAncestor( DaoXmlNode *self, DString *name, int level )
@@ -71,7 +71,7 @@ DaoXmlNode* DaoXmlNode_GetAncestor( DaoXmlNode *self, DString *name, int level )
 }
 DaoXmlNode* DaoXmlNode_GetAncestorMBS( DaoXmlNode *self, const char *name, int level )
 {
-	DString name2 = DString_WrapMBS( name );
+	DString name2 = DString_WrapChars( name );
 	return DaoXmlNode_GetAncestor( self, & name2, level );
 }
 DaoXmlNode* DaoXmlNode_GetChild( DaoXmlNode *self, DString *name )
@@ -85,7 +85,7 @@ DaoXmlNode* DaoXmlNode_GetChild( DaoXmlNode *self, DString *name )
 }
 DaoXmlNode* DaoXmlNode_GetChildMBS( DaoXmlNode *self, const char *name )
 {
-	DString name2 = DString_WrapMBS( name );
+	DString name2 = DString_WrapChars( name );
 	return DaoXmlNode_GetChild( self, & name2 );
 }
 DaoXmlNode* DaoXmlNode_GetChildWithAttribute( DaoXmlNode *self, DString *key, DString *value )
@@ -100,8 +100,8 @@ DaoXmlNode* DaoXmlNode_GetChildWithAttribute( DaoXmlNode *self, DString *key, DS
 }
 DaoXmlNode* DaoXmlNode_GetChildWithAttributeMBS( DaoXmlNode *self, const char *key, const char *value )
 {
-	DString key2 = DString_WrapMBS( key );
-	DString value2 = DString_WrapMBS( value );
+	DString key2 = DString_WrapChars( key );
+	DString value2 = DString_WrapChars( value );
 	return DaoXmlNode_GetChildWithAttribute( self, & key2, & value2 );
 }
 void* DaoXmlNode_GetAncestorData( DaoXmlNode *self, DString *name, int level )
@@ -112,7 +112,7 @@ void* DaoXmlNode_GetAncestorData( DaoXmlNode *self, DString *name, int level )
 }
 void* DaoXmlNode_GetAncestorDataMBS( DaoXmlNode *self, const char *name, int level )
 {
-	DString name2 = DString_WrapMBS( name );
+	DString name2 = DString_WrapChars( name );
 	return DaoXmlNode_GetAncestorData( self, & name2, level );
 }
 
@@ -202,20 +202,20 @@ DaoXmlParser* DaoXmlParser_New()
 	self->value = DString_New(1);
 	self->escape = DString_New(1);
 	self->escapes = DHash_New(D_STRING,D_STRING);
-	DString_SetMBS( self->key, "lt" );
-	DString_SetMBS( self->value, "<" );
+	DString_SetChars( self->key, "lt" );
+	DString_SetChars( self->value, "<" );
 	DMap_Insert( self->escapes, self->key, self->value );
-	DString_SetMBS( self->key, "gt" );
-	DString_SetMBS( self->value, ">" );
+	DString_SetChars( self->key, "gt" );
+	DString_SetChars( self->value, ">" );
 	DMap_Insert( self->escapes, self->key, self->value );
-	DString_SetMBS( self->key, "amp" );
-	DString_SetMBS( self->value, "&" );
+	DString_SetChars( self->key, "amp" );
+	DString_SetChars( self->value, "&" );
 	DMap_Insert( self->escapes, self->key, self->value );
-	DString_SetMBS( self->key, "apos" );
-	DString_SetMBS( self->value, "'" );
+	DString_SetChars( self->key, "apos" );
+	DString_SetChars( self->value, "'" );
 	DMap_Insert( self->escapes, self->key, self->value );
-	DString_SetMBS( self->key, "quot" );
-	DString_SetMBS( self->value, "\"" );
+	DString_SetChars( self->key, "quot" );
+	DString_SetChars( self->value, "\"" );
 	DMap_Insert( self->escapes, self->key, self->value );
 	return self;
 }
@@ -407,7 +407,7 @@ int DaoXmlParser_ParseNode( DaoXmlParser *self, DaoXmlDOM *dom, DaoXmlNode *node
 }
 int DaoXmlParser_Parse( DaoXmlParser *self, DaoXmlDOM *dom, DString *source )
 {
-	self->source = source->mbs;
+	self->source = source->bytes;
 	self->end = self->source + source->size;
 	self->error = NULL;
 	DaoXmlDOM_Reset( dom );
@@ -424,7 +424,7 @@ int DaoXmlParser_Parse( DaoXmlParser *self, DaoXmlDOM *dom, DString *source )
 
 void DaoXmlNode_TestVisit( void *userdata, DaoXmlNode *parent, DaoXmlNode *node )
 {
-	printf( "%10s -> %-10s:  %s\n", parent ? parent->name->mbs : "", node->name->mbs, node->content->mbs );
+	printf( "%10s -> %-10s:  %s\n", parent ? parent->name->bytes : "", node->name->bytes, node->content->bytes );
 }
 
 #if 0

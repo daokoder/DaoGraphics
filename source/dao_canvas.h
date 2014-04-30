@@ -317,9 +317,9 @@ DAO_DLL DaoxCanvasPolygon* DaoxCanvas_AddPolygon( DaoxCanvas *self );
 
 DAO_DLL DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path );
 
-DAO_DLL DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const wchar_t *text, float x, float y, float degrees );
+DAO_DLL DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, float x, float y, float degrees );
 
-DAO_DLL DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const wchar_t *text, DaoxPath *path, float degrees );
+DAO_DLL DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, DaoxPath *path, float degrees );
 
 DAO_DLL DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y );
 

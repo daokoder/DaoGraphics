@@ -118,7 +118,7 @@ int DaoxFont_Open( DaoxFont *self, const char *file )
 	if( fin == NULL ) return 0;
 
 	DaoFile_ReadAll( fin, self->buffer, 1 );
-	self->fontData = (uchar_t*)DString_GetMBS( self->buffer );
+	self->fontData = (uchar_t*)DString_GetData( self->buffer );
 	self->fontStart = 0;
 
 	if( strncmp( (char*)self->fontData, "ttcf", 4 ) == 0 ){
@@ -202,15 +202,15 @@ int DaoxFont_FindTable( DaoxFont *self, const char *tag )
 	}
 	return 0;
 }
-int DaoxFont_FindGlyphIndexF0( DaoxFont *self, wchar_t ch )
+int DaoxFont_FindGlyphIndexF0( DaoxFont *self, size_t ch )
 {
 	return 0;
 }
-int DaoxFont_FindGlyphIndexF2( DaoxFont *self, wchar_t ch )
+int DaoxFont_FindGlyphIndexF2( DaoxFont *self, size_t ch )
 {
 	return 0;
 }
-int DaoxFont_FindGlyphIndexF4( DaoxFont *self, wchar_t ch )
+int DaoxFont_FindGlyphIndexF4( DaoxFont *self, size_t ch )
 {
 	uchar_t *enc_map = self->fontData + self->enc_map;
 	ushort_t segCount = daox_tt_ushort( enc_map + 6 ) >> 1;
@@ -239,15 +239,15 @@ int DaoxFont_FindGlyphIndexF4( DaoxFont *self, wchar_t ch )
 	}
 	return 0;
 }
-int DaoxFont_FindGlyphIndexF6( DaoxFont *self, wchar_t ch )
+int DaoxFont_FindGlyphIndexF6( DaoxFont *self, size_t ch )
 {
 	return 0;
 }
-int DaoxFont_FindGlyphIndexF12( DaoxFont *self, wchar_t ch )
+int DaoxFont_FindGlyphIndexF12( DaoxFont *self, size_t ch )
 {
 	return 0;
 }
-int DaoxFont_FindGlyphIndex( DaoxFont *self, wchar_t ch )
+int DaoxFont_FindGlyphIndex( DaoxFont *self, size_t ch )
 {
 	switch( self->enc_format ){
 	case 0 : return DaoxFont_FindGlyphIndexF0( self, ch );
@@ -483,7 +483,7 @@ DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, int glyph_index )
 	DaoxFont_MakeGlyph( self, glyph_index, glyph );
 	return glyph;
 }
-DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, wchar_t ch )
+DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, size_t ch )
 {
 	DNode *node = DMap_Find( self->glyphs2, (void*)(size_t) ch );
 	DaoxGlyph *glyph = node ? (DaoxGlyph*) node->value.pVoid : NULL;
@@ -528,12 +528,12 @@ static void FONT_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxFont *self = DaoxFont_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
-	if( N ) DaoxFont_Open( self, DaoValue_TryGetMBString( p[0] ) );
+	if( N ) DaoxFont_Open( self, DaoValue_TryGetChars( p[0] ) );
 }
 static void FONT_Open( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxFont *self = (DaoxFont*) p[0];
-	DaoProcess_PutInteger( proc, DaoxFont_Open( self, DaoValue_TryGetMBString( p[1] ) ) );
+	DaoProcess_PutInteger( proc, DaoxFont_Open( self, DaoValue_TryGetChars( p[1] ) ) );
 }
 static DaoFuncItem DaoxFontMeths[]=
 {

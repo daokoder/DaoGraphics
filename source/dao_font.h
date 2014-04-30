@@ -84,10 +84,10 @@ extern DaoType* daox_type_font;
 DaoxFont* DaoxFont_New();
 int DaoxFont_Open( DaoxFont *self, const char *file );
 int DaoxFont_FindTable( DaoxFont *self, const char *tag );
-int DaoxFont_FindGlyphIndex( DaoxFont *self, wchar_t ch );
+int DaoxFont_FindGlyphIndex( DaoxFont *self, size_t ch );
 
 DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, int glyph_index );
-DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, wchar_t ch );
+DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, size_t ch );
 
 
 
@@ -95,7 +95,7 @@ struct DaoxGlyph
 {
 	DAO_CSTRUCT_COMMON;
 
-	wchar_t  codepoint;
+	size_t  codepoint;
 
 	int  advanceWidth;
 	int  leftSideBearing;

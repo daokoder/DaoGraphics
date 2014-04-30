@@ -119,7 +119,7 @@ static void GRAD_AddStop( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxColorGradient *self = (DaoxColorGradient*) p[0];
 	DaoxColor color = {0.0,0.0,0.0,0.0};
-	DaoxColor_FromDaoValues( & color, p[2]->xTuple.items );
+	DaoxColor_FromDaoValues( & color, p[2]->xTuple.values );
 	DaoxColorGradient_Add( self, p[1]->xFloat.value, color );
 }
 static void GRAD_AddStops( DaoProcess *proc, DaoValue *p[], int N )
@@ -130,8 +130,8 @@ static void GRAD_AddStops( DaoProcess *proc, DaoValue *p[], int N )
 	for(i=0; i<n; ++i){
 		DaoTuple *item = (DaoTuple*) DaoList_GetItem( stops, i );
 		DaoxColor color = {0.0,0.0,0.0,0.0};
-		DaoxColor_FromDaoValues( & color, item->items[1]->xTuple.items );
-		DaoxColorGradient_Add( self, item->items[0]->xFloat.value, color );
+		DaoxColor_FromDaoValues( & color, item->values[1]->xTuple.values );
+		DaoxColorGradient_Add( self, item->values[0]->xFloat.value, color );
 	}
 }
 
@@ -956,7 +956,7 @@ DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path )
 	DaoxCanvas_AddItem( self, item );
 	return item;
 }
-void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, const wchar_t *text, float x, float y, float degrees )
+void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DVector *text, float x, float y, float degrees )
 {
 	DaoxGlyph *glyph;
 	DaoxCanvasState *state;
@@ -969,6 +969,9 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, const 
 	float size = textItem->state->fontSize;
 	float scale = size / (float)font->fontHeight;
 	float offset, advance, angle = degrees * M_PI / 180.0;
+	daoint i;
+
+	if( text->stride != 4 ) return;
 
 	rotation.A11 = cos( angle );
 	rotation.A12 = - sin( angle );
@@ -980,9 +983,9 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, const 
 	DaoxCanvasState_SetParentItem( state, textItem );
 
 	offset = x;
-	while( *text ){
+	for(i=0; i<text->size; ++i){
 		DaoxAABBox2D bounds = {0.0,0.0,0.0,0.0};
-		wchar_t ch = *text++;
+		size_t ch = text->data.uints[i];
 		glyph = DaoxFont_GetCharGlyph( font, ch );
 		if( glyph == NULL ) break;
 
@@ -1022,23 +1025,32 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, const 
 	}
 	DaoxCanvas_PopState( self );
 }
-DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const wchar_t *text, float x, float y, float degrees )
+DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, float x, float y, float degrees )
 {
 	DaoxCanvasPath *item;
 	DaoxCanvasState *state;
+	DString str = DString_WrapChars( text );
+	DVector *codepoints;
+
 	if( self->states->size == 0 ) return NULL;
 	state = DaoxCanvas_GetOrPushState( self );
 	if( state->font == NULL ) return NULL;
 
 	item = DaoxCanvasText_New();
 	DaoxCanvas_AddItem( self, item );
-	DaoxCanvas_AddCharItems( self, item, text, x, y, degrees );
+	codepoints = DVector_New( sizeof(uint_t) );
+	DString_DecodeUTF8( & str, codepoints );
+	DaoxCanvas_AddCharItems( self, item, codepoints, x, y, degrees );
+	DVector_Delete( codepoints );
 	return item;
 }
-DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const wchar_t *text, DaoxPath *path, float degrees )
+DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, DaoxPath *path, float degrees )
 {
 	DaoxCanvasPath *item;
 	DaoxCanvasState *state;
+	DString str = DString_WrapChars( text );
+	DVector *codepoints;
+
 	if( self->states->size == 0 ) return NULL;
 	state = DaoxCanvas_GetOrPushState( self );
 	if( state->font == NULL ) return NULL;
@@ -1051,7 +1063,10 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const wchar_t *text, D
 	item->path = path;
 	item->visible = 0;
 
-	DaoxCanvas_AddCharItems( self, item, text, 0, 0, degrees );
+	codepoints = DVector_New( sizeof(uint_t) );
+	DString_DecodeUTF8( & str, codepoints );
+	DaoxCanvas_AddCharItems( self, item, codepoints, 0, 0, degrees );
+	DVector_Delete( codepoints );
 	return item;
 }
 DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y )
@@ -1616,7 +1631,7 @@ static void CANVAS_AddText( DaoProcess *proc, DaoValue *p[], int N )
 	float x = p[2]->xFloat.value;
 	float y = p[3]->xFloat.value;
 	float a = p[4]->xFloat.value;
-	DaoxCanvasText *item = DaoxCanvas_AddText( self, DString_GetWCS( text ), x, y, a );
+	DaoxCanvasText *item = DaoxCanvas_AddText( self, DString_GetData( text ), x, y, a );
 	if( item == NULL ){
 		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
 		return;
@@ -1626,7 +1641,7 @@ static void CANVAS_AddText( DaoProcess *proc, DaoValue *p[], int N )
 static void CANVAS_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	float a = p[3]->xFloat.value;
-	wchar_t *text = DaoValue_TryGetWCString( p[1] );
+	char *text = DaoValue_TryGetChars( p[1] );
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
 	DaoxPath *path = (DaoxPath*) p[2];
 	DaoxCanvasText *item = DaoxCanvas_AddPathText( self, text, path, a );

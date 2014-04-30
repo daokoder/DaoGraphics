@@ -332,7 +332,7 @@ void DaoxCanvas_glutInit(int width, int height, const char *title)
 
 static void GLUT_Init( DaoProcess *proc, DaoValue *p[], int N )
 {
-	char *title = DaoValue_TryGetMBString( p[2] );
+	char *title = DaoValue_TryGetChars( p[2] );
 	window_width = DaoValue_TryGetInteger( p[0] );
 	window_height = DaoValue_TryGetInteger( p[1] );
 	daox_graphics_device_width = window_width;

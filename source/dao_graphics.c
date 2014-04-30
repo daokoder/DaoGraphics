@@ -259,7 +259,7 @@ static void RES_New( DaoProcess *proc, DaoValue *p[], int N )
 static void RES_LoadColladaFile( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxSceneResource *self = (DaoxSceneResource*) p[0];
-	const char *file = DaoValue_TryGetMBString( p[1] );
+	const char *file = DaoValue_TryGetChars( p[1] );
 	DaoxScene *scene = DaoxSceneResource_LoadColladaFile( self, file );
 	DaoProcess_PutValue( proc, (DaoValue*) scene );
 }

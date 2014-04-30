@@ -97,8 +97,7 @@ void DaoxTexture_glInitTexture( DaoxTexture *self )
 	if( self->tid ) return;
 	if( self->file->size ){
 		if( self->image == NULL || self->image->imageData == NULL ){
-			DString_ToMBS( self->file );
-			DaoxTexture_LoadImage( self, self->file->mbs );
+			DaoxTexture_LoadImage( self, self->file->bytes );
 		}
 	}
 	if( self->image == NULL ) return;
@@ -876,7 +875,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 	float x, y, z, floats[16];
 	float amount;
 
-	parser->source = (uchar_t*) source->mbs;
+	parser->source = (uchar_t*) source->bytes;
 	parser->end = parser->source + source->size;
 	parser->error = parser->end + 1;
 	while( parser->source < parser->end ){
@@ -961,7 +960,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			}
 			break;
 		case 0x4130 : /* Faces Material */
-			DString_SetMBS( string, DaoxBinaryParser_DecodeString( parser ) );
+			DString_SetChars( string, DaoxBinaryParser_DecodeString( parser ) );
 			it = DMap_Find( self->materialNames, string );
 			m = DaoxBinaryParser_DecodeUInt16LE( parser );
 			k = it ? it->value.pInt : 0;
@@ -1055,7 +1054,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			DArray_Append( self->materials, material );
 			break;
 		case 0xA000 : /* Material name */
-			DString_SetMBS( string, DaoxBinaryParser_DecodeString( parser ) );
+			DString_SetChars( string, DaoxBinaryParser_DecodeString( parser ) );
 			MAP_Insert( self->materialNames, string, self->materials->size - 1 );
 			break;
 		case 0xA010 : /* ambient color */
@@ -1105,9 +1104,9 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			DaoxMaterial_SetTexture( material, texture );
 			break;
 		case 0xA300 :
-			DString_SetMBS( string, DaoxBinaryParser_DecodeString( parser ) );
-			DaoxTexture_LoadImage( texture, string->mbs );
-			printf( "texture: %s %i %i\n", string->mbs, texture->image->width, texture->image->height );
+			DString_SetChars( string, DaoxBinaryParser_DecodeString( parser ) );
+			DaoxTexture_LoadImage( texture, string->bytes );
+			printf( "texture: %s %i %i\n", string->bytes, texture->image->width, texture->image->height );
 			break;
 		case 0x0030 :
 			amount = DaoxBinaryParser_DecodeUInt16LE( parser ) / 100.0;
