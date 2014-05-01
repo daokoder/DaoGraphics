@@ -406,8 +406,8 @@ void DaoxShader_Init( DaoxShader *self )
 	memset( data, 0, width*4*sizeof(GLfloat) );
 	memset( dash, 0, DAOX_MAX_DASH*sizeof(GLfloat) );
 
-	self->vertexSources = DArray_New( D_STRING );
-	self->fragmentSources = DArray_New( D_STRING );
+	self->vertexSources = DArray_New( DAO_DATA_STRING );
+	self->fragmentSources = DArray_New( DAO_DATA_STRING );
 
 	glGenTextures( 1, & tid );
 	self->textures.gradientSampler = tid;

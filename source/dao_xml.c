@@ -35,7 +35,7 @@ DaoXmlNode* DaoXmlNode_New()
 	self->children = DArray_New(0);
 	self->name = DString_New(1);
 	self->content = DString_New(1);
-	self->attributes = DHash_New(D_STRING,D_STRING);
+	self->attributes = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	return self;
 }
 void DaoXmlNode_Delete( DaoXmlNode *self )
@@ -201,7 +201,7 @@ DaoXmlParser* DaoXmlParser_New()
 	self->key = DString_New(1);
 	self->value = DString_New(1);
 	self->escape = DString_New(1);
-	self->escapes = DHash_New(D_STRING,D_STRING);
+	self->escapes = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	DString_SetChars( self->key, "lt" );
 	DString_SetChars( self->value, "<" );
 	DMap_Insert( self->escapes, self->key, self->value );

@@ -348,7 +348,7 @@ DaoxMesh* DaoxMesh_New()
 {
 	DaoxMesh *self = (DaoxMesh*) dao_calloc( 1, sizeof(DaoxMesh) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_mesh );
-	self->units = DArray_New(D_VALUE);
+	self->units = DArray_New( DAO_DATA_VALUE );
 	return self;
 }
 void DaoxMesh_Delete( DaoxMesh *self )

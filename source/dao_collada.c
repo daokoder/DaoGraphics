@@ -262,7 +262,7 @@ DaoxColladaParser* DaoxColladaParser_New()
 	self->integers = DaoxPlainArray_New( sizeof(int) );
 	self->integers2 = DaoxPlainArray_New( sizeof(int) );
 	self->string = DString_New(1);
-	self->tags = DHash_New(D_STRING,0);
+	self->tags = DHash_New( DAO_DATA_STRING, 0 );
 	for(i=1; i<=DAE_EXTRA; ++i){
 		DString tag = DString_WrapChars( collada_tags[i-1] );
 		DMap_Insert( self->tags, & tag, (void*) i );

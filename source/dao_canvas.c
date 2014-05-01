@@ -672,10 +672,10 @@ DaoxCanvas* DaoxCanvas_New()
 	self->defaultWidth = daox_graphics_device_width;
 	self->defaultHeight = daox_graphics_device_height;
 	self->triangulator = DaoxTriangulator_New();
-	self->items = DArray_New(D_VALUE);
-	self->states = DArray_New(D_VALUE);
-	self->rects = DMap_New(0,D_VALUE);
-	self->ellipses = DMap_New(0,D_VALUE);
+	self->items = DArray_New( DAO_DATA_VALUE );
+	self->states = DArray_New( DAO_DATA_VALUE );
+	self->rects = DMap_New(0,DAO_DATA_VALUE);
+	self->ellipses = DMap_New(0,DAO_DATA_VALUE);
 	self->transform = DaoxMatrix3D_Identity();
 
 	self->unitLine = DaoxPath_New();
@@ -812,7 +812,7 @@ void DaoxCanvas_AddItem( DaoxCanvas *self, DaoxCanvasItem *item )
 {
 	DaoxCanvasState *state = DaoxCanvas_GetOrPushState( self );
 	if( state->parent ){
-		if( state->parent->children == NULL ) state->parent->children = DArray_New(D_VALUE);
+		if( state->parent->children == NULL ) state->parent->children = DArray_New( DAO_DATA_VALUE );
 		DArray_PushBack( state->parent->children, item );
 		DaoxCanvasItem_MarkDataChanged( state->parent );
 	}else{
@@ -994,7 +994,7 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DVecto
 		bounds = DaoxAABBox2D_Transform( & bounds, & rotation );
 		advance = bounds.right - bounds.left;
 
-		if( textItem->children == NULL ) textItem->children = DArray_New(D_VALUE);
+		if( textItem->children == NULL ) textItem->children = DArray_New( DAO_DATA_VALUE );
 
 		chitem = DaoxCanvasPath_New();
 		DaoxCanvas_AddItem( self, chitem );

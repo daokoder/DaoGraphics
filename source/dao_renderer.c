@@ -44,7 +44,7 @@ DaoxRenderer* DaoxRenderer_New()
 	self->visibleModels = DArray_New(0);
 	self->visibleChunks = DArray_New(0);
 	self->drawLists = DArray_New(0);
-	self->canvases = DArray_New(D_VALUE);
+	self->canvases = DArray_New( DAO_DATA_VALUE );
 	self->mapMaterials = DMap_New(0,0);
 	self->vertices = DaoxPlainArray_New( sizeof(DaoxVertex) );
 	self->triangles = DaoxPlainArray_New( sizeof(DaoxTriangle) );

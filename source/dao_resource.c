@@ -42,14 +42,14 @@ DaoxSceneResource* DaoxSceneResource_New()
 {
 	DaoxSceneResource *self = (DaoxSceneResource*) dao_calloc( 1, sizeof(DaoxSceneResource) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_resource );
-	self->scenes = DHash_New(D_STRING,D_VALUE);
-	self->lights = DHash_New(D_STRING,D_VALUE);
-	self->cameras = DHash_New(D_STRING,D_VALUE);
-	self->images = DHash_New(D_STRING,D_VALUE);
-	self->textures = DHash_New(D_STRING,D_VALUE);
-	self->effects = DHash_New(D_STRING,D_VALUE);
-	self->materials = DHash_New(D_STRING,D_VALUE);
-	self->geometries = DHash_New(D_STRING,D_VALUE);
+	self->scenes = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->lights = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->cameras = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->images = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->textures = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->effects = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->materials = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->geometries = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	self->xmlDOM = DaoXmlDOM_New();
 	self->xmlParser = DaoXmlParser_New();
 	self->collada = DaoxColladaParser_New();

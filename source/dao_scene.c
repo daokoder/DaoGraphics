@@ -372,7 +372,7 @@ void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type )
 	DaoCstruct_Init( (DaoCstruct*) self, type );
 	self->renderable = 0;
 	self->parent = NULL;
-	self->children = DArray_New(D_VALUE);
+	self->children = DArray_New( DAO_DATA_VALUE );
 	self->transform = DaoxMatrix4D_Identity();
 }
 void DaoxSceneNode_Free( DaoxSceneNode *self )
@@ -699,12 +699,12 @@ DaoxScene* DaoxScene_New()
 	DaoxMaterial *material;
 	DaoxScene *self = (DaoxScene*) dao_malloc( sizeof(DaoxScene) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
-	self->nodes = DArray_New( D_VALUE );
+	self->nodes = DArray_New( DAO_DATA_VALUE );
 	self->lights = DArray_New(0);
-	self->materialNames = DMap_New(D_STRING,0);
-	self->textureNames = DMap_New(D_STRING,0);
-	self->materials = DArray_New(D_VALUE);
-	self->textures = DArray_New(D_VALUE);
+	self->materialNames = DMap_New( DAO_DATA_STRING, 0 );
+	self->textureNames = DMap_New( DAO_DATA_STRING, 0 );
+	self->materials = DArray_New( DAO_DATA_VALUE );
+	self->textures = DArray_New( DAO_DATA_VALUE );
 
 	colors[0] = daox_black_color;
 	colors[1] = daox_white_color;
