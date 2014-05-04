@@ -84,7 +84,7 @@ int DaoxImage_LoadBMP( DaoxImage *self, const char *file )
 
 	if( fin == NULL ) goto Failed;
 	DaoFile_ReadAll( fin, mbs, 1 );
-	data = (uchar_t*) mbs->bytes;
+	data = (uchar_t*) mbs->chars;
 
 	if( data[0x0] != 'B' || data[0x1] != 'M' ) goto Failed; /* Not a BMP image; */
 	if( dao_read_int( data + 0xE ) != 40 ) goto Failed; /* Format not supported; */
@@ -233,9 +233,9 @@ static void IMAGE_Load( DaoProcess *proc, DaoValue *p[], int N )
 	DString *file = DaoValue_TryGetString( p[1] );
 	int ret = 0;
 	if( DString_Match( file, "<I>%.PNG $", NULL, NULL ) ){
-		ret = DaoxImage_LoadPNG( self, file->bytes );
+		ret = DaoxImage_LoadPNG( self, file->chars );
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
-		ret = DaoxImage_LoadBMP( self, file->bytes );
+		ret = DaoxImage_LoadBMP( self, file->chars );
 	}
 	if( ret == 0 ) DaoProcess_RaiseException( proc, DAO_ERROR, "file format not supported" );
 }
@@ -245,9 +245,9 @@ static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 	DString *file = DaoValue_TryGetString( p[1] );
 	int ret = 0;
 	if( DString_Match( file, "<I>%.PNG $", NULL, NULL ) ){
-		ret = DaoxImage_SavePNG( self, file->bytes );
+		ret = DaoxImage_SavePNG( self, file->chars );
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
-		ret = DaoxImage_SaveBMP( self, file->bytes );
+		ret = DaoxImage_SaveBMP( self, file->chars );
 	}
 	if( ret == 0 ) DaoProcess_RaiseException( proc, DAO_ERROR, "file saving failed" );
 }

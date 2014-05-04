@@ -97,7 +97,7 @@ void DaoxTexture_glInitTexture( DaoxTexture *self )
 	if( self->tid ) return;
 	if( self->file->size ){
 		if( self->image == NULL || self->image->imageData == NULL ){
-			DaoxTexture_LoadImage( self, self->file->bytes );
+			DaoxTexture_LoadImage( self, self->file->chars );
 		}
 	}
 	if( self->image == NULL ) return;
@@ -875,7 +875,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 	float x, y, z, floats[16];
 	float amount;
 
-	parser->source = (uchar_t*) source->bytes;
+	parser->source = (uchar_t*) source->chars;
 	parser->end = parser->source + source->size;
 	parser->error = parser->end + 1;
 	while( parser->source < parser->end ){
@@ -1105,8 +1105,8 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			break;
 		case 0xA300 :
 			DString_SetChars( string, DaoxBinaryParser_DecodeString( parser ) );
-			DaoxTexture_LoadImage( texture, string->bytes );
-			printf( "texture: %s %i %i\n", string->bytes, texture->image->width, texture->image->height );
+			DaoxTexture_LoadImage( texture, string->chars );
+			printf( "texture: %s %i %i\n", string->chars, texture->image->width, texture->image->height );
 			break;
 		case 0x0030 :
 			amount = DaoxBinaryParser_DecodeUInt16LE( parser ) / 100.0;

@@ -407,7 +407,7 @@ int DaoXmlParser_ParseNode( DaoXmlParser *self, DaoXmlDOM *dom, DaoXmlNode *node
 }
 int DaoXmlParser_Parse( DaoXmlParser *self, DaoXmlDOM *dom, DString *source )
 {
-	self->source = source->bytes;
+	self->source = source->chars;
 	self->end = self->source + source->size;
 	self->error = NULL;
 	DaoXmlDOM_Reset( dom );
@@ -424,7 +424,7 @@ int DaoXmlParser_Parse( DaoXmlParser *self, DaoXmlDOM *dom, DString *source )
 
 void DaoXmlNode_TestVisit( void *userdata, DaoXmlNode *parent, DaoXmlNode *node )
 {
-	printf( "%10s -> %-10s:  %s\n", parent ? parent->name->bytes : "", node->name->bytes, node->content->bytes );
+	printf( "%10s -> %-10s:  %s\n", parent ? parent->name->chars : "", node->name->chars, node->content->chars );
 }
 
 #if 0
