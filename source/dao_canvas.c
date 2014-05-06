@@ -1109,7 +1109,7 @@ static void ITEM_SetTransform( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *array = (DaoArray*) p[1];
 	daoint n = array->size;
 	if( n != 4 && n != 6 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR_PARAM, "need matrix with 4 or 6 elements" );
+		DaoProcess_RaiseError( proc, "Param", "need matrix with 4 or 6 elements" );
 		return;
 	}
 	DaoxMatrix3D_Set( & self->transform, array->data.f, n );
@@ -1122,7 +1122,7 @@ static void ITEM_MulTransform( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *array = (DaoArray*) p[1];
 	daoint n = array->size;
 	if( n != 4 && n != 6 ){
-		DaoProcess_RaiseException( proc, DAO_ERROR_PARAM, "need matrix with 4 or 6 elements" );
+		DaoProcess_RaiseError( proc, "Param", "need matrix with 4 or 6 elements" );
 		return;
 	}
 	DaoxMatrix3D_Set( & transform, array->data.f, n );
@@ -1633,7 +1633,7 @@ static void CANVAS_AddText( DaoProcess *proc, DaoValue *p[], int N )
 	float a = p[4]->xFloat.value;
 	DaoxCanvasText *item = DaoxCanvas_AddText( self, DString_GetData( text ), x, y, a );
 	if( item == NULL ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
+		DaoProcess_RaiseError( proc, NULL, "no font is set" );
 		return;
 	}
 	DaoProcess_PutValue( proc, (DaoValue*) item );
@@ -1646,7 +1646,7 @@ static void CANVAS_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxPath *path = (DaoxPath*) p[2];
 	DaoxCanvasText *item = DaoxCanvas_AddPathText( self, text, path, a );
 	if( item == NULL ){
-		DaoProcess_RaiseException( proc, DAO_ERROR, "no font is set" );
+		DaoProcess_RaiseError( proc, NULL, "no font is set" );
 		return;
 	}
 	DaoProcess_PutValue( proc, (DaoValue*) item );

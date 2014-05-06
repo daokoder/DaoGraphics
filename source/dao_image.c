@@ -237,7 +237,7 @@ static void IMAGE_Load( DaoProcess *proc, DaoValue *p[], int N )
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
 		ret = DaoxImage_LoadBMP( self, file->chars );
 	}
-	if( ret == 0 ) DaoProcess_RaiseException( proc, DAO_ERROR, "file format not supported" );
+	if( ret == 0 ) DaoProcess_RaiseError( proc, NULL, "file format not supported" );
 }
 static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -249,7 +249,7 @@ static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
 		ret = DaoxImage_SaveBMP( self, file->chars );
 	}
-	if( ret == 0 ) DaoProcess_RaiseException( proc, DAO_ERROR, "file saving failed" );
+	if( ret == 0 ) DaoProcess_RaiseError( proc, NULL, "file saving failed" );
 }
 static DaoFuncItem DaoxImageMeths[]=
 {
