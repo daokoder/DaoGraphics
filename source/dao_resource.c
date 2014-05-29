@@ -97,11 +97,10 @@ DaoCstruct* DaoxSceneResource_CallMethod( DaoxSceneResource *self, const char *m
 	if( rout == NULL || obj == NULL ) return NULL;
 	proc = DaoVmSpace_AcquireProcess( __daoVmSpace );
 
-	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, NULL, 0 );
+	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, NULL, NULL, NULL, 0, 0 );
 	if( rout == NULL ) goto Finalize;
 	DaoProcess_Call( proc, rout, (DaoValue*) obj, NULL, 0 );
 	res = DaoProcess_GetReturned( proc );
-	printf( "DaoxSceneResource_CallMethod %p\n", res );
 	if( res == NULL || res->type != DAO_OBJECT ) return NULL;
 	return DaoObject_CastCstruct( (DaoObject*)res, ctype );
 Finalize:

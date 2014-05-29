@@ -69,7 +69,7 @@ void DaoCstruct_CallMethod( DaoCstruct *cdata, const char *method )
 	if( rout == NULL || obj == NULL ) return;
 	proc = DaoVmSpace_AcquireProcess( __daoVmSpace );
 
-	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, & render, 1 );
+	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, NULL, & render, NULL, 1, 0 );
 	if( rout == NULL ) goto Finalize;
 	DaoProcess_Call( proc, rout, (DaoValue*) obj, & render, 1 );
 Finalize:
@@ -90,7 +90,7 @@ int DaoCstruct_CallKeyboardMethod( DaoCstruct *cdata, const char *method, int ke
 	DaoProcess_NewInteger( proc, (daoint) x );
 	DaoProcess_NewInteger( proc, (daoint) y );
 	params = DaoProcess_GetLastValues( proc, 3 );
-	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, params, 3 );
+	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, NULL, params, NULL, 3, 0 );
 	if( rout == NULL ) goto Finalize;
 	DaoProcess_Call( proc, rout, (DaoValue*) obj, params, 3 );
 Finalize:
