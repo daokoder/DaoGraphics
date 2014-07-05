@@ -74,10 +74,10 @@ struct DaoxTriangulator
 	// The original vertices are sorted by the x coordinates,
 	// but the duplicated vertices for intermediate polygons are not.
 	*/
-	DArray  *vertices;  /* DArray<DaoxVertexData*>; */
+	DList  *vertices;  /* DList<DaoxVertexData*>; */
 
 	/* Sorted list of vertices for processing: */
-	DArray  *worklist;  /* DArray<DaoxVertexData*>; */
+	DList  *worklist;  /* DList<DaoxVertexData*>; */
 
 	DaoxPlainArray  *triangles;  /* list of triple integers; */
 

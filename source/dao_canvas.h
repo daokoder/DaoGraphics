@@ -143,7 +143,7 @@ struct DaoxCanvasItem
 	DaoxCanvasState  *state;
 
 	DaoxCanvasItem   *parent;     /* parent item; */
-	DArray           *children;   /* children items; */
+	DList           *children;   /* children items; */
 
 	DaoxPath      *path;     /* may be filled with filling color; */
 	DaoxPathMesh  *strokes;  /* may be filled with stroking color; */
@@ -217,8 +217,8 @@ struct DaoxCanvas
 
 	DaoxColor  background;
 
-	DArray  *items;
-	DArray  *states;
+	DList  *items;
+	DList  *states;
 
 	DMap  *rects;
 	DMap  *ellipses;

@@ -85,7 +85,7 @@ struct DaoxMesh
 {
 	DAO_CSTRUCT_COMMON;
 
-	DArray      *units;
+	DList      *units;
 	DaoxOBBox3D  obbox;  /* local coordinates; */
 };
 extern DaoType *daox_type_mesh;

@@ -5,13 +5,13 @@
 
 load graphics;
 
-Graphics::glutInit( 1000, 800, 'Dao Logo', 300, 0 )
+Graphics::glutInit( 1000, 800, "Dao Logo", 300, 0 )
 
 canvas = Graphics::Canvas();
 
 canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 
-fontRoboto = Graphics::Font( 'fonts/Roboto-Bold.ttf' );
+fontRoboto = Graphics::Font( "fonts/Roboto-Bold.ttf" );
 
 
 state = canvas.PushState()
@@ -20,7 +20,7 @@ state.SetStrokeWidth( 0.5 );
 state.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
 state.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
-text = canvas.AddText( 'Dao', -100, 250 );
+text = canvas.AddText( "Dao", -100, 250 );
 
 state = canvas.PushState()
 state.SetFont( fontRoboto, 60 );
@@ -36,8 +36,8 @@ path.MoveTo( -330, -90 )
 path.ArcTo( 650, 0, 135 )
 
 #canvas.SetFont( fontRoboto, 80 );
-#text = canvas.AddText( 'Programming Language', path );
-text = canvas.AddText( 'PROGRAMMING LANGUAGE', path );
+#text = canvas.AddText( "Programming Language", path );
+text = canvas.AddText( "PROGRAMMING LANGUAGE", path );
 canvas.PopState();
 #{
 #}
@@ -171,7 +171,7 @@ canvas.PopState()
 
 #{
 image = Graphics::Image();
-image.Load( 'WELLTEXT.JPG' );
+image.Load( "WELLTEXT.JPG" );
 canvas.AddImage( image, -200, -200 );
 #}
 

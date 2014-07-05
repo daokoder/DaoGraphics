@@ -32,7 +32,7 @@ DaoXmlNode* DaoXmlNode_New()
 {
 	DaoXmlNode *self = (DaoXmlNode*) dao_calloc( 1, sizeof(DaoXmlNode) );
 	self->parent = NULL;
-	self->children = DArray_New(0);
+	self->children = DList_New(0);
 	self->name = DString_New(1);
 	self->content = DString_New(1);
 	self->attributes = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
@@ -44,7 +44,7 @@ void DaoXmlNode_Delete( DaoXmlNode *self )
 	for(i=0; i<self->children->size; ++i){
 		DaoXmlNode_Delete( (DaoXmlNode*) self->children->items.pVoid[i] );
 	}
-	DArray_Delete( self->children );
+	DList_Delete( self->children );
 	DString_Delete( self->name );
 	DString_Delete( self->content );
 	DMap_Delete( self->attributes );
@@ -124,15 +124,15 @@ DaoXmlDOM* DaoXmlDOM_New()
 {
 	DaoXmlDOM *self = (DaoXmlDOM*) dao_calloc( 1, sizeof(DaoXmlDOM) );
 	self->root = NULL;
-	self->caches = DArray_New(0);
+	self->caches = DList_New(0);
 	return self;
 }
 
 DaoXmlNode* DaoXmlDOM_NewNode( DaoXmlDOM *self )
 {
 	if( self->caches->size ){
-		DaoXmlNode *node = DArray_Back( self->caches );
-		DArray_PopBack( self->caches );
+		DaoXmlNode *node = DList_Back( self->caches );
+		DList_PopBack( self->caches );
 		return node;
 	}
 	return DaoXmlNode_New();
@@ -152,7 +152,7 @@ void DaoXmlDOM_CacheNode( DaoXmlDOM *self, DaoXmlNode *node )
 	// so it is better to clear the string: */
 	DString_Clear( node->content );
 	DMap_Reset( node->attributes );
-	DArray_Append( self->caches, node );
+	DList_Append( self->caches, node );
 }
 void DaoXmlDOM_Reset( DaoXmlDOM *self )
 {
@@ -166,7 +166,7 @@ void DaoXmlDOM_Delete( DaoXmlDOM *self )
 	for(i=0; i<self->caches->size; ++i){
 		DaoXmlNode_Delete( (DaoXmlNode*) self->caches->items.pVoid[i] );
 	}
-	DArray_Delete( self->caches );
+	DList_Delete( self->caches );
 	dao_free( self );
 }
 void DaoXmlDOM_TraverseNode( DaoXmlDOM *self, DaoXmlNode *node, void *visitor, DaoXmlNode_Visit visit )
@@ -359,7 +359,7 @@ int DaoXmlParser_ParseNodeContent( DaoXmlParser *self, DaoXmlDOM *dom, DaoXmlNod
 
 			child = DaoXmlDOM_NewNode( dom );
 			child->parent = node;
-			DArray_Append( node->children, child );
+			DList_Append( node->children, child );
 			self->source = current;
 			DaoXmlParser_ParseNode( self, dom, child );
 		}else{

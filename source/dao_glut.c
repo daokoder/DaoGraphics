@@ -378,10 +378,10 @@ static void GLUT_Render( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxGLUTMeths[]=
 {
-	{ GLUT_Init,      "glutInit( width = 300, height = 200, title = '', fps=10, test_fps=0 )" },
-	{ GLUT_Paint,     "glutDisplay( painter : Painter, canvas : Canvas )" },
-	{ GLUT_Render,    "glutDisplay( renderer : Renderer, scene : Scene )" },
-	{ GLUT_SetGraphics,  "glutSetGraphics( painter : Painter, canvas : Canvas )" },
+	{ GLUT_Init,      "glutInit( width = 300, height = 200, title = \"\", fps=10, test_fps=0 )" },
+	{ GLUT_Paint,     "glutDisplay( painter: Painter, canvas: Canvas )" },
+	{ GLUT_Render,    "glutDisplay( renderer: Renderer, scene: Scene )" },
+	{ GLUT_SetGraphics,  "glutSetGraphics( painter: Painter, canvas: Canvas )" },
 	{ NULL, NULL }
 };
 

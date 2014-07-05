@@ -136,7 +136,7 @@ struct DaoxSceneNode
 	DaoxMatrix4D    transform; /* local to parent */
 
 	DaoxSceneNode  *parent;
-	DArray         *children;
+	DList         *children;
 };
 extern DaoType *daox_type_scene_node;
 
@@ -224,9 +224,9 @@ struct DaoxModel
 	// for sufficiently long time.
 	*/
 	DaoxPlainArray  *offsets; /* offsets in the vertex buffer object; */
-	DArray          *points; /* vertex positions, global coordinates; */
-	DArray          *vnorms; /* vertex normals, global coordinates; */
-	DArray          *tnorms; /* triangle normals, global coordinates; */
+	DList          *points; /* vertex positions, global coordinates; */
+	DList          *vnorms; /* vertex normals, global coordinates; */
+	DList          *tnorms; /* triangle normals, global coordinates; */
 	uint_t           viewFrame;
 };
 extern DaoType *daox_type_model;
@@ -277,12 +277,12 @@ struct DaoxScene
 {
 	DAO_CSTRUCT_COMMON;
 
-	DArray  *nodes;
-	DArray  *lights;
+	DList  *nodes;
+	DList  *lights;
 	DMap    *materialNames;
 	DMap    *textureNames;
-	DArray  *materials;
-	DArray  *textures;
+	DList  *materials;
+	DList  *textures;
 };
 extern DaoType *daox_type_scene;
 

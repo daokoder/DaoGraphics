@@ -69,8 +69,7 @@ void DaoxTexture_Delete( DaoxTexture *self )
 void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image )
 {
 	if( self->tid ) DaoxTexture_glFreeTexture( self );
-	DaoGC_ShiftRC( (DaoValue*) image, (DaoValue*) self->image );
-	self->image = image;
+	GC_Assign( & self->image, image );
 }
 void DaoxTexture_LoadImage( DaoxTexture *self, const char *file )
 {
@@ -145,15 +144,12 @@ void DaoxMaterial_CopyFrom( DaoxMaterial *self, DaoxMaterial *other )
 	/* Do not copy name! */
 	memcpy( & self->ambient, & other->ambient, 4*sizeof(DaoxColor) );
 	memcpy( & self->lighting, & other->lighting, 6*sizeof(uint_t) );
-	DaoGC_ShiftRC( (DaoValue*) other->texture1, (DaoValue*) self->texture1 );
-	DaoGC_ShiftRC( (DaoValue*) other->texture2, (DaoValue*) self->texture2 );
-	self->texture1 = other->texture1;
-	self->texture2 = other->texture2;
+	GC_Assign( & self->texture1, other->texture1 );
+	GC_Assign( & self->texture2, other->texture2 );
 }
 void DaoxMaterial_SetTexture( DaoxMaterial *self, DaoxTexture *texture )
 {
-	DaoGC_ShiftRC( (DaoValue*) texture, (DaoValue*) self->texture1 );
-	self->texture1 = texture;
+	GC_Assign( & self->texture1, texture );
 }
 
 
@@ -372,14 +368,14 @@ void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type )
 	DaoCstruct_Init( (DaoCstruct*) self, type );
 	self->renderable = 0;
 	self->parent = NULL;
-	self->children = DArray_New( DAO_DATA_VALUE );
+	self->children = DList_New( DAO_DATA_VALUE );
 	self->transform = DaoxMatrix4D_Identity();
 }
 void DaoxSceneNode_Free( DaoxSceneNode *self )
 {
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoGC_DecRC( (DaoValue*) self->parent );
-	DArray_Delete( self->children );
+	DList_Delete( self->children );
 }
 DaoxSceneNode* DaoxSceneNode_New()
 {
@@ -440,9 +436,8 @@ DaoxVector3D DaoxSceneNode_GetWorldPosition( DaoxSceneNode *self )
 }
 void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child )
 {
-	DaoGC_ShiftRC( (DaoValue*) self, (DaoValue*) child->parent );
-	child->parent = self;
-	DArray_Append( self->children, child );
+	GC_Assign( & child->parent, self );
+	DList_Append( self->children, child );
 }
 
 
@@ -622,32 +617,31 @@ DaoxModel* DaoxModel_New()
 {
 	DaoxModel *self = (DaoxModel*) dao_calloc( 1, sizeof(DaoxModel) );
 	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_model );
-	self->points = DArray_New(0);
-	self->vnorms = DArray_New(0);
-	self->tnorms = DArray_New(0);
+	self->points = DList_New(0);
+	self->vnorms = DList_New(0);
+	self->tnorms = DList_New(0);
 	self->offsets = DaoxPlainArray_New( sizeof(int) );
 	return self;
 }
-static void DArray_DeleteVector3DArrays( DArray *self )
+static void DList_DeleteVector3DLists( DList *self )
 {
 	daoint i;
 	for(i=0; i<self->size; ++i)
 		DaoxPlainArray_Delete( (DaoxPlainArray*) self->items.pVoid[i] );
-	DArray_Delete( self );
+	DList_Delete( self );
 }
 void DaoxModel_Delete( DaoxModel *self )
 {
 	DaoxPlainArray_Delete( self->offsets );
-	DArray_DeleteVector3DArrays( self->points );
-	DArray_DeleteVector3DArrays( self->vnorms );
-	DArray_DeleteVector3DArrays( self->tnorms );
+	DList_DeleteVector3DLists( self->points );
+	DList_DeleteVector3DLists( self->vnorms );
+	DList_DeleteVector3DLists( self->tnorms );
 	DaoxSceneNode_Free( (DaoxSceneNode*) self );
 	dao_free( self );
 }
 void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh )
 {
-	DaoGC_ShiftRC( (DaoValue*) mesh, (DaoValue*) self->mesh );
-	self->mesh = mesh;
+	GC_Assign( & self->mesh, mesh );
 	self->base.obbox = mesh->obbox;
 }
 void DaoxModel_TransformMesh( DaoxModel *self )
@@ -657,9 +651,9 @@ void DaoxModel_TransformMesh( DaoxModel *self )
 
 	if( self->mesh == NULL ) return;
 	while( self->points->size < self->mesh->units->size ){
-		DArray_Append( self->points, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
-		DArray_Append( self->vnorms, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
-		DArray_Append( self->tnorms, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
+		DList_Append( self->points, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
+		DList_Append( self->vnorms, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
+		DList_Append( self->tnorms, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
 	}
 	for(i=0; i<self->mesh->units->size; ++i){
 		DaoxMeshUnit *unit = (DaoxMeshUnit*) self->mesh->units->items.pVoid[i];
@@ -699,12 +693,12 @@ DaoxScene* DaoxScene_New()
 	DaoxMaterial *material;
 	DaoxScene *self = (DaoxScene*) dao_malloc( sizeof(DaoxScene) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
-	self->nodes = DArray_New( DAO_DATA_VALUE );
-	self->lights = DArray_New(0);
+	self->nodes = DList_New( DAO_DATA_VALUE );
+	self->lights = DList_New(0);
 	self->materialNames = DMap_New( DAO_DATA_STRING, 0 );
 	self->textureNames = DMap_New( DAO_DATA_STRING, 0 );
-	self->materials = DArray_New( DAO_DATA_VALUE );
-	self->textures = DArray_New( DAO_DATA_VALUE );
+	self->materials = DList_New( DAO_DATA_VALUE );
+	self->textures = DList_New( DAO_DATA_VALUE );
 
 	colors[0] = daox_black_color;
 	colors[1] = daox_white_color;
@@ -715,7 +709,7 @@ DaoxScene* DaoxScene_New()
 	for(i=0; i<6; ++i){
 		material = DaoxMaterial_New();
 		material->ambient = material->diffuse = material->specular = colors[i];
-		DArray_Append( self->materials, material );
+		DList_Append( self->materials, material );
 	}
 	return self;
 }
@@ -723,10 +717,10 @@ void DaoxScene_Delete( DaoxScene *self )
 {
 	printf( "DaoxScene_Delete: %p\n", self );
 	DaoCstruct_Free( (DaoCstruct*) self );
-	DArray_Delete( self->nodes );
-	DArray_Delete( self->lights );
-	DArray_Delete( self->materials );
-	DArray_Delete( self->textures );
+	DList_Delete( self->nodes );
+	DList_Delete( self->lights );
+	DList_Delete( self->materials );
+	DList_Delete( self->textures );
 	DMap_Delete( self->materialNames );
 	DMap_Delete( self->textureNames );
 	dao_free( self );
@@ -734,13 +728,13 @@ void DaoxScene_Delete( DaoxScene *self )
 
 void DaoxScene_AddNode( DaoxScene *self, DaoxSceneNode *node )
 {
-	DArray_Append( self->nodes, node );
-	if( node->ctype == daox_type_light ) DArray_Append( self->lights, node );
+	DList_Append( self->nodes, node );
+	if( node->ctype == daox_type_light ) DList_Append( self->lights, node );
 }
 void DaoxScene_AddMaterial( DaoxScene *self, DString *name, DaoxMaterial *material )
 {
 	MAP_Insert( self->materialNames, name, self->materials->size );
-	DArray_Append( self->materials, material );
+	DList_Append( self->materials, material );
 }
 
 
@@ -864,10 +858,10 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 	DaoxBinaryParser *parser = & parser0;
 	DaoxPlainArray *vertices = DaoxPlainArray_New( sizeof(DaoxVertex) );
 	DaoxPlainArray *triangles = DaoxPlainArray_New( sizeof(DaoxTriangle) );
-	DArray *integers = DArray_New(0);
-	DArray *chunkids = DArray_New(0);
-	DArray *chunkends = DArray_New(0);
-	DArray *faceCounts = DArray_New(0);
+	DList *integers = DList_New(0);
+	DList *chunkids = DList_New(0);
+	DList *chunkends = DList_New(0);
+	DList *faceCounts = DList_New(0);
 	DString *string = DString_New(1);
 	DNode *it = NULL;
 	int colortype = AMBIENT;
@@ -881,14 +875,14 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 	while( parser->source < parser->end ){
 		uint_t chunkid = DaoxBinaryParser_DecodeUInt16LE( parser );
 		uint_t chunklen = DaoxBinaryParser_DecodeUInt32LE( parser );
-		uint_t parentid = (daoint) DArray_Back( chunkids );
+		uint_t parentid = (daoint) DList_Back( chunkids );
 		if( parser->source >= parser->end ) break;
-		while( chunkends->size && ((uchar_t*)DArray_Back( chunkends )) < parser->source ){
-			DArray_PopBack( chunkends );
-			DArray_PopBack( chunkids );
+		while( chunkends->size && ((uchar_t*)DList_Back( chunkends )) < parser->source ){
+			DList_PopBack( chunkends );
+			DList_PopBack( chunkids );
 		}
-		DArray_PushBack( chunkends, parser->source + (chunklen - 6) );
-		DArray_PushBack( chunkids, (void*)(size_t)chunkid );
+		DList_PushBack( chunkends, parser->source + (chunklen - 6) );
+		DList_PushBack( chunkids, (void*)(size_t)chunkid );
 		printf( "chunk: %6X -> %6X %6i\n", parentid, chunkid, chunklen );
 		switch( chunkid ){
 		case 0x4D4D : /* Main Chunk */
@@ -911,7 +905,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 		case 0x4110 : /* Vertices List */
 			m = DaoxBinaryParser_DecodeUInt16LE( parser );
 			printf( "vertices: %i %p\n", m, unit );
-			DArray_Resize( faceCounts, m, 0 );
+			DList_Resize( faceCounts, m, 0 );
 			DaoxPlainArray_ResetSize( vertices, 0 );
 			for(i=0; i<m; ++i){
 				DaoxVertex *vertex = DaoxPlainArray_PushVertex( vertices );
@@ -967,7 +961,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			unit = DaoxMesh_AddUnit( mesh );
 			material = (DaoxMaterial*) self->materials->items.pVoid[k];
 			DaoxMeshUnit_SetMaterial( unit, material );
-			if( integers->size < vertices->size ) DArray_Resize( integers, vertices->size, 0 );
+			if( integers->size < vertices->size ) DList_Resize( integers, vertices->size, 0 );
 			memset( integers->items.pInt, 0, vertices->size*sizeof(daoint) );
 			for(i=0; i<m; ++i){
 				int id = DaoxBinaryParser_DecodeUInt16LE( parser );
@@ -1051,7 +1045,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			break;
 		case 0xAFFF : /* Material Block */
 			material = DaoxMaterial_New();
-			DArray_Append( self->materials, material );
+			DList_Append( self->materials, material );
 			break;
 		case 0xA000 : /* Material name */
 			DString_SetChars( string, DaoxBinaryParser_DecodeString( parser ) );
@@ -1100,7 +1094,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 		case 0xA200 :
 			texture = DaoxTexture_New();
 			MAP_Insert( self->textureNames, string, self->textures->size );
-			DArray_Append( self->textures, texture );
+			DList_Append( self->textures, texture );
 			DaoxMaterial_SetTexture( material, texture );
 			break;
 		case 0xA300 :
@@ -1126,10 +1120,10 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 	}
 	DaoxPlainArray_Delete( vertices );
 	DaoxPlainArray_Delete( triangles );
-	DArray_Delete( integers );
-	DArray_Delete( chunkids );
-	DArray_Delete( chunkends );
-	DArray_Delete( faceCounts );
+	DList_Delete( integers );
+	DList_Delete( chunkids );
+	DList_Delete( chunkends );
+	DList_Delete( faceCounts );
 	DString_Delete( string );
 }
 void DaoxScene_Load3DS( DaoxScene *self, const char *file )

@@ -148,8 +148,8 @@ struct DaoxShader
 		uint_t  gradientSampler;
 	} textures;
 
-	DArray  *vertexSources;
-	DArray  *fragmentSources;
+	DList  *vertexSources;
+	DList  *fragmentSources;
 };
 
 void DaoxShader_Init2D( DaoxShader *self );

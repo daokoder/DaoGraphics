@@ -215,8 +215,7 @@ void DaoxMeshUnit_Delete( DaoxMeshUnit *self )
 }
 void DaoxMeshUnit_SetMaterial( DaoxMeshUnit *self, DaoxMaterial *material )
 {
-	DaoGC_ShiftRC( (DaoValue*) material, (DaoValue*) self->material );
-	self->material = material;
+	GC_Assign( & self->material, material );
 }
 
 typedef struct TriangleInfo TriangleInfo;
@@ -271,14 +270,14 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 	DaoxVertex *vertices = self->vertices->pod.vertices;
 	DaoxTriangle *triangles = self->triangles->pod.triangles;
 	DaoxPlainArray *points = DaoxPlainArray_New( sizeof(DaoxVector3D) );
-	DArray *nodes = DArray_New(0);
+	DList *nodes = DList_New(0);
 	daoint i, j, half, capacity = 0;
 	if( maxtriangles <= 0 ) maxtriangles = MIN_MESH_CHUNK;
 	if( self->tree == NULL ) self->tree = DaoxMeshChunk_New( self );
 	self->tree->triangles->size = 0;
 	for(i=0; i<self->triangles->size; ++i) DaoxPlainArray_PushInt( self->tree->triangles, i );
 	printf( "DaoxMeshUnit_UpdateTree: %i\n", maxtriangles );
-	DArray_Append( nodes, self->tree );
+	DList_Append( nodes, self->tree );
 	for(i=0; i<nodes->size; ++i){
 		DaoxMeshChunk *node = (DaoxMeshChunk*) nodes->items.pVoid[i];
 		DaoxVector3D OX, OY, OZ, longest;
@@ -333,12 +332,12 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 		for(j=half; j<node->triangles->size; ++j){
 			DaoxPlainArray_PushInt( node->right->triangles, sorting[j].index );
 		}
-		DArray_Append( nodes, node->left );
-		DArray_Append( nodes, node->right );
+		DList_Append( nodes, node->left );
+		DList_Append( nodes, node->right );
 	}
 	self->obbox = self->tree->obbox;
 	DaoxPlainArray_Delete( points );
-	DArray_Delete( nodes );
+	DList_Delete( nodes );
 }
 
 
@@ -348,12 +347,12 @@ DaoxMesh* DaoxMesh_New()
 {
 	DaoxMesh *self = (DaoxMesh*) dao_calloc( 1, sizeof(DaoxMesh) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_mesh );
-	self->units = DArray_New( DAO_DATA_VALUE );
+	self->units = DList_New( DAO_DATA_VALUE );
 	return self;
 }
 void DaoxMesh_Delete( DaoxMesh *self )
 {
-	DArray_Delete( self->units );
+	DList_Delete( self->units );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
@@ -364,7 +363,7 @@ DaoxMeshUnit* DaoxMesh_AddUnit( DaoxMesh *self )
 	DaoGC_IncRC( (DaoValue*) unit );
 	unit->mesh = self;
 	unit->index = self->units->size;
-	DArray_Append( self->units, unit );
+	DList_Append( self->units, unit );
 	return unit;
 }
 void DaoxMesh_UpdateTree( DaoxMesh *self, int maxtriangles )

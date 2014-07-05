@@ -51,8 +51,8 @@ DaoxTriangulator* DaoxTriangulator_New()
 	DaoxTriangulator *self = (DaoxTriangulator*) dao_calloc( 1, sizeof(DaoxTriangulator) );
 	self->points = DaoxPlainArray_New( sizeof(DaoxVector2D) );
 	self->triangles = DaoxPlainArray_New( sizeof(DaoxTriangle) );
-	self->vertices = DArray_New(0);
-	self->worklist = DArray_New(0);
+	self->vertices = DList_New(0);
+	self->worklist = DList_New(0);
 	return self;
 }
 void DaoxTriangulator_Delete( DaoxTriangulator *self )
@@ -67,8 +67,8 @@ void DaoxTriangulator_Delete( DaoxTriangulator *self )
 	}
 	DaoxPlainArray_Delete( self->points );
 	DaoxPlainArray_Delete( self->triangles );
-	DArray_Delete( self->vertices );
-	DArray_Delete( self->worklist );
+	DList_Delete( self->vertices );
+	DList_Delete( self->worklist );
 	dao_free( self );
 }
 void DaoxTriangulator_Reset( DaoxTriangulator *self )
@@ -114,7 +114,7 @@ void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y )
 		}
 	}
 	DaoxPlainArray_PushVectorXY( self->points, x, y );
-	DArray_PushBack( self->vertices, vertex );
+	DList_PushBack( self->vertices, vertex );
 	if( self->start == NULL ) self->start = vertex;
 }
 void DaoxTriangulator_PopPoint( DaoxTriangulator *self )
@@ -249,11 +249,11 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 	V = (DaoxVertexData*) self->vertices->items.pVoid[N-1];
 	contours = V->contour;
 
-	DArray_Assign( self->worklist, self->vertices );
+	DList_Assign( self->worklist, self->vertices );
 	while( self->worklist->size && (++K) < 10*N ){
 		A = (DaoxVertexData*) self->worklist->items.pVoid[self->worklist->size-1];
 		if( A->done ){
-			DArray_PopBack( self->worklist );
+			DList_PopBack( self->worklist );
 			continue;
 		}
 		B = A->next;
@@ -267,7 +267,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			A->next->prev = A->prev;
 			A->prev->next = A->next;
 			A->done = B->done = C->done = 1;
-			DArray_PopBack( self->worklist );
+			DList_PopBack( self->worklist );
 			continue;
 		}
 
@@ -340,7 +340,7 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 			if( fabs( area ) > min_area ) DaoxTriangulator_MakeTriangle( self, A );
 			A->next->prev = A->prev;
 			A->prev->next = A->next;
-			DArray_PopBack( self->worklist );
+			DList_PopBack( self->worklist );
 			//if( self->triangles->size >= 3*111 ) break;
 		}else{ /* point inside the triangle: */
 			DaoxVertexData *A2, *N2;
@@ -386,12 +386,12 @@ void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 				} while( V2 != inside );
 			}
 
-			DArray_PushBack( self->vertices, N2 );
-			DArray_PushBack( self->vertices, A2 );
-			DArray_PopBack( self->worklist );
-			DArray_PushBack( self->worklist, N2 );
-			DArray_PushBack( self->worklist, A2 );
-			DArray_PushBack( self->worklist, A );
+			DList_PushBack( self->vertices, N2 );
+			DList_PushBack( self->vertices, A2 );
+			DList_PopBack( self->worklist );
+			DList_PushBack( self->worklist, N2 );
+			DList_PushBack( self->worklist, A2 );
+			DList_PushBack( self->worklist, A );
 		}
 	}
 }

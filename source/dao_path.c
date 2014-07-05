@@ -970,7 +970,7 @@ DaoxVectorD4 DaoxPathSegment_ComputeDeterminantVector( DaoxPathSegment *self )
 	dets.w = - DaoxMatrixD3X3_Determinant( & mat3 );
 	return dets;
 }
-void DaoxPathSegment_TryDivideLoop( DaoxPathSegment *self, int index, DArray *segments )
+void DaoxPathSegment_TryDivideLoop( DaoxPathSegment *self, int index, DList *segments )
 {
 	DaoxVectorD4 dets = DaoxPathSegment_ComputeDeterminantVector( self );
 	double d0 = dets.x;
@@ -993,8 +993,8 @@ void DaoxPathSegment_TryDivideLoop( DaoxPathSegment *self, int index, DArray *se
 	if( at < tolerance || at > (1.0 - tolerance) ) return; /* double point not on the segement; */
 
 	DaoxPathSegment_Divide( self, at );
-	DArray_Append( segments, self->first );
-	DArray_Append( segments, self->second );
+	DList_Append( segments, self->first );
+	DList_Append( segments, self->second );
 	segments->items.pVoid[index] = NULL;
 }
 void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, double start, double end )
@@ -1179,7 +1179,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 
 void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 {
-	DArray *segments;
+	DList *segments;
 	DaoxVector3D *point, *point2;
 	DaoxPlainArray *boxes;
 	DaoxPlainArray *points;
@@ -1195,7 +1195,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 	DaoxOBBox2D_ResetBox( & self->obbox, NULL, 0 );
 	if( self->first->first->bezier == 0 ) return;
 
-	segments = DArray_New(0);
+	segments = DList_New(0);
 	boxes = DaoxPlainArray_New( sizeof(DaoxOBBox2D) );
 
 	DaoxTriangulator_Reset( triangulator );
@@ -1206,7 +1206,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		if( com->refined.last == NULL || com->refined.last->next == NULL ) continue;
 		seg = com->refined.first;
 		do {
-			DArray_PushBack( segments, seg );
+			DList_PushBack( segments, seg );
 			self->length += DaoxPathSegment_Length( seg );
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
@@ -1239,8 +1239,8 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 				float R1 = 0.5, R2 = 0.5;
 				if( len1 > len2 ){
 					DaoxPathSegment_Divide( S1, R1 );
-					DArray_Append( segments, S1->first );
-					DArray_Append( segments, S1->second );
+					DList_Append( segments, S1->first );
+					DList_Append( segments, S1->second );
 					box1 = DaoxPlainArray_Push( boxes );
 					box2 = DaoxPlainArray_Push( boxes );
 					*box1 = DaoxPathSegment_GetOBBox( S1->first );
@@ -1249,8 +1249,8 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 					break;
 				}else if( len2 > len1 ){
 					DaoxPathSegment_Divide( S2, R2 );
-					DArray_Append( segments, S2->first );
-					DArray_Append( segments, S2->second );
+					DList_Append( segments, S2->first );
+					DList_Append( segments, S2->second );
 					box1 = DaoxPlainArray_Push( boxes );
 					box2 = DaoxPlainArray_Push( boxes );
 					*box1 = DaoxPathSegment_GetOBBox( S2->first );
@@ -1273,7 +1273,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		seg = com->refined.first;
 		do {
 			DaoxTriangulator_PushPoint( triangulator, seg->P1.x, seg->P1.y );
-			DArray_PushBack( segments, seg );
+			DList_PushBack( segments, seg );
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
 		DaoxTriangulator_CloseContour( triangulator );
@@ -1364,7 +1364,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 
 	DaoxPlainArray_Delete( boxes );
 	DaoxPlainArray_Delete( points );
-	DArray_Delete( segments );
+	DList_Delete( segments );
 }
 
 int DaoxLine_CheckPoint( DaoxVector2D start, DaoxVector2D end, DaoxVector2D point )

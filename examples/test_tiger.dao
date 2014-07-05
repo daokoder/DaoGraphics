@@ -47,7 +47,7 @@ routine LoadTiger( canvas : Graphics::Canvas )
 
 routine main( fps_limit = 30, compute_fps = 0 )
 {
-	Graphics::glutInit( 1000, 800, 'Dao Graphics Demo: Tiger', fps_limit, compute_fps )
+	Graphics::glutInit( 1000, 800, "Dao Graphics Demo: Tiger", fps_limit, compute_fps )
 	canvas = Graphics::Canvas();
 	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 	LoadTiger( canvas );
@@ -58,7 +58,7 @@ routine main( fps_limit = 30, compute_fps = 0 )
 routine main( save : string, width = 1200, height = 900 )
 {
     # Must be called before Graphics::Canvas():
-	Graphics::glutInit( 800, 600, 'Dao Graphics Demo: Tiger', 1, 0 )
+	Graphics::glutInit( 800, 600, "Dao Graphics Demo: Tiger", 1, 0 )
 
 	painter = Graphics::Painter();
 	canvas = Graphics::Canvas();

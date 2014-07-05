@@ -244,10 +244,8 @@ void DaoxCanvasState_Delete( DaoxCanvasState *self )
 }
 void DaoxCanvasState_Copy( DaoxCanvasState *self, DaoxCanvasState *other )
 {
-	DaoGC_ShiftRC( (DaoValue*) other->font, (DaoValue*) self->font );
-	DaoGC_ShiftRC( (DaoValue*) other->parent, (DaoValue*) self->parent );
-	self->font = other->font;
-	self->parent = other->parent;
+	GC_Assign( & self->font, other->font );
+	GC_Assign( & self->parent, other->parent );
 	self->dash = other->dash;
 	self->junction = other->junction;
 	self->fontSize = other->fontSize;
@@ -264,14 +262,12 @@ void DaoxCanvasState_SetDashPattern( DaoxCanvasState *self, float pat[], int n )
 }
 void DaoxCanvasState_SetFont( DaoxCanvasState *self, DaoxFont *font, float size )
 {
-	DaoGC_ShiftRC( (DaoValue*) font, (DaoValue*) self->font );
-	self->font = font;
+	GC_Assign( & self->font, font );
 	self->fontSize = size;
 }
 void DaoxCanvasState_SetParentItem( DaoxCanvasState *self, DaoxCanvasItem *item )
 {
-	DaoGC_ShiftRC( (DaoValue*) item, (DaoValue*) self->parent );
-	self->parent = item;
+	GC_Assign( & self->parent, item );
 }
 
 
@@ -310,7 +306,7 @@ DaoxCanvasItem* DaoxCanvasItem_New( DaoType *type )
 void DaoxCanvasItem_Delete( DaoxCanvasItem *self )
 {
 #warning"=================================GC for DaoxCanvasGroup field"
-	if( self->children ) DArray_Delete( self->children );
+	if( self->children ) DList_Delete( self->children );
 	DaoxCanvasItem_Free( self );
 	dao_free( self );
 }
@@ -672,8 +668,8 @@ DaoxCanvas* DaoxCanvas_New()
 	self->defaultWidth = daox_graphics_device_width;
 	self->defaultHeight = daox_graphics_device_height;
 	self->triangulator = DaoxTriangulator_New();
-	self->items = DArray_New( DAO_DATA_VALUE );
-	self->states = DArray_New( DAO_DATA_VALUE );
+	self->items = DList_New( DAO_DATA_VALUE );
+	self->states = DList_New( DAO_DATA_VALUE );
 	self->rects = DMap_New(0,DAO_DATA_VALUE);
 	self->ellipses = DMap_New(0,DAO_DATA_VALUE);
 	self->transform = DaoxMatrix3D_Identity();
@@ -729,8 +725,8 @@ void DaoxCanvas_Delete( DaoxCanvas *self )
 	DaoGC_DecRC( (DaoValue*) self->unitCircle1 );
 	DaoGC_DecRC( (DaoValue*) self->unitCircle2 );
 	DaoGC_DecRC( (DaoValue*) self->unitCircle3 );
-	DArray_Delete( self->items );
-	DArray_Delete( self->states );
+	DList_Delete( self->items );
+	DList_Delete( self->states );
 	DMap_Delete( self->ellipses );
 	DMap_Delete( self->rects );
 	dao_free( self );
@@ -770,12 +766,12 @@ DaoxCanvasState* DaoxCanvas_PushState( DaoxCanvas *self )
 	DaoxCanvasState *prev = DaoxCanvas_GetCurrentState( self );
 	DaoxCanvasState *state = DaoxCanvasState_New();
 	if( prev ) DaoxCanvasState_Copy( state, prev );
-	DArray_PushBack( self->states, state );
+	DList_PushBack( self->states, state );
 	return state;
 }
 void DaoxCanvas_PopState( DaoxCanvas *self )
 {
-	DArray_PopBack( self->states );
+	DList_PopBack( self->states );
 }
 
 void DaoxCanvas_SetStrokeWidth( DaoxCanvas *self, float width )
@@ -803,8 +799,7 @@ void DaoxCanvas_SetDashPattern( DaoxCanvas *self, float pat[], int n )
 void DaoxCanvas_SetFont( DaoxCanvas *self, DaoxFont *font, float size )
 {
 	DaoxCanvasState *state = DaoxCanvas_GetOrPushState( self );
-	DaoGC_ShiftRC( (DaoValue*) font, (DaoValue*) state->font );
-	state->font = font;
+	GC_Assign( & state->font, font );
 	state->fontSize = size;
 }
 
@@ -812,14 +807,13 @@ void DaoxCanvas_AddItem( DaoxCanvas *self, DaoxCanvasItem *item )
 {
 	DaoxCanvasState *state = DaoxCanvas_GetOrPushState( self );
 	if( state->parent ){
-		if( state->parent->children == NULL ) state->parent->children = DArray_New( DAO_DATA_VALUE );
-		DArray_PushBack( state->parent->children, item );
+		if( state->parent->children == NULL ) state->parent->children = DList_New( DAO_DATA_VALUE );
+		DList_PushBack( state->parent->children, item );
 		DaoxCanvasItem_MarkDataChanged( state->parent );
 	}else{
-		DArray_PushBack( self->items, item );
+		DList_PushBack( self->items, item );
 	}
-	DaoGC_ShiftRC( (DaoValue*) state, (DaoValue*) item->state );
-	item->state = DaoxCanvas_GetOrPushState( self );
+	GC_Assign( & item->state, state );
 }
 
 DaoxCanvasItem* DaoxCanvas_AddGroup( DaoxCanvas *self )
@@ -956,7 +950,7 @@ DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path )
 	DaoxCanvas_AddItem( self, item );
 	return item;
 }
-void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DVector *text, float x, float y, float degrees )
+void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray *text, float x, float y, float degrees )
 {
 	DaoxGlyph *glyph;
 	DaoxCanvasState *state;
@@ -994,7 +988,7 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DVecto
 		bounds = DaoxAABBox2D_Transform( & bounds, & rotation );
 		advance = bounds.right - bounds.left;
 
-		if( textItem->children == NULL ) textItem->children = DArray_New( DAO_DATA_VALUE );
+		if( textItem->children == NULL ) textItem->children = DList_New( DAO_DATA_VALUE );
 
 		chitem = DaoxCanvasPath_New();
 		DaoxCanvas_AddItem( self, chitem );
@@ -1030,7 +1024,7 @@ DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, float x,
 	DaoxCanvasPath *item;
 	DaoxCanvasState *state;
 	DString str = DString_WrapChars( text );
-	DVector *codepoints;
+	DArray *codepoints;
 
 	if( self->states->size == 0 ) return NULL;
 	state = DaoxCanvas_GetOrPushState( self );
@@ -1038,10 +1032,10 @@ DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, float x,
 
 	item = DaoxCanvasText_New();
 	DaoxCanvas_AddItem( self, item );
-	codepoints = DVector_New( sizeof(uint_t) );
+	codepoints = DArray_New( sizeof(uint_t) );
 	DString_DecodeUTF8( & str, codepoints );
 	DaoxCanvas_AddCharItems( self, item, codepoints, x, y, degrees );
-	DVector_Delete( codepoints );
+	DArray_Delete( codepoints );
 	return item;
 }
 DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, DaoxPath *path, float degrees )
@@ -1049,7 +1043,7 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, Daox
 	DaoxCanvasPath *item;
 	DaoxCanvasState *state;
 	DString str = DString_WrapChars( text );
-	DVector *codepoints;
+	DArray *codepoints;
 
 	if( self->states->size == 0 ) return NULL;
 	state = DaoxCanvas_GetOrPushState( self );
@@ -1059,14 +1053,13 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, Daox
 	DaoxCanvas_AddItem( self, item );
 
 	DaoxPath_Preprocess( path, self->triangulator );
-	DaoGC_ShiftRC( (DaoValue*) path, (DaoValue*) item->path );
-	item->path = path;
+	GC_Assign( & item->path, path );
 	item->visible = 0;
 
-	codepoints = DVector_New( sizeof(uint_t) );
+	codepoints = DArray_New( sizeof(uint_t) );
 	DString_DecodeUTF8( & str, codepoints );
 	DaoxCanvas_AddCharItems( self, item, codepoints, 0, 0, degrees );
-	DVector_Delete( codepoints );
+	DArray_Delete( codepoints );
 	return item;
 }
 DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y )
@@ -1086,8 +1079,7 @@ DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float 
 
 	DaoxTexture_SetImage( texture, image );
 	DaoxCanvas_AddItem( self, item );
-	DaoGC_ShiftRC( (DaoValue*) texture, (DaoValue*) item->data.texture );
-	item->data.texture = texture;
+	GC_Assign( & item->data.texture, texture );
 	return item;
 }
 
@@ -1130,12 +1122,12 @@ static void ITEM_MulTransform( DaoProcess *proc, DaoValue *p[], int N )
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 
-static void DaoxCanvasItem_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
+static void DaoxCanvasItem_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	daoint i, n;
 	DaoxCanvasItem *self = (DaoxCanvasItem*) p;
 	if( self->children == NULL ) return;
-	DArray_Append( arrays, self->children );
+	DList_Append( arrays, self->children );
 }
 
 static DaoFuncItem DaoxCanvasItemMeths[]=
@@ -1767,8 +1759,7 @@ static void STATE_SetParentItem( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvasState *self = (DaoxCanvasState*) p[0];
 	DaoxCanvasItem *item = (DaoxCanvasItem*) p[1];
-	DaoGC_ShiftRC( (DaoValue*) item, (DaoValue*) self->parent );
-	self->parent = item;
+	GC_Assign( & self->parent, item );
 }
 static void CANVAS_Test( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1780,12 +1771,12 @@ static void CANVAS_Test( DaoProcess *proc, DaoValue *p[], int N )
 	}
 }
 
-static void DaoxCanvas_GetGCFields( void *p, DArray *values, DArray *arrays, DArray *maps, int remove )
+static void DaoxCanvas_GetGCFields( void *p, DList *values, DList *arrays, DList *maps, int remove )
 {
 	daoint i, n;
 	DaoxCanvas *self = (DaoxCanvas*) p;
 	if( self->items == NULL ) return;
-	DArray_Append( arrays, self->items );
+	DList_Append( arrays, self->items );
 }
 
 static DaoFuncItem DaoxCanvasMeths[]=

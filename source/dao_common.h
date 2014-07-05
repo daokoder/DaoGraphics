@@ -36,6 +36,7 @@
 #include "dao.h"
 #include "daoStdtype.h"
 #include "daoValue.h"
+#include "daoGC.h"
 
 
 #define EPSILON 1E-16

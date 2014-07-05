@@ -57,7 +57,7 @@ if( glut == none ) return # TODO: make it optional;
 
 project.UseImportLibrary( daovm )
 project.UseSharedLibrary( opengl )
-if( glut ) project.UseSharedLibrary( glut )
+if( glut != none ) project.UseSharedLibrary( glut )
 
 
 project_objs = project.AddObjects( project_sources, project_headers )

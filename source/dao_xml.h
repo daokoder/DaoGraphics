@@ -47,7 +47,7 @@ typedef int (*DaoXmlNode_Visit)( void *userdata, DaoXmlNode *node );
 struct DaoXmlNode
 {
 	DaoXmlNode  *parent;
-	DArray      *children;
+	DList       *children;
 
 	DString     *name;
 	DString     *content;
@@ -75,7 +75,7 @@ void* DaoXmlNode_GetAncestorDataMBS( DaoXmlNode *self, const char *name, int lev
 struct DaoXmlDOM
 {
 	DaoXmlNode  *root;
-	DArray      *caches;
+	DList       *caches;
 };
 DaoXmlDOM* DaoXmlDOM_New();
 void DaoXmlDOM_Delete( DaoXmlDOM *self );

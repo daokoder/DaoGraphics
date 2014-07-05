@@ -537,7 +537,7 @@ static void FONT_Open( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxFontMeths[]=
 {
-	{ FONT_New,     "Font( file = '' )" },
+	{ FONT_New,     "Font( file = \"\" )" },
 	{ FONT_Open,    "Open( self : Font, file : string ) => int" },
 	{ NULL, NULL }
 };

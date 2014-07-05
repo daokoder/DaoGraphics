@@ -393,7 +393,7 @@ void main(void)\n\
 
 
 
-void DaoxShader_CompileShader( DaoxShader *self, int type, DArray *strings );
+void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings );
 
 void DaoxShader_Init( DaoxShader *self )
 {
@@ -406,8 +406,8 @@ void DaoxShader_Init( DaoxShader *self )
 	memset( data, 0, width*4*sizeof(GLfloat) );
 	memset( dash, 0, DAOX_MAX_DASH*sizeof(GLfloat) );
 
-	self->vertexSources = DArray_New( DAO_DATA_STRING );
-	self->fragmentSources = DArray_New( DAO_DATA_STRING );
+	self->vertexSources = DList_New( DAO_DATA_STRING );
+	self->fragmentSources = DList_New( DAO_DATA_STRING );
 
 	glGenTextures( 1, & tid );
 	self->textures.gradientSampler = tid;
@@ -533,8 +533,8 @@ void DaoxShader_Free( DaoxShader *self )
 	if( self->vertexShader ) glDeleteShader( self->vertexShader );
 	if( self->fragmentShader ) glDeleteShader( self->fragmentShader );
 	if( self->program ) glDeleteShader( self->program );
-	if( self->vertexSources ) DArray_Delete( self->vertexSources );
-	if( self->fragmentSources ) DArray_Delete( self->fragmentSources );
+	if( self->vertexSources ) DList_Delete( self->vertexSources );
+	if( self->fragmentSources ) DList_Delete( self->fragmentSources );
 	self->vertexSources = NULL;
 	self->fragmentSources = NULL;
 	self->vertexShader = 0;
@@ -546,14 +546,14 @@ void DaoxShader_AddShader( DaoxShader *self, int type, const char *codes )
 	DString source = DString_WrapChars( codes );
 	switch( type ){
 	case GL_VERTEX_SHADER :
-		DArray_Append( self->vertexSources, & source );
+		DList_Append( self->vertexSources, & source );
 		break;
 	case GL_FRAGMENT_SHADER :
-		DArray_Append( self->fragmentSources, & source );
+		DList_Append( self->fragmentSources, & source );
 		break;
 	}
 }
-void DaoxShader_CompileShader( DaoxShader *self, int type, DArray *strings )
+void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings )
 {
 	daoint i, n = strings->size;
 	uint_t shader = glCreateShader( type );
