@@ -86,49 +86,6 @@ DaoxMatrix2D DaoxMatrix2D_EigenVectors( DaoxMatrix2D *self, DaoxVector2D eigenva
 
 
 
-DaoxMatrixD3X3 DaoxMatrixD3X3_InitRows( DaoxVectorD3 V1, DaoxVectorD3 V2, DaoxVectorD3 V3 )
-{
-	DaoxMatrixD3X3 res;
-	res.V.V[0] = V1;
-	res.V.V[1] = V2;
-	res.V.V[2] = V3;
-	return res;
-}
-DaoxMatrixD3X3 DaoxMatrixD3X3_InitColumns( DaoxVectorD3 V1, DaoxVectorD3 V2, DaoxVectorD3 V3 )
-{
-	DaoxMatrixD3X3 res;
-	res.A.A11 = V1.x;  res.A.A12 = V2.x;  res.A.A13 = V3.x;
-	res.A.A21 = V1.y;  res.A.A22 = V2.y;  res.A.A23 = V3.y;
-	res.A.A31 = V2.z;  res.A.A32 = V2.z;  res.A.A33 = V3.z;
-	return res;
-}
-double DaoxMatrixD3X3_Determinant( DaoxMatrixD3X3 *self )
-{
-	double det1 = self->A.A21 * self->A.A32 - self->A.A31 * self->A.A22;
-	double det2 = self->A.A21 * self->A.A33 - self->A.A31 * self->A.A23;
-	double det3 = self->A.A22 * self->A.A33 - self->A.A32 * self->A.A23;
-	return self->A.A11 * det3 - self->A.A12 * det2 + self->A.A13 * det1;
-}
-
-
-
-DaoxMatrixD4X4 DaoxMatrixD4X4_MulMatrix( DaoxMatrixD4X4 *self, DaoxMatrixD4X4 *other )
-{
-	DaoxMatrixD4X4 res;
-	double (*A)[4] = self->M;
-	double (*B)[4] = other->M;
-	double (*C)[4] = res.M;
-	int i, j, k;
-	for(i=0; i<4; ++i){
-		for(j=0; j<4; ++j){
-			double sum = 0.0;
-			for(k=0; k<4; ++k) sum += A[i][k] * B[k][j];
-			C[i][j] = sum;
-		}
-	}
-	return res;
-}
-
 
 
 
@@ -225,26 +182,6 @@ int DaoxTriangle_Contain( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C, DaoxVe
 	return (AB*BC > 0) && (BC*CA > 0) && (CA*AB > 0);
 }
 
-int DaoxLine_Intersect( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C, DaoxVector2D D, float *S, float *T )
-{
-	float BxAx = B.x - A.x;
-	float ByAy = B.y - A.y;
-	float CxAx = C.x - A.x;
-	float CyAy = C.y - A.y;
-	float DxCx = D.x - C.x;
-	float DyCy = D.y - C.y;
-	float K = BxAx * DyCy - ByAy * DxCx;
-
-	if( K == 0.0 ) return 0;
-
-	*S = (CxAx * DyCy - CyAy * DxCx) / K;
-	*T = (CxAx * ByAy - CyAy * BxAx) / K;
-
-	if( *S < 0 || *S > 1.0 ) return 0;
-	if( *T < 0 || *T > 1.0 ) return 0;
-
-	return 1;
-}
 void DaoxVector2D_Print( DaoxVector2D *self )
 {
 	printf( "%15.9f %15.9f\n", self->x, self->y );
@@ -983,108 +920,41 @@ void DaoxAABBox2D_Print( DaoxAABBox2D *self )
 
 
 
-DaoxPlainArray* DaoxPlainArray_New( int stride )
+DaoxVector2D* DArray_PushVector2D( DArray *self )
 {
-	DaoxPlainArray *self = (DaoxPlainArray*) dao_calloc( 1, sizeof( DaoxPlainArray ) );
-	self->stride = stride;
-	return self;
+	return (DaoxVector2D*) DArray_Push( self );
+}
+DaoxVector3D* DArray_PushVector3D( DArray *self )
+{
+	return (DaoxVector3D*) DArray_Push( self );
+}
+DaoxVertex* DArray_PushVertex( DArray *self )
+{
+	return (DaoxVertex*) DArray_Push( self );
+}
+DaoxTriangle* DArray_PushTriangle( DArray *self )
+{
+	return (DaoxTriangle*) DArray_Push( self );
 }
 
-void DaoxPlainArray_Delete( DaoxPlainArray *self )
+DaoxVector2D* DArray_PushVectorXY( DArray *self, float x, float y )
 {
-	if( self->pod.data ) dao_free( self->pod.data );
-	dao_free( self );
-}
-
-void DaoxPlainArray_Clear( DaoxPlainArray *self )
-{
-	if( self->pod.data ) dao_free( self->pod.data );
-	self->pod.data = NULL;
-	self->size = self->capacity = 0;
-}
-void DaoxPlainArray_Resize( DaoxPlainArray *self, int size )
-{
-	if( self->capacity != size ){
-		self->capacity = size;
-		self->pod.data = dao_realloc( self->pod.data, self->capacity*self->stride );
-	}
-	self->size = size;
-}
-
-void DaoxPlainArray_Reserve( DaoxPlainArray *self, int size )
-{
-	if( size <= self->capacity ) return;
-	self->capacity = size;
-	self->pod.data = dao_realloc( self->pod.data, self->capacity*self->stride );
-}
-
-void DaoxPlainArray_ResetSize( DaoxPlainArray *self, int size )
-{
-	if( size <= self->capacity ){
-		self->size = size;
-		return;
-	}
-	DaoxPlainArray_Resize( self, size );
-}
-
-void* DaoxPlainArray_Push( DaoxPlainArray *self )
-{
-	void *data;
-	DaoxPlainArray_Reserve( self, self->size + 1 );
-	self->size += 1;
-	return self->pod.data + (self->size - 1) * self->stride;
-}
-void* DaoxPlainArray_Get( DaoxPlainArray *self, int i )
-{
-	return self->pod.data + i * self->stride;
-}
-
-
-void DaoxPlainArray_PushInt( DaoxPlainArray *self, int value )
-{
-	int *item = (int*) DaoxPlainArray_Push( self );
-	*item = value;
-}
-void DaoxPlainArray_PushFloat( DaoxPlainArray *self, float value )
-{
-	float *item = (float*) DaoxPlainArray_Push( self );
-	*item = value;
-}
-DaoxVector2D* DaoxPlainArray_PushVector2D( DaoxPlainArray *self )
-{
-	return (DaoxVector2D*) DaoxPlainArray_Push( self );
-}
-DaoxVector3D* DaoxPlainArray_PushVector3D( DaoxPlainArray *self )
-{
-	return (DaoxVector3D*) DaoxPlainArray_Push( self );
-}
-DaoxVertex* DaoxPlainArray_PushVertex( DaoxPlainArray *self )
-{
-	return (DaoxVertex*) DaoxPlainArray_Push( self );
-}
-DaoxTriangle* DaoxPlainArray_PushTriangle( DaoxPlainArray *self )
-{
-	return (DaoxTriangle*) DaoxPlainArray_Push( self );
-}
-
-DaoxVector2D* DaoxPlainArray_PushVectorXY( DaoxPlainArray *self, float x, float y )
-{
-	DaoxVector2D *item = (DaoxVector2D*) DaoxPlainArray_Push( self );
+	DaoxVector2D *item = (DaoxVector2D*) DArray_Push( self );
 	item->x = x;
 	item->y = y;
 	return item;
 }
-DaoxVector3D* DaoxPlainArray_PushVectorXYZ( DaoxPlainArray *self, float x, float y, float z )
+DaoxVector3D* DArray_PushVectorXYZ( DArray *self, float x, float y, float z )
 {
-	DaoxVector3D *item = (DaoxVector3D*) DaoxPlainArray_Push( self );
+	DaoxVector3D *item = (DaoxVector3D*) DArray_Push( self );
 	item->x = x;
 	item->y = y;
 	item->z = z;
 	return item;
 }
-DaoxTriangle* DaoxPlainArray_PushTriangleIJK( DaoxPlainArray *self, int i, int j, int k )
+DaoxTriangle* DArray_PushTriangleIJK( DArray *self, int i, int j, int k )
 {
-	DaoxTriangle *item = (DaoxTriangle*) DaoxPlainArray_Push( self );
+	DaoxTriangle *item = (DaoxTriangle*) DArray_Push( self );
 	item->index[0] = i;
 	item->index[1] = j;
 	item->index[2] = k;

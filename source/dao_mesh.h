@@ -47,7 +47,7 @@ typedef struct DaoxMeshUnit   DaoxMeshUnit;
 struct DaoxMeshChunk
 {
 	DaoxOBBox3D      obbox;      /* with local coordinates in the mesh; */
-	DaoxPlainArray  *triangles;  /* <int>: with triangle indices in DaoxMesh; */
+	DArray  *triangles;  /* <int>: with triangle indices in DaoxMesh; */
 
 	DaoxMeshUnit    *unit;
 	DaoxMeshChunk   *parent;
@@ -68,8 +68,8 @@ struct DaoxMeshUnit
 	DaoxMesh        *mesh;
 	DaoxMeshChunk   *tree;
 	DaoxMaterial    *material;
-	DaoxPlainArray  *vertices;  /* local coordinates; */
-	DaoxPlainArray  *triangles; /* local coordinates (for face norms); */
+	DArray  *vertices;  /* local coordinates; */
+	DArray  *triangles; /* local coordinates (for face norms); */
 	DaoxOBBox3D      obbox;  /* local coordinates; */
 	uint_t           index;  /* unit index in the mesh; */
 };

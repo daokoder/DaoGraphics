@@ -62,11 +62,11 @@ struct DaoxColladaParser
 	DMap     *tags;
 	DString  *string;
 
-	DaoxPlainArray  *integers;
-	DaoxPlainArray  *integers2;
-	DaoxPlainArray  *floats;
-	DaoxPlainArray  *floats2;
-	DaoxPlainArray  *floats3;
+	DArray  *integers;
+	DArray  *integers2;
+	DArray  *floats;
+	DArray  *floats2;
+	DArray  *floats3;
 	DaoxIntTuples   *tuples;
 };
 DaoxColladaParser* DaoxColladaParser_New();

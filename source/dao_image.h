@@ -29,6 +29,7 @@
 #ifndef __DAO_IMAGE_H__
 #define __DAO_IMAGE_H__
 
+#include "dao_common.h"
 #include "daoStdtype.h"
 
 

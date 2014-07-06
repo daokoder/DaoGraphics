@@ -394,8 +394,8 @@ void DaoxSceneNode_ApplyTransform( DaoxSceneNode *self, DaoxMatrix4D mat )
 		DaoxModel *model = (DaoxModel*) self;
 		daoint i;
 		for(i=0; i<model->points->size; ++i){
-			DaoxPlainArray *points = (DaoxPlainArray*) model->points->items.pVoid[i];
-			DaoxPlainArray_ResetSize( points, 0 );
+			DArray *points = model->points->items.pArray[i];
+			DArray_Reset( points, 0 );
 		}
 	}
 	self->transform = DaoxMatrix4D_MulMatrix( & mat, & self->transform );
@@ -620,19 +620,18 @@ DaoxModel* DaoxModel_New()
 	self->points = DList_New(0);
 	self->vnorms = DList_New(0);
 	self->tnorms = DList_New(0);
-	self->offsets = DaoxPlainArray_New( sizeof(int) );
+	self->offsets = DArray_New( sizeof(int) );
 	return self;
 }
 static void DList_DeleteVector3DLists( DList *self )
 {
 	daoint i;
-	for(i=0; i<self->size; ++i)
-		DaoxPlainArray_Delete( (DaoxPlainArray*) self->items.pVoid[i] );
+	for(i=0; i<self->size; ++i) DArray_Delete( self->items.pArray[i] );
 	DList_Delete( self );
 }
 void DaoxModel_Delete( DaoxModel *self )
 {
-	DaoxPlainArray_Delete( self->offsets );
+	DArray_Delete( self->offsets );
 	DList_DeleteVector3DLists( self->points );
 	DList_DeleteVector3DLists( self->vnorms );
 	DList_DeleteVector3DLists( self->tnorms );
@@ -651,32 +650,32 @@ void DaoxModel_TransformMesh( DaoxModel *self )
 
 	if( self->mesh == NULL ) return;
 	while( self->points->size < self->mesh->units->size ){
-		DList_Append( self->points, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
-		DList_Append( self->vnorms, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
-		DList_Append( self->tnorms, DaoxPlainArray_New( sizeof(DaoxVector3D) ) );
+		DList_Append( self->points, DArray_New( sizeof(DaoxVector3D) ) );
+		DList_Append( self->vnorms, DArray_New( sizeof(DaoxVector3D) ) );
+		DList_Append( self->tnorms, DArray_New( sizeof(DaoxVector3D) ) );
 	}
 	for(i=0; i<self->mesh->units->size; ++i){
-		DaoxMeshUnit *unit = (DaoxMeshUnit*) self->mesh->units->items.pVoid[i];
-		DaoxPlainArray *points = (DaoxPlainArray*) self->points->items.pVoid[i];
-		DaoxPlainArray *vnorms = (DaoxPlainArray*) self->vnorms->items.pVoid[i];
-		DaoxPlainArray *tnorms = (DaoxPlainArray*) self->tnorms->items.pVoid[i];
+		DaoxMeshUnit *unit = self->mesh->units->items.pMeshUnit[i];
+		DArray *points = self->points->items.pArray[i];
+		DArray *vnorms = self->vnorms->items.pArray[i];
+		DArray *tnorms = self->tnorms->items.pArray[i];
 		if( points->size == unit->vertices->size
 				&& vnorms->size == unit->vertices->size
 				&& tnorms->size == unit->triangles->size ) continue;
-		DaoxPlainArray_ResetSize( points, unit->vertices->size );
-		DaoxPlainArray_ResetSize( vnorms, unit->vertices->size );
-		DaoxPlainArray_ResetSize( tnorms, unit->triangles->size );
+		DArray_Reset( points, unit->vertices->size );
+		DArray_Reset( vnorms, unit->vertices->size );
+		DArray_Reset( tnorms, unit->triangles->size );
 		for(j=0; j<unit->vertices->size; ++j){
-			DaoxVertex *vertex = & unit->vertices->pod.vertices[j];
-			points->pod.vectors3d[j] = DaoxMatrix4D_MulVector( & transform, & vertex->point, 1.0 );
-			vnorms->pod.vectors3d[j] = DaoxMatrix4D_MulVector( & transform, & vertex->norm, 0.0 );
+			DaoxVertex *vertex = & unit->vertices->data.vertices[j];
+			points->data.vectors3d[j] = DaoxMatrix4D_MulVector( & transform, & vertex->point, 1.0 );
+			vnorms->data.vectors3d[j] = DaoxMatrix4D_MulVector( & transform, & vertex->norm, 0.0 );
 		}
 		for(j=0; j<unit->triangles->size; ++j){
-			DaoxTriangle *triangle = & unit->triangles->pod.triangles[j];
-			DaoxVector3D *A = points->pod.vectors3d + triangle->index[0];
-			DaoxVector3D *B = points->pod.vectors3d + triangle->index[1];
-			DaoxVector3D *C = points->pod.vectors3d + triangle->index[2];
-			tnorms->pod.vectors3d[j] = DaoxTriangle_Normal( A, B, C );
+			DaoxTriangle *triangle = & unit->triangles->data.triangles[j];
+			DaoxVector3D *A = points->data.vectors3d + triangle->index[0];
+			DaoxVector3D *B = points->data.vectors3d + triangle->index[1];
+			DaoxVector3D *C = points->data.vectors3d + triangle->index[2];
+			tnorms->data.vectors3d[j] = DaoxTriangle_Normal( A, B, C );
 		}
 	}
 }
@@ -856,8 +855,8 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 	DaoxMaterial *material = NULL;
 	DaoxBinaryParser parser0;
 	DaoxBinaryParser *parser = & parser0;
-	DaoxPlainArray *vertices = DaoxPlainArray_New( sizeof(DaoxVertex) );
-	DaoxPlainArray *triangles = DaoxPlainArray_New( sizeof(DaoxTriangle) );
+	DArray *vertices = DArray_New( sizeof(DaoxVertex) );
+	DArray *triangles = DArray_New( sizeof(DaoxTriangle) );
 	DList *integers = DList_New(0);
 	DList *chunkids = DList_New(0);
 	DList *chunkends = DList_New(0);
@@ -906,9 +905,9 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			m = DaoxBinaryParser_DecodeUInt16LE( parser );
 			printf( "vertices: %i %p\n", m, unit );
 			DList_Resize( faceCounts, m, 0 );
-			DaoxPlainArray_ResetSize( vertices, 0 );
+			DArray_Reset( vertices, 0 );
 			for(i=0; i<m; ++i){
-				DaoxVertex *vertex = DaoxPlainArray_PushVertex( vertices );
+				DaoxVertex *vertex = DArray_PushVertex( vertices );
 				vertex->point.x = DaoxBinaryParser_DecodeFloatLE( parser );
 				vertex->point.y = DaoxBinaryParser_DecodeFloatLE( parser );
 				vertex->point.z = DaoxBinaryParser_DecodeFloatLE( parser );
@@ -920,10 +919,10 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			break;
 		case 0x4120 : /* Faces Description */
 			m = DaoxBinaryParser_DecodeUInt16LE( parser );
-			DaoxPlainArray_ResetSize( triangles, 0 );
+			DArray_Reset( triangles, 0 );
 			printf( "triangles: %i %p\n", m, unit );
 			for(i=0; i<m; ++i){
-				DaoxTriangle *triangle = DaoxPlainArray_PushTriangle( triangles );
+				DaoxTriangle *triangle = DArray_PushTriangle( triangles );
 				DaoxVertex *A, *B, *C;
 				DaoxVector3D AB, BC, N;
 				float norm;
@@ -931,9 +930,9 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 				triangle->index[1] = DaoxBinaryParser_DecodeUInt16LE( parser );
 				triangle->index[2] = DaoxBinaryParser_DecodeUInt16LE( parser );
 				DaoxBinaryParser_DecodeUInt16LE( parser );
-				A = & vertices->pod.vertices[ triangle->index[0] ];
-				B = & vertices->pod.vertices[ triangle->index[1] ];
-				C = & vertices->pod.vertices[ triangle->index[2] ];
+				A = & vertices->data.vertices[ triangle->index[0] ];
+				B = & vertices->data.vertices[ triangle->index[1] ];
+				C = & vertices->data.vertices[ triangle->index[2] ];
 				AB = DaoxVector3D_Sub( & B->point, & A->point );
 				BC = DaoxVector3D_Sub( & C->point, & B->point );
 				N = DaoxVector3D_Cross( & AB, & BC );
@@ -948,7 +947,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 				//printf( "%6i%6i%6i\n", triangle->index[0], triangle->index[1], triangle->index[2] );
 			}
 			for(i=0; i<vertices->size; ++i){
-				DaoxVertex *V = & vertices->pod.vertices[i];
+				DaoxVertex *V = & vertices->data.vertices[i];
 				int count = faceCounts->items.pInt[i];
 				V->norm = DaoxVector3D_Scale( & V->norm, 1.0 / count );
 			}
@@ -959,18 +958,18 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			m = DaoxBinaryParser_DecodeUInt16LE( parser );
 			k = it ? it->value.pInt : 0;
 			unit = DaoxMesh_AddUnit( mesh );
-			material = (DaoxMaterial*) self->materials->items.pVoid[k];
+			material = self->materials->items.pMaterial[k];
 			DaoxMeshUnit_SetMaterial( unit, material );
 			if( integers->size < vertices->size ) DList_Resize( integers, vertices->size, 0 );
 			memset( integers->items.pInt, 0, vertices->size*sizeof(daoint) );
 			for(i=0; i<m; ++i){
 				int id = DaoxBinaryParser_DecodeUInt16LE( parser );
-				DaoxTriangle *triangle = DaoxPlainArray_PushTriangle( unit->triangles );
-				DaoxTriangle *triangle2 = triangles->pod.triangles + id;
+				DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles );
+				DaoxTriangle *triangle2 = triangles->data.triangles + id;
 				for(j=0; j<3; ++j){
 					if( integers->items.pInt[ triangle2->index[j] ] == 0 ){
-						DaoxVertex *vertex = DaoxPlainArray_PushVertex( unit->vertices );
-						DaoxVertex *vertex2 = vertices->pod.vertices + triangle2->index[j];
+						DaoxVertex *vertex = DArray_PushVertex( unit->vertices );
+						DaoxVertex *vertex2 = vertices->data.vertices + triangle2->index[j];
 						integers->items.pInt[ triangle2->index[j] ] = unit->vertices->size;
 						*vertex = *vertex2;
 					}
@@ -981,7 +980,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 		case 0x4140 : /* Mapping Coordinates List */
 			m = DaoxBinaryParser_DecodeUInt16LE( parser );
 			for(i=0; i<m; ++i){
-				DaoxVertex *vertex = & vertices->pod.vertices[i];
+				DaoxVertex *vertex = & vertices->data.vertices[i];
 				x = DaoxBinaryParser_DecodeFloatLE( parser );
 				y = DaoxBinaryParser_DecodeFloatLE( parser );
 				if( i >= vertices->size ) continue;
@@ -1007,7 +1006,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			DaoxVector3D_Print( & vector );
 #warning "=========================================== transform"
 			for(i=0; i<vertices->size; ++i){
-				DaoxVertex *vertex = & vertices->pod.vertices[i];
+				DaoxVertex *vertex = & vertices->data.vertices[i];
 				DaoxVector3D point = DaoxVector3D_Sub( & vertex->point, & vector );
 				vertex->point = DaoxMatrix4D_MulVector( & matrix, & point, 1.0 );
 			}
@@ -1118,8 +1117,8 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 		DaoxModel_SetMesh( model, mesh );
 		DaoxScene_AddNode( self, (DaoxSceneNode*) model );
 	}
-	DaoxPlainArray_Delete( vertices );
-	DaoxPlainArray_Delete( triangles );
+	DArray_Delete( vertices );
+	DArray_Delete( triangles );
 	DList_Delete( integers );
 	DList_Delete( chunkids );
 	DList_Delete( chunkends );

@@ -237,7 +237,7 @@ static void PAINTER_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxPainterMeths[]=
 {
 	{ PAINTER_New,            "Painter()" },
-	{ PAINTER_RenderToImage,  "RenderToImage( self :Painter, canvas :Canvas, image :Image, width :int, height :int )" },
+	{ PAINTER_RenderToImage,  "RenderToImage( self: Painter, canvas: Canvas, image: Image, width: int, height: int )" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxPainter_Typer =

@@ -29,8 +29,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "daoValue.h"
 #include "dao_triangulator.h"
+#include "daoValue.h"
 
 
 
@@ -49,8 +49,8 @@ void DaoxVertexData_Delete( DaoxVertexData *self )
 DaoxTriangulator* DaoxTriangulator_New()
 {
 	DaoxTriangulator *self = (DaoxTriangulator*) dao_calloc( 1, sizeof(DaoxTriangulator) );
-	self->points = DaoxPlainArray_New( sizeof(DaoxVector2D) );
-	self->triangles = DaoxPlainArray_New( sizeof(DaoxTriangle) );
+	self->points = DArray_New( sizeof(DaoxVector2D) );
+	self->triangles = DArray_New( sizeof(DaoxTriangle) );
 	self->vertices = DList_New(0);
 	self->worklist = DList_New(0);
 	return self;
@@ -65,8 +65,8 @@ void DaoxTriangulator_Delete( DaoxTriangulator *self )
 		vertex = vertex->next;
 		DaoxVertexData_Delete( v );
 	}
-	DaoxPlainArray_Delete( self->points );
-	DaoxPlainArray_Delete( self->triangles );
+	DArray_Delete( self->points );
+	DArray_Delete( self->triangles );
 	DList_Delete( self->vertices );
 	DList_Delete( self->worklist );
 	dao_free( self );
@@ -113,7 +113,7 @@ void DaoxTriangulator_PushPoint( DaoxTriangulator *self, float x, float y )
 			vertex->prev = prev;
 		}
 	}
-	DaoxPlainArray_PushVectorXY( self->points, x, y );
+	DArray_PushVectorXY( self->points, x, y );
 	DList_PushBack( self->vertices, vertex );
 	if( self->start == NULL ) self->start = vertex;
 }
@@ -150,13 +150,13 @@ int DaoxTriangulator_CloseContour( DaoxTriangulator *self )
 void DaoxTriangulator_MakeTriangle( DaoxTriangulator *self, DaoxVertexData *A )
 {
 	int I = A->prev->index, J = A->index, K = A->next->index;
-	DaoxPlainArray_PushTriangleIJK( self->triangles, I, J, K );
+	DArray_PushTriangleIJK( self->triangles, I, J, K );
 }
 
 void DaoxTriangulator_QuickSortVertices( DaoxTriangulator *self, DaoxVertexData *vertices[], int first, int last )
 {
 	DaoxVertexData *pivot, *tmp;
-	DaoxVector2D *points = self->points->pod.vectors2d;
+	DaoxVector2D *points = self->points->data.vectors2d;
 	daoint lower=first+1, upper=last;
 
 	if( first >= last ) return;
@@ -193,7 +193,7 @@ void DaoxTriangulator_SortVertices( DaoxTriangulator *self )
 void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 {
 	DaoxVertexData *vertex, *start, *vmax = NULL;
-	DaoxVector2D A, B, C, *points = self->points->pod.vectors2d;
+	DaoxVector2D A, B, C, *points = self->points->data.vectors2d;
 	int i, dir, N = self->vertices->size;
 	float xmax, ymax;
 
@@ -237,7 +237,7 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 void DaoxTriangulator_Triangulate( DaoxTriangulator *self )
 {
 	DaoxVertexData *V, *A, *B, *C, *inside;
-	DaoxVector2D PA, PB, PC, P, *points = self->points->pod.vectors2d;
+	DaoxVector2D PA, PB, PC, P, *points = self->points->data.vectors2d;
 	int i, imin, imax, contours, K = 0, N = self->vertices->size;
 	double dist, area, ymin, ymax, dmax, dmin;
 	double AB, BC, CA, min_area = 1E-16;
@@ -430,7 +430,7 @@ static void TRIA_Get( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTriangulator *self = (DaoxTriangulator*) DaoValue_TryCastCdata( p[0], daox_type_triangulator );
 	DaoTuple *tuple = DaoProcess_PutTuple( proc, 3 );
-	DaoxTriangle *triangle = self->triangles->pod.triangles;
+	DaoxTriangle *triangle = self->triangles->data.triangles;
 	daoint index = p[1]->xInteger.value;
 	if( index < 0 || index >= self->triangles->size ) return;
 	triangle += index;

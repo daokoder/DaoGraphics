@@ -159,7 +159,7 @@ void DaoxOBBox3D_ComputeBoundingBox( DaoxOBBox3D *self, DaoxVector3D points[], i
 DaoxMeshChunk* DaoxMeshChunk_New( DaoxMeshUnit *unit )
 {
 	DaoxMeshChunk *self = (DaoxMeshChunk*) dao_calloc( 1, sizeof(DaoxMeshChunk) );
-	self->triangles = DaoxPlainArray_New( sizeof(int) );
+	self->triangles = DArray_New( sizeof(int) );
 	self->unit = unit;
 	self->parent = self->left = self->right = NULL;
 	return self;
@@ -168,25 +168,25 @@ void DaoxMeshChunk_Delete( DaoxMeshChunk *self )
 {
 	if( self->left ) DaoxMeshChunk_Delete( self->left );
 	if( self->right ) DaoxMeshChunk_Delete( self->right );
-	DaoxPlainArray_Delete( self->triangles );
+	DArray_Delete( self->triangles );
 	dao_free( self );
 }
-void DaoxMeshChunk_ResetBoundingBox( DaoxMeshChunk *self, DaoxPlainArray *buffer )
+void DaoxMeshChunk_ResetBoundingBox( DaoxMeshChunk *self, DArray *buffer )
 {
 	//printf( "DaoxMeshChunk_ResetBoundingBox: %i\n", self->triangles->size );
-	DaoxVertex *vertices = self->unit->vertices->pod.vertices;
-	DaoxTriangle *triangles = self->unit->triangles->pod.triangles;
+	DaoxVertex *vertices = self->unit->vertices->data.vertices;
+	DaoxTriangle *triangles = self->unit->triangles->data.triangles;
 	daoint i, j;
 
-	DaoxPlainArray_ResetSize( buffer, 0 );
+	DArray_Reset( buffer, 0 );
 	for(i=0; i<self->triangles->size; ++i){
-		DaoxTriangle triangle = triangles[ self->triangles->pod.ints[i] ];
+		DaoxTriangle triangle = triangles[ self->triangles->data.ints[i] ];
 		for(j=0; j<3; ++j){
-			DaoxVector3D *point = (DaoxVector3D*) DaoxPlainArray_Push( buffer );
+			DaoxVector3D *point = (DaoxVector3D*) DArray_Push( buffer );
 			*point = vertices[triangle.index[j]].point;
 		}
 	}
-	DaoxOBBox3D_ComputeBoundingBox( & self->obbox, buffer->pod.vectors3d, buffer->size );
+	DaoxOBBox3D_ComputeBoundingBox( & self->obbox, buffer->data.vectors3d, buffer->size );
 }
 
 
@@ -196,8 +196,8 @@ DaoxMeshUnit* DaoxMeshUnit_New()
 {
 	DaoxMeshUnit *self = (DaoxMeshUnit*) dao_calloc( 1, sizeof(DaoxMeshUnit) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_mesh_unit );
-	self->vertices = DaoxPlainArray_New( sizeof(DaoxVertex) );
-	self->triangles = DaoxPlainArray_New( sizeof(DaoxTriangle) );
+	self->vertices = DArray_New( sizeof(DaoxVertex) );
+	self->triangles = DArray_New( sizeof(DaoxTriangle) );
 	self->tree = NULL;
 	self->mesh = NULL;
 	self->material = NULL;
@@ -206,8 +206,8 @@ DaoxMeshUnit* DaoxMeshUnit_New()
 void DaoxMeshUnit_Delete( DaoxMeshUnit *self )
 {
 	if( self->tree ) DaoxMeshChunk_Delete( self->tree );
-	DaoxPlainArray_Delete( self->vertices );
-	DaoxPlainArray_Delete( self->triangles );
+	DArray_Delete( self->vertices );
+	DArray_Delete( self->triangles );
 	DaoGC_DecRC( (DaoValue*) self->mesh );
 	DaoGC_DecRC( (DaoValue*) self->material );
 	DaoCstruct_Free( (DaoCstruct*) self );
@@ -267,21 +267,21 @@ void TriangleInfo_QuickSort( TriangleInfo items[], int first, int last )
 void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 {
 	TriangleInfo *sorting = NULL;
-	DaoxVertex *vertices = self->vertices->pod.vertices;
-	DaoxTriangle *triangles = self->triangles->pod.triangles;
-	DaoxPlainArray *points = DaoxPlainArray_New( sizeof(DaoxVector3D) );
+	DaoxVertex *vertices = self->vertices->data.vertices;
+	DaoxTriangle *triangles = self->triangles->data.triangles;
+	DArray *points = DArray_New( sizeof(DaoxVector3D) );
 	DList *nodes = DList_New(0);
 	daoint i, j, half, capacity = 0;
 	if( maxtriangles <= 0 ) maxtriangles = MIN_MESH_CHUNK;
 	if( self->tree == NULL ) self->tree = DaoxMeshChunk_New( self );
 	self->tree->triangles->size = 0;
-	for(i=0; i<self->triangles->size; ++i) DaoxPlainArray_PushInt( self->tree->triangles, i );
+	for(i=0; i<self->triangles->size; ++i) DArray_PushInt( self->tree->triangles, i );
 	printf( "DaoxMeshUnit_UpdateTree: %i\n", maxtriangles );
 	DList_Append( nodes, self->tree );
 	for(i=0; i<nodes->size; ++i){
 		DaoxMeshChunk *node = (DaoxMeshChunk*) nodes->items.pVoid[i];
 		DaoxVector3D OX, OY, OZ, longest;
-		int *ids = node->triangles->pod.ints;
+		int *ids = node->triangles->data.ints;
 		int count = node->triangles->size;
 		float x2, y2, z2;
 
@@ -309,7 +309,7 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 			sorting = (TriangleInfo*) dao_realloc( sorting, capacity*sizeof(TriangleInfo) );
 		}
 		for(j=0; j<node->triangles->size; ++j){
-			DaoxTriangle triangle = triangles[ node->triangles->pod.ints[j] ];
+			DaoxTriangle triangle = triangles[ node->triangles->data.ints[j] ];
 			DaoxVector3D A = vertices[ triangle.index[0] ].point;
 			DaoxVector3D B = vertices[ triangle.index[1] ].point;
 			DaoxVector3D C = vertices[ triangle.index[2] ].point;
@@ -317,7 +317,7 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 			DaoxVector3D ABC = DaoxVector3D_Add( & AB, & C );
 			ABC = DaoxVector3D_Scale( & ABC, 0.333333333 );
 			ABC = DaoxVector3D_Sub( & ABC, & node->obbox.O );
-			sorting[j].index = node->triangles->pod.ints[j];
+			sorting[j].index = node->triangles->data.ints[j];
 			sorting[j].value = DaoxVector3D_Dot( & ABC, & OX );
 		}
 		TriangleInfo_QuickSort( sorting, 0, node->triangles->size - 1 );
@@ -327,16 +327,16 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 		node->right->triangles->size = 0;
 		half = node->triangles->size/2;
 		for(j=0; j<half; ++j){
-			DaoxPlainArray_PushInt( node->left->triangles, sorting[j].index );
+			DArray_PushInt( node->left->triangles, sorting[j].index );
 		}
 		for(j=half; j<node->triangles->size; ++j){
-			DaoxPlainArray_PushInt( node->right->triangles, sorting[j].index );
+			DArray_PushInt( node->right->triangles, sorting[j].index );
 		}
 		DList_Append( nodes, node->left );
 		DList_Append( nodes, node->right );
 	}
 	self->obbox = self->tree->obbox;
-	DaoxPlainArray_Delete( points );
+	DArray_Delete( points );
 	DList_Delete( nodes );
 }
 
@@ -376,35 +376,35 @@ void DaoxMesh_UpdateTree( DaoxMesh *self, int maxtriangles )
 }
 void DaoxMesh_ResetBoundingBox( DaoxMesh *self )
 {
-	DaoxPlainArray *points = DaoxPlainArray_New( sizeof(DaoxVector3D) );
+	DArray *points = DArray_New( sizeof(DaoxVector3D) );
 	daoint i, j, k;
 	for(i=0; i<self->units->size; ++i){
 		DaoxMeshUnit *unit = (DaoxMeshUnit*) self->units->items.pVoid[i];
 		for(j=0; j<unit->triangles->size; ++j){
-			DaoxTriangle *triangle = unit->triangles->pod.triangles + j;
+			DaoxTriangle *triangle = unit->triangles->data.triangles + j;
 			for(k=0; k<3; ++k){
-				DaoxVector3D *point = DaoxPlainArray_PushVector3D( points );
-				*point = unit->vertices->pod.vertices[triangle->index[k]].point;
+				DaoxVector3D *point = DArray_PushVector3D( points );
+				*point = unit->vertices->data.vertices[triangle->index[k]].point;
 			}
 		}
 	}
-	DaoxOBBox3D_ComputeBoundingBox( & self->obbox, points->pod.vectors3d, points->size );
-	DaoxPlainArray_Delete( points );
+	DaoxOBBox3D_ComputeBoundingBox( & self->obbox, points->data.vectors3d, points->size );
+	DArray_Delete( points );
 }
 static void DaoxMesh_MakeTriangle( DaoxMesh *self, int c, float x, float y, float dx, float dy, float z )
 {
 	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
 	DaoxMaterial *material = DaoxMaterial_New();
-	DaoxVertex *vertices = unit->vertices->pod.vertices;
-	DaoxTriangle *triangles = unit->triangles->pod.triangles;
+	DaoxVertex *vertices = unit->vertices->data.vertices;
+	DaoxTriangle *triangles = unit->triangles->data.triangles;
 	DaoxVector3D norm = {0.0,0.0,1.0};
 	int i;
 
 	DaoxMeshUnit_SetMaterial( unit, material );
-	DaoxPlainArray_Resize( unit->vertices, 3 );
-	DaoxPlainArray_Resize( unit->triangles, 1 );
-	vertices = unit->vertices->pod.vertices;
-	triangles = unit->triangles->pod.triangles;
+	DArray_Resize( unit->vertices, 3 );
+	DArray_Resize( unit->triangles, 1 );
+	vertices = unit->vertices->data.vertices;
+	triangles = unit->triangles->data.triangles;
 	vertices[0].point.x = x;
 	vertices[0].point.y = y;
 	vertices[1].point.x = x + dx;
@@ -470,7 +470,7 @@ void DaoxMesh_MakeBoxObject( DaoxMesh *self )
 	unit->vertices->size = 0;
 	unit->triangles->size = 0;
 	for(i=0; i<8; ++i){
-		DaoxVertex *vertex = DaoxPlainArray_PushVertex( unit->vertices );
+		DaoxVertex *vertex = DArray_PushVertex( unit->vertices );
 		vertex->point.x = box_vertices[i][0];
 		vertex->point.y = box_vertices[i][1];
 		vertex->point.z = box_vertices[i][2];
@@ -481,7 +481,7 @@ void DaoxMesh_MakeBoxObject( DaoxMesh *self )
 	for(i=0; i<6; ++i){
 		int *face = box_faces[i];
 		for(j=2; j<4; ++j){
-			DaoxTriangle *triangle = DaoxPlainArray_PushTriangle( unit->triangles );
+			DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles );
 			triangle->index[0] = face[0] - 1;
 			triangle->index[1] = face[j-1] - 1;
 			triangle->index[2] = face[j] - 1;

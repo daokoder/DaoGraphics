@@ -29,9 +29,9 @@
 #ifndef __DAO_FONT_H__
 #define __DAO_FONT_H__
 
-#include "daoStdtype.h"
 #include "dao_triangulator.h"
 #include "dao_path.h"
+#include "daoStdtype.h"
 
 
 typedef struct DaoxFont   DaoxFont;

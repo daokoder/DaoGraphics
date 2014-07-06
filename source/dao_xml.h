@@ -31,6 +31,7 @@
 #define __DAO_XML_H__
 
 
+#include "dao_common.h"
 #include "daoStdtype.h"
 #include "daoValue.h"
 

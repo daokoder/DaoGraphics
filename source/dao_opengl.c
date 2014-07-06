@@ -614,10 +614,10 @@ void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradie
 	if( n > DAOX_MAX_GRADIENT_STOPS ) n = DAOX_MAX_GRADIENT_STOPS;
 	memset( data, 0, n*2*4*sizeof(GLfloat) );
 	for(i=0; i<n; ++i){
-		DaoxColor color = gradient->colors->pod.colors[i];
+		DaoxColor color = gradient->colors->data.colors[i];
 		GLfloat *stop = data + 4*i;
 		GLfloat *rgba = data + 4*(i+n);
-		stop[0] = gradient->stops->pod.floats[i];
+		stop[0] = gradient->stops->data.floats[i];
 		rgba[0] = color.red;
 		rgba[1] = color.green;
 		rgba[2] = color.blue;

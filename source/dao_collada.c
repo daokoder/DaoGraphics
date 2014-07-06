@@ -256,11 +256,11 @@ DaoxColladaParser* DaoxColladaParser_New()
 	size_t i;
 	DaoxColladaParser *self = (DaoxColladaParser*) dao_calloc( 1, sizeof(DaoxColladaParser) );
 	self->tuples = DaoxIntTuples_New();
-	self->floats = DaoxPlainArray_New( sizeof(float) );
-	self->floats2 = DaoxPlainArray_New( sizeof(float) );
-	self->floats3 = DaoxPlainArray_New( sizeof(float) );
-	self->integers = DaoxPlainArray_New( sizeof(int) );
-	self->integers2 = DaoxPlainArray_New( sizeof(int) );
+	self->floats = DArray_New( sizeof(float) );
+	self->floats2 = DArray_New( sizeof(float) );
+	self->floats3 = DArray_New( sizeof(float) );
+	self->integers = DArray_New( sizeof(int) );
+	self->integers2 = DArray_New( sizeof(int) );
 	self->string = DString_New(1);
 	self->tags = DHash_New( DAO_DATA_STRING, 0 );
 	for(i=1; i<=DAE_EXTRA; ++i){
@@ -272,11 +272,11 @@ DaoxColladaParser* DaoxColladaParser_New()
 void DaoxColladaParser_Delete( DaoxColladaParser *self )
 {
 	DaoxIntTuples_Delete( self->tuples );
-	DaoxPlainArray_Delete( self->floats );
-	DaoxPlainArray_Delete( self->floats2 );
-	DaoxPlainArray_Delete( self->floats3 );
-	DaoxPlainArray_Delete( self->integers );
-	DaoxPlainArray_Delete( self->integers2 );
+	DArray_Delete( self->floats );
+	DArray_Delete( self->floats2 );
+	DArray_Delete( self->floats3 );
+	DArray_Delete( self->integers );
+	DArray_Delete( self->integers2 );
 	DString_Delete( self->string );
 	DMap_Delete( self->tags );
 	dao_free( self );
@@ -285,22 +285,22 @@ void DaoxColladaParser_Delete( DaoxColladaParser *self )
 
 
 
-int DString_ParseFloats( DString *self, DaoxPlainArray *values, int append )
+int DString_ParseFloats( DString *self, DArray *values, int append )
 {
 	double value;
 	char *source = self->chars;
 	char *end = source + self->size;
-	if( append == 0 ) DaoxPlainArray_ResetSize( values, 0 );
+	if( append == 0 ) DArray_Reset( values, 0 );
 	while( source < end ){
 		char *next = NULL;
 		value = strtod( source, & next );
 		if( next == source ) return values->size;
-		DaoxPlainArray_PushFloat( values, value );
+		DArray_PushFloat( values, value );
 		source = next;
 	}
 	return values->size;
 }
-int DString_ParseIntegers( DString *self, DaoxPlainArray *values, int append )
+int DString_ParseIntegers( DString *self, DArray *values, int append )
 {
 	daoint value;
 	char *source = self->chars;
@@ -310,7 +310,7 @@ int DString_ParseIntegers( DString *self, DaoxPlainArray *values, int append )
 		char *next = NULL;
 		value = strtol( source, & next, 10 );
 		if( next == source ) return values->size;
-		DaoxPlainArray_PushInt( values, value );
+		DArray_PushInt( values, value );
 		source = next;
 	}
 	return values->size;
@@ -333,11 +333,11 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 	DaoxColladaParser *handle = self->collada;
 	DaoXmlNode *node1, *node2, *node3, *node4;
 	DaoXmlNode *pred = NULL, *child = NULL;
-	DaoxPlainArray *integers = handle->integers;
-	DaoxPlainArray *integers2 = handle->integers2;
-	DaoxPlainArray *floats = handle->floats;
-	DaoxPlainArray *floats2 = handle->floats2;
-	DaoxPlainArray *floats3 = handle->floats3;
+	DArray *integers = handle->integers;
+	DArray *integers2 = handle->integers2;
+	DArray *floats = handle->floats;
+	DArray *floats2 = handle->floats2;
+	DArray *floats3 = handle->floats3;
 	DaoxIntTuples *tuples = handle->tuples;
 	DaoxIntTuple *intup = NULL;
 	DString *att, *att2, *string = handle->string;
@@ -408,10 +408,10 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 		}
 
 		for(j=0; j<floats->size; j+=3){
-			DaoxVertex *vertex = DaoxPlainArray_PushVertex( unit->vertices );
-			vertex->point.x = floats->pod.floats[j];
-			vertex->point.y = floats->pod.floats[j+1];
-			vertex->point.z = floats->pod.floats[j+2];
+			DaoxVertex *vertex = DArray_PushVertex( unit->vertices );
+			vertex->point.x = floats->data.floats[j];
+			vertex->point.y = floats->data.floats[j+1];
+			vertex->point.z = floats->data.floats[j+2];
 		}
 		integers->size = 0;
 		node4 = DaoXmlNode_GetChildMBS( child, "p" );
@@ -432,13 +432,13 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 		tuples->dim = vertexStride;
 		for(j=0; j<integers->size; j+=vertexStride){
 			DaoxIntTuple *tuple = tuples->tuples + j/vertexStride;
-			int *values = integers->pod.ints + j;
+			int *values = integers->data.ints + j;
 			for(k=0; k<vertexStride; ++k) tuple->values[k] = values[k];
 			tuple->index = j;
 		}
 #if 0
 		for(j=0; j<integers->size; j+=vertexStride){
-			int *values = integers->pod.ints + j;
+			int *values = integers->data.ints + j;
 			printf( "%5i:", j/vertexStride );
 			for(k=0; k<vertexStride; ++k) printf( " %5i", values[k] );
 			printf( "\n" );
@@ -464,9 +464,9 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 			while( DaoxIntTuples_Compare( tuples, tuples->tuples+j, intup ) == 0 ){
 				daoint idx = tuples->tuples[j].index + offset1;
 				daoint idx2 = intup->index + offset1;
-				DaoxVertex *vertex = unit->vertices->pod.vertices + integers->pod.ints[idx];
-				DaoxVertex *vertex2 = unit->vertices->pod.vertices + integers->pod.ints[idx2];
-				integers->pod.ints[idx] = integers->pod.ints[idx2];
+				DaoxVertex *vertex = unit->vertices->data.vertices + integers->data.ints[idx];
+				DaoxVertex *vertex2 = unit->vertices->data.vertices + integers->data.ints[idx2];
+				integers->data.ints[idx] = integers->data.ints[idx2];
 				j += 1;
 				if( j >= tuples->size ) break;
 			}
@@ -474,9 +474,9 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 			if( tuples->tuples[j].values[offset1] == intup->values[offset1] ){
 				daoint idx = tuples->tuples[j].index + offset1;
 				daoint idx2 = intup->index + offset1;
-				DaoxVertex *vertex = DaoxPlainArray_PushVertex( unit->vertices );
-				DaoxVertex *vertex2 = unit->vertices->pod.vertices + integers->pod.ints[idx2];
-				integers->pod.ints[idx] = unit->vertices->size - 1;
+				DaoxVertex *vertex = DArray_PushVertex( unit->vertices );
+				DaoxVertex *vertex2 = unit->vertices->data.vertices + integers->data.ints[idx2];
+				integers->data.ints[idx] = unit->vertices->size - 1;
 				vertex->point = vertex2->point;
 			}
 			intup = tuples->tuples + j;
@@ -484,7 +484,7 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 		printf( "final number of vertice: %i\n", unit->vertices->size );
 #if 0
 		for(j=0; j<integers->size; j+=vertexStride){
-			int *values = integers->pod.ints + j;
+			int *values = integers->data.ints + j;
 			printf( "%5i:", j/vertexStride );
 			for(k=0; k<vertexStride; ++k) printf( " %5i", values[k] );
 			printf( "\n" );
@@ -493,16 +493,16 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 
 
 		for(j=0; j<integers->size; j+=vertexStride){
-			int *values = integers->pod.ints + j;
-			DaoxVertex *vertex = unit->vertices->pod.vertices + values[offset1];
+			int *values = integers->data.ints + j;
+			DaoxVertex *vertex = unit->vertices->data.vertices + values[offset1];
 			if( node2 ){
-				float *norms = floats2->pod.floats + 3*values[offset2];
+				float *norms = floats2->data.floats + 3*values[offset2];
 				vertex->norm.x = norms[0];
 				vertex->norm.y = norms[1];
 				vertex->norm.z = norms[2];
 			}
 			if( node3 ){
-				float *uv = floats3->pod.floats + 2*values[offset3];
+				float *uv = floats3->data.floats + 2*values[offset3];
 				vertex->texUV.x = uv[0];
 				vertex->texUV.y = uv[1];
 			}
@@ -511,15 +511,15 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 		jj = vertexStride;
 		kk = 2*vertexStride;
 		for(j=0; j<integers->size; j+=shapeStride){
-			DaoxTriangle *triangle = DaoxPlainArray_PushTriangle( unit->triangles );
+			DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles );
 			DaoxVertex *A, *B, *C;
-			int *values = integers->pod.ints + j;
+			int *values = integers->data.ints + j;
 			triangle->index[0] = values[ii + offset1];
 			triangle->index[1] = values[jj + offset1];
 			triangle->index[2] = values[kk + offset1];
-			A = unit->vertices->pod.vertices + triangle->index[0];
-			B = unit->vertices->pod.vertices + triangle->index[1];
-			C = unit->vertices->pod.vertices + triangle->index[2];
+			A = unit->vertices->data.vertices + triangle->index[0];
+			B = unit->vertices->data.vertices + triangle->index[1];
+			C = unit->vertices->data.vertices + triangle->index[2];
 			//triangle->norm = DaoxTriangle_Normal( A, B, C );
 			if( node2 == NULL ){
 			}
@@ -552,7 +552,7 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 	DaoxVector3D vector2;
 	DaoxMatrix4D matrix;
 	DaoXmlNode *pred = NULL, *child = NULL;
-	DaoxPlainArray *floats = handle->floats;
+	DArray *floats = handle->floats;
 	DString *att, *att2, *string = handle->string;
 	DNode *it = DMap_Find( handle->tags, node->name );
 	DMap *table = NULL;
@@ -619,9 +619,9 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 		break;
 	case DAE_COLOR :
 		if( DString_ParseFloats( node->content, floats, 0 ) < 3 ) break;
-		tmpColor.red = floats->pod.floats[0];
-		tmpColor.green = floats->pod.floats[1];
-		tmpColor.blue = floats->pod.floats[2];
+		tmpColor.red = floats->data.floats[0];
+		tmpColor.green = floats->data.floats[1];
+		tmpColor.blue = floats->data.floats[2];
 		tmpColor.alpha = 1.0;
 
 		if( (light = (DaoxLight*) DaoXmlNode_GetAncestorDataMBS( node, "light", 3 )) ){
@@ -745,7 +745,7 @@ int DaoxSceneResource_ColladaVisit( void *userdata, DaoXmlNode *node )
 		if( sceneNode == NULL ) break;
 
 		if( DString_ParseFloats( node->content, floats, 0 ) != 16 ) break; // TODO
-		matrix = DaoxMatrix4D_InitColumnMajor( floats->pod.floats );
+		matrix = DaoxMatrix4D_InitColumnMajor( floats->data.floats );
 		sceneNode->transform = DaoxMatrix4D_MulMatrix( & matrix, & sceneNode->transform );
 		break;
 	case DAE_INSTANCE_CAMERA :

@@ -39,14 +39,13 @@
 #ifndef __DAO_CANVAS_H__
 #define __DAO_CANVAS_H__
 
-#include "daoStdtype.h"
-#include "daoValue.h"
-
 #include "dao_common.h"
 #include "dao_triangulator.h"
 #include "dao_font.h"
 #include "dao_image.h"
 #include "dao_scene.h"
+#include "daoStdtype.h"
+#include "daoValue.h"
 
 
 #define DAOX_ARCS 18
@@ -58,7 +57,7 @@ typedef struct DaoxColorGradient   DaoxColorGradient;
 
 
 typedef struct DaoxCanvas          DaoxCanvas;
-typedef struct DaoxCanvasItem      DaoxCanvasItem;
+typedef struct DaoxCanvasNode      DaoxCanvasNode;
 
 
 
@@ -82,8 +81,8 @@ struct DaoxColorGradient
 
 	int  gradient;
 
-	DaoxPlainArray  *stops;  /* <float> */
-	DaoxPlainArray  *colors; /* <DaoxColor> */
+	DArray  *stops;  /* <float> */
+	DArray  *colors; /* <DaoxColor> */
 
 	DaoxVector2D  points[2];
 	float         radius;
@@ -117,7 +116,7 @@ struct DaoxCanvasState
 	DaoxColorGradient  *fillGradient;
 
 	DaoxFont        *font;
-	DaoxCanvasItem  *parent;
+	DaoxCanvasNode  *parent;
 };
 DAO_DLL DaoType *daox_type_canvas_state;
 
@@ -128,7 +127,7 @@ DAO_DLL DaoType *daox_type_canvas_state;
 /*
 // Base for all canvas item types:
 */
-struct DaoxCanvasItem
+struct DaoxCanvasNode
 {
 	DAO_CSTRUCT_COMMON;
 
@@ -142,14 +141,14 @@ struct DaoxCanvasItem
 	DaoxMatrix3D      transform;  /* local to parent; */
 	DaoxCanvasState  *state;
 
-	DaoxCanvasItem   *parent;     /* parent item; */
-	DList           *children;   /* children items; */
+	DaoxCanvasNode   *parent;     /* parent item; */
+	DList            *children;   /* children items; */
 
 	DaoxPath      *path;     /* may be filled with filling color; */
 	DaoxPathMesh  *strokes;  /* may be filled with stroking color; */
 
 	union {
-		DaoxPlainArray  *points;  /* polyline or polygon item; */
+		DArray  *points;  /* polyline or polygon item; */
 		DaoxTexture     *texture; /* image item; */
 		DString         *text;    /* text item; */
 	} data;
@@ -161,36 +160,36 @@ struct DaoxCanvasItem
 // A line is always defined locally by (0,0)-(1,0).
 // Its actual length and orientation are determined by its transformations.
 */
-typedef  DaoxCanvasItem  DaoxCanvasLine;
+typedef  DaoxCanvasNode  DaoxCanvasLine;
 
 /*
 // A rectable is always defined locally by (0,0)-(1,0)-(1,1)-(0,1).
 // Its actual shape and orientation are determined by its transformations.
 */
-typedef  DaoxCanvasItem  DaoxCanvasRect;
+typedef  DaoxCanvasNode  DaoxCanvasRect;
 
 /*
 // A circle is always defined locally as unit circle located at (0,0).
 // Its actual shape and orientation are determined by its transformations.
 */
-typedef  DaoxCanvasItem  DaoxCanvasCircle;
+typedef  DaoxCanvasNode  DaoxCanvasCircle;
 
 /*
 // An ellipse is always defined locally as unit circle located at (0,0).
 // Its actual shape and orientation are determined by its transformations.
 */
-typedef  DaoxCanvasItem  DaoxCanvasEllipse;
+typedef  DaoxCanvasNode  DaoxCanvasEllipse;
 
 
-typedef DaoxCanvasItem  DaoxCanvasPolyline;
-typedef DaoxCanvasItem  DaoxCanvasPolygon;
-typedef DaoxCanvasItem  DaoxCanvasPath;
-typedef DaoxCanvasItem  DaoxCanvasImage;
-typedef DaoxCanvasItem  DaoxCanvasText;
+typedef DaoxCanvasNode  DaoxCanvasPolyline;
+typedef DaoxCanvasNode  DaoxCanvasPolygon;
+typedef DaoxCanvasNode  DaoxCanvasPath;
+typedef DaoxCanvasNode  DaoxCanvasImage;
+typedef DaoxCanvasNode  DaoxCanvasText;
 
 
 
-DAO_DLL DaoType *daox_type_canvas_item;
+DAO_DLL DaoType *daox_type_canvas_node;
 DAO_DLL DaoType *daox_type_canvas_line;
 DAO_DLL DaoType *daox_type_canvas_rect;
 DAO_DLL DaoType *daox_type_canvas_circle;
@@ -217,7 +216,7 @@ struct DaoxCanvas
 
 	DaoxColor  background;
 
-	DList  *items;
+	DList  *nodes;
 	DList  *states;
 
 	DMap  *rects;
@@ -257,12 +256,12 @@ void DaoxCanvasState_Copy( DaoxCanvasState *self, DaoxCanvasState *other );
 
 
 
-DAO_DLL DaoxCanvasItem* DaoxCanvasItem_New( DaoType *type );
-DAO_DLL void DaoxCanvasItem_Delete( DaoxCanvasItem *self );
+DAO_DLL DaoxCanvasNode* DaoxCanvasNode_New( DaoType *type );
+DAO_DLL void DaoxCanvasNode_Delete( DaoxCanvasNode *self );
 
-DAO_DLL void DaoxCanvasItem_MarkDataChanged( DaoxCanvasItem *self );
-DAO_DLL void DaoxCanvasItem_MarkStateChanged( DaoxCanvasItem *self );
-DAO_DLL void DaoxCanvasItem_Update( DaoxCanvasItem *self, DaoxCanvas *canvas );
+DAO_DLL void DaoxCanvasNode_MarkDataChanged( DaoxCanvasNode *self );
+DAO_DLL void DaoxCanvasNode_MarkStateChanged( DaoxCanvasNode *self );
+DAO_DLL void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas );
 
 
 

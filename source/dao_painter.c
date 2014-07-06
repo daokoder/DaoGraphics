@@ -62,12 +62,12 @@ void DaoxPainter_InitBuffers( DaoxPainter *self )
 
 
 
-void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points, float scale )
+void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DArray *points, float scale )
 {
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex2D *glvertex = glvertices + i;
-		DaoxVector3D point = points->pod.vectors3d[i];
+		DaoxVector3D point = points->data.vectors3d[i];
 		glvertex->point.x = point.x * scale;
 		glvertex->point.y = point.y * scale;
 		glvertex->texKLMO.k = 0;
@@ -77,9 +77,9 @@ void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points,
 		//printf( "%6i: %9f\n", i, point.z );
 	}
 }
-void DaoxVG_BufferPatches2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points, float scale )
+void DaoxVG_BufferPatches2D( DaoGLVertex2D *glvertices, DArray *points, float scale )
 {
-	DaoxTexturedPoint *points2 = (DaoxTexturedPoint*) points->pod.data;
+	DaoxTexturedPoint *points2 = (DaoxTexturedPoint*) points->data.base;
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex2D *glvertex = glvertices + i;
@@ -93,12 +93,12 @@ void DaoxVG_BufferPatches2D( DaoGLVertex2D *glvertices, DaoxPlainArray *points, 
 		//printf( "%6i: %9f\n", i, point.offset );
 	}
 }
-void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *points, float scale )
+void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DArray *points, float scale )
 {
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex3DVG *glvertex = glvertices + i;
-		DaoxVector3D point = points->pod.vectors3d[i];
+		DaoxVector3D point = points->data.vectors3d[i];
 		glvertex->point.x = point.x * scale;
 		glvertex->point.y = point.y * scale;
 		glvertex->point.z = 0;
@@ -112,9 +112,9 @@ void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *point
 		//printf( "%6i: %9f\n", i, point.z );
 	}
 }
-void DaoxVG_BufferPatches3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *points, float scale )
+void DaoxVG_BufferPatches3D( DaoGLVertex3DVG *glvertices, DArray *points, float scale )
 {
-	DaoxTexturedPoint *points2 = (DaoxTexturedPoint*) points->pod.data;
+	DaoxTexturedPoint *points2 = (DaoxTexturedPoint*) points->data.base;
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex3DVG *glvertex = glvertices + i;
@@ -132,7 +132,7 @@ void DaoxVG_BufferPatches3D( DaoGLVertex3DVG *glvertices, DaoxPlainArray *points
 		//printf( "%6i: %9f\n", i, point.offset );
 	}
 }
-void DaoxVG_BufferVertices( DaoxBuffer *buffer, void *glvertices, DaoxPlainArray *points, float scale )
+void DaoxVG_BufferVertices( DaoxBuffer *buffer, void *glvertices, DArray *points, float scale )
 {
 	if( buffer->vertexSize == sizeof(DaoGLVertex2D) ){
 		DaoxVG_BufferVertices2D( (DaoGLVertex2D*) glvertices, points, scale );
@@ -140,7 +140,7 @@ void DaoxVG_BufferVertices( DaoxBuffer *buffer, void *glvertices, DaoxPlainArray
 		DaoxVG_BufferVertices3D( (DaoGLVertex3DVG*) glvertices, points, scale );
 	}
 }
-void DaoxVG_BufferPatches( DaoxBuffer *buffer, void *glvertices, DaoxPlainArray *points, float scale )
+void DaoxVG_BufferPatches( DaoxBuffer *buffer, void *glvertices, DArray *points, float scale )
 {
 	if( buffer->vertexSize == sizeof(DaoGLVertex2D) ){
 		DaoxVG_BufferPatches2D( (DaoGLVertex2D*) glvertices, points, scale );
@@ -148,12 +148,12 @@ void DaoxVG_BufferPatches( DaoxBuffer *buffer, void *glvertices, DaoxPlainArray 
 		DaoxVG_BufferPatches3D( (DaoGLVertex3DVG*) glvertices, points, scale );
 	}
 }
-void DaoxVG_BufferTriangles( DaoGLTriangle *gltriangles, DaoxPlainArray *triangles, int offset )
+void DaoxVG_BufferTriangles( DaoGLTriangle *gltriangles, DArray *triangles, int offset )
 {
 	int i, triangleCount = triangles->size;
 	for(i=0; i<triangleCount; ++i){
 		DaoGLTriangle *triangle = gltriangles + i;
-		uint_t *indices = triangles->pod.triangles[i].index;
+		uint_t *indices = triangles->data.triangles[i].index;
 		triangle->index[0] = indices[0] + offset;
 		triangle->index[1] = indices[1] + offset;
 		triangle->index[2] = indices[2] + offset;
@@ -161,7 +161,7 @@ void DaoxVG_BufferTriangles( DaoGLTriangle *gltriangles, DaoxPlainArray *triangl
 }
 
 #define USE_STENCIL
-void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *canvas, DaoxCanvasItem *item )
+void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *canvas, DaoxCanvasNode *item )
 {
 	DaoxCanvasState *state = item->state;
 	float resolution = DaoxCanvas_Scale( canvas );
@@ -273,7 +273,7 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasItem *item )
+void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasNode *item )
 {
 	int i;
 	int w = item->data.texture->image->width;
@@ -365,7 +365,7 @@ void DaoxGraphics_TransfromMatrix( DaoxMatrix3D transform, GLfloat matrix[16] )
 }
 
 
-void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasItem *item, DaoxMatrix3D transform )
+void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNode *item, DaoxMatrix3D transform )
 {
 	DaoxOBBox2D obbox;
 	DaoxMatrix3D inverse;
@@ -379,7 +379,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 	int m = stroke >= 1E-3;
 	int i, triangles;
 
-	DaoxCanvasItem_Update( item, canvas );
+	DaoxCanvasNode_Update( item, canvas );
 	DaoxMatrix3D_Multiply( & transform, item->transform );
 	obbox = DaoxOBBox2D_Transform( & item->obbox, & transform );
 	itempos.x = obbox.O.x;
@@ -402,7 +402,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasIte
 	}
 
 	for(i=0; i<n; i++){
-		DaoxCanvasItem *it = (DaoxCanvasItem*) item->children->items.pVoid[i];
+		DaoxCanvasNode *it = item->children->items.pCanvasNode[i];
 		DaoxPainter_PaintItem( self, canvas, it, transform );
 	}
 }
@@ -422,7 +422,7 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	GLfloat matrix[16] = {0};
 	GLfloat matrix2[16] = {0};
 	GLfloat matrix3[16] = {0};
-	int i, n = canvas->items->size;
+	int i, n = canvas->nodes->size;
 
 	viewMatrix = DaoxSceneNode_GetWorldTransform( & camera->base );
 	viewMatrix = DaoxMatrix4D_Inverse( & viewMatrix );
@@ -486,7 +486,7 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 
 	for(i=0; i<n; i++){
-		DaoxCanvasItem *it = (DaoxCanvasItem*) canvas->items->items.pVoid[i];
+		DaoxCanvasNode *it = canvas->nodes->items.pCanvasNode[i];
 		DaoxPainter_PaintItem( self, canvas, it, canvas->transform );
 	}
 	glBindVertexArray(0);

@@ -63,9 +63,9 @@ struct DaoxRenderer
 
 	DList   *canvases;
 
-	DaoxPlainArray  *vertices;   /* <DaoxVertex> */
-	DaoxPlainArray  *triangles;  /* <DaoxTriangle> */
-	DaoxPlainArray  *mapping;    /* <int> */
+	DArray  *vertices;   /* <DaoxVertex> */
+	DArray  *triangles;  /* <DaoxTriangle> */
+	DArray  *mapping;    /* <int> */
 };
 extern DaoType *daox_type_renderer;
 

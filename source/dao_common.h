@@ -30,6 +30,26 @@
 #define __DAO_COMMON_H__
 
 
+#define DAO_LIST_ITEM_TYPES \
+	struct DaoxMaterial     **pMaterial; \
+	struct DaoxMeshChunk    **pMeshChunk; \
+	struct DaoxMeshUnit     **pMeshUnit; \
+	struct DaoxModel        **pModel; \
+	struct DaoxLight        **pLight; \
+	struct DaoxCanvas       **pCanvas; \
+	struct DaoxCanvasState  **pCanvasState; \
+	struct DaoxCanvasNode   **pCanvasNode; \
+	struct DaoxSceneNode    **pSceneNode;
+
+#define DAO_ARRAY_ITEM_TYPES \
+	struct DaoxVector2D     *vectors2d; \
+	struct DaoxVector3D     *vectors3d; \
+	struct DaoxVertex       *vertices;  \
+	struct DaoxTriangle     *triangles; \
+	struct DaoxColor        *colors;    \
+	struct DaoxPathSegment  *segments;
+
+
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -69,7 +89,6 @@ extern const DaoxColor daox_gray_color;
 
 
 
-
 typedef struct DaoxVector2D  DaoxVector2D;  /* 2D float vector type (for 2D points); */
 typedef struct DaoxVector3D  DaoxVector3D;  /* 3D float vector type (for 2D points); */
 typedef struct DaoxMatrix2D  DaoxMatrix2D;  /* 2D float matrix type; */
@@ -77,24 +96,15 @@ typedef struct DaoxMatrix3D  DaoxMatrix3D;  /* 3D float matrix type (for 2D tran
 typedef struct DaoxMatrix4D  DaoxMatrix4D;  /* 4D float matrix type (for 3D transforms); */
 
 
-typedef struct DaoxVectorD2    DaoxVectorD2;    /* 2D double vector type; */
-typedef struct DaoxVectorD3    DaoxVectorD3;    /* 3D double vector type; */
-typedef struct DaoxVectorD4    DaoxVectorD4;    /* 4D double vector type; */
-typedef union  DaoxMatrixD3X3  DaoxMatrixD3X3;  /* 3x3 double matrix type; */
-typedef union  DaoxMatrixD4X4  DaoxMatrixD4X4;  /* 4x4 double matrix type; */
-
 
 typedef struct DaoxVertex    DaoxVertex;
 typedef struct DaoxTriangle  DaoxTriangle;
 
-typedef struct DaoxLine      DaoxLine;
 
 typedef struct DaoxOBBox2D  DaoxOBBox2D;
 typedef struct DaoxOBBox3D  DaoxOBBox3D;
 
 typedef struct DaoxAABBox2D  DaoxAABBox2D;
-
-typedef struct DaoxPlainArray   DaoxPlainArray;
 
 
 
@@ -109,6 +119,7 @@ DaoxVector2D DaoxVector2D_Sub( DaoxVector2D *self, DaoxVector2D *other );
 DaoxVector2D DaoxVector2D_Scale( DaoxVector2D *self, double scale );
 DaoxVector2D DaoxVector2D_Normalize( DaoxVector2D *self );
 DaoxVector2D DaoxVector2D_Interpolate( DaoxVector2D A, DaoxVector2D B, float t );
+
 //double DaoxVector2D_Dist2( DaoxVector2D *self, DaoxVector2D *other );
 double DaoxVector2D_Dot( DaoxVector2D *self, DaoxVector2D *other );
 double DaoxVector2D_Norm2( DaoxVector2D *self );
@@ -119,16 +130,6 @@ void DaoxVector2D_Print( DaoxVector2D *self );
 double DaoxTriangle_Area( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C );
 double DaoxTriangle_AngleCosine( DaoxVector2D C, DaoxVector2D A, DaoxVector2D B );
 int DaoxTriangle_Contain( DaoxVector2D C, DaoxVector2D A, DaoxVector2D B, DaoxVector2D P );
-int DaoxLine_Intersect( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C, DaoxVector2D D, float *S, float *T );
-
-
-
-
-struct DaoxLine
-{
-	DaoxVector2D  start;
-	DaoxVector2D  end;
-};
 
 
 
@@ -158,6 +159,7 @@ DaoxVector3D  DaoxVector3D_Scale( DaoxVector3D *self, double scale );
 DaoxVector3D  DaoxVector3D_Cross( DaoxVector3D *self, DaoxVector3D *other );
 DaoxVector3D  DaoxVector3D_Normalize( DaoxVector3D *self );
 DaoxVector3D  DaoxVector3D_Interpolate( DaoxVector3D A, DaoxVector3D B, float t );
+
 double DaoxVector3D_Norm2( DaoxVector3D *self );
 double DaoxVector3D_Dot( DaoxVector3D *self, DaoxVector3D *other );
 double DaoxVector3D_Angle( DaoxVector3D *self, DaoxVector3D *other );
@@ -178,6 +180,7 @@ struct DaoxMatrix3D
 	float  A11, A12, B1;
 	float  A21, A22, B2;
 };
+
 DaoxMatrix3D  DaoxMatrix3D_Identity();
 DaoxMatrix3D  DaoxMatrix3D_PointRotation( DaoxVector2D point, float alpha );
 DaoxMatrix3D  DaoxMatrix3D_MulMatrix( DaoxMatrix3D *self, DaoxMatrix3D *other );
@@ -189,6 +192,7 @@ void DaoxMatrix3D_RotateXAxisTo( DaoxMatrix3D *self, float x, float y );
 void DaoxMatrix3D_RotateYAxisTo( DaoxMatrix3D *self, float x, float y );
 void DaoxMatrix3D_SetScale( DaoxMatrix3D *self, float x, float y );
 void DaoxMatrix3D_Multiply( DaoxMatrix3D *self, DaoxMatrix3D other );
+
 DaoxVector2D DaoxMatrix3D_Transform( DaoxMatrix3D *self, DaoxVector2D point );
 DaoxVector2D DaoxMatrix3D_TransformXY( DaoxMatrix3D *self, float x, float y );
 DaoxMatrix3D DaoxMatrix3D_Inverse( DaoxMatrix3D *self );
@@ -221,57 +225,6 @@ DaoxMatrix4D  DaoxMatrix4D_TranslationOnly( DaoxMatrix4D *self );
 
 void DaoxMatrix4D_Print( DaoxMatrix4D *self );
 
-
-
-
-
-struct DaoxVectorD2
-{
-	double  x, y;
-};
-
-
-struct DaoxVectorD3
-{
-	double  x, y, z;
-};
-
-
-struct DaoxVectorD4
-{
-	double  x, y, z, w;
-};
-
-
-union DaoxMatrixD3X3
-{
-	double  M[3][3];
-	struct  {  DaoxVectorD3  V[3];  } V;
-	struct  {
-		double  A11, A12, A13;
-		double  A21, A22, A23;
-		double  A31, A32, A33;
-	} A;
-};
-
-DaoxMatrixD3X3 DaoxMatrixD3X3_InitRows( DaoxVectorD3 V1, DaoxVectorD3 V2, DaoxVectorD3 V3 );
-DaoxMatrixD3X3 DaoxMatrixD3X3_InitColumns( DaoxVectorD3 V1, DaoxVectorD3 V2, DaoxVectorD3 V3 );
-double DaoxMatrixD3X3_Determinant( DaoxMatrixD3X3 *self );
-
-
-union DaoxMatrixD4X4
-{
-	double  M[4][4];
-	struct  {  DaoxVectorD4  V[4];  } V;
-	struct  {
-		double  A11, A12, A13, A14;
-		double  A21, A22, A23, A24;
-		double  A31, A32, A33, A34;
-		double  A41, A42, A43, A44;
-	} A;
-};
-
-DaoxMatrixD4X4 DaoxMatrixD4X4_MulMatrix( DaoxMatrixD4X4 *self, DaoxMatrixD4X4 *other );
 
 
 
@@ -358,51 +311,14 @@ DaoxAABBox2D DaoxAABBox2D_Transform( DaoxAABBox2D *self, DaoxMatrix3D *t );
 
 
 
-/*
-// Array for plain data structures:
-*/
-struct DaoxPlainArray
-{
-	union {
-		void   *data;
-		int    *ints;
-		float  *floats;
+DaoxVector2D* DArray_PushVector2D( DArray *self );
+DaoxVector3D* DArray_PushVector3D( DArray *self );
+DaoxVertex*   DArray_PushVertex( DArray *self );
+DaoxTriangle* DArray_PushTriangle( DArray *self );
 
-		DaoxVector2D  *vectors2d;
-		DaoxVector3D  *vectors3d;
-
-		DaoxVertex    *vertices;
-		DaoxTriangle  *triangles;
-
-		DaoxColor     *colors;
-
-		struct DaoxPathSegment  *segments;
-	} pod;
-
-	uint_t  size;
-	uint_t  capacity;
-	uint_t  stride;
-};
-
-DaoxPlainArray* DaoxPlainArray_New( int stride );
-void DaoxPlainArray_Delete( DaoxPlainArray *self );
-void DaoxPlainArray_Clear( DaoxPlainArray *self );
-void DaoxPlainArray_Resize( DaoxPlainArray *self, int size );
-void DaoxPlainArray_Reserve( DaoxPlainArray *self, int size );
-void DaoxPlainArray_ResetSize( DaoxPlainArray *self, int size );
-void* DaoxPlainArray_Push( DaoxPlainArray *self );
-void* DaoxPlainArray_Get( DaoxPlainArray *self, int i );
-
-void DaoxPlainArray_PushInt( DaoxPlainArray *self, int value );
-void DaoxPlainArray_PushFloat( DaoxPlainArray *self, float value );
-DaoxVector2D* DaoxPlainArray_PushVector2D( DaoxPlainArray *self );
-DaoxVector3D* DaoxPlainArray_PushVector3D( DaoxPlainArray *self );
-DaoxVertex*   DaoxPlainArray_PushVertex( DaoxPlainArray *self );
-DaoxTriangle* DaoxPlainArray_PushTriangle( DaoxPlainArray *self );
-
-DaoxVector2D* DaoxPlainArray_PushVectorXY( DaoxPlainArray *self, float x, float y );
-DaoxVector3D* DaoxPlainArray_PushVectorXYZ( DaoxPlainArray *self, float x, float y, float z );
-DaoxTriangle* DaoxPlainArray_PushTriangleIJK( DaoxPlainArray *self, int i, int j, int k );
+DaoxVector2D* DArray_PushVectorXY( DArray *self, float x, float y );
+DaoxVector3D* DArray_PushVectorXYZ( DArray *self, float x, float y, float z );
+DaoxTriangle* DArray_PushTriangleIJK( DArray *self, int i, int j, int k );
 
 
 

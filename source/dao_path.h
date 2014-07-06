@@ -86,9 +86,9 @@ struct DaoxTexturedPoint
 
 struct DaoxPathMesh
 {
-	DaoxPlainArray  *points;    /* <DaoxVector3D>: x, y, offset; */
-	DaoxPlainArray  *triangles; /* <DaoxTriangle>; */
-	DaoxPlainArray  *patches;   /* <DaoxTexturedPoint*>; */
+	DArray  *points;    /* <DaoxVector3D>: x, y, offset; */
+	DArray  *triangles; /* <DaoxTriangle>; */
+	DArray  *patches;   /* <DaoxTexturedPoint*>; */
 };
 
 DaoxPathMesh* DaoxPathMesh_New();

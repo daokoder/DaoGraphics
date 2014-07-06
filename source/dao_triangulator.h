@@ -65,7 +65,7 @@ DAO_DLL void DaoxVertexData_Delete( DaoxVertexData *self );
 struct DaoxTriangulator
 {
 	/* All the points in the polygon sorted by their x coordinates: */
-	DaoxPlainArray  *points;
+	DArray  *points;
 
 	DaoxVertexData  *start;
 
@@ -79,7 +79,7 @@ struct DaoxTriangulator
 	/* Sorted list of vertices for processing: */
 	DList  *worklist;  /* DList<DaoxVertexData*>; */
 
-	DaoxPlainArray  *triangles;  /* list of triple integers; */
+	DArray  *triangles;  /* list of triple integers; */
 
 	DaoxVertexData  *caches;  /* reusable vertices; */
 };

@@ -223,11 +223,11 @@ struct DaoxModel
 	// The memory of these arrays is freed after the model has been invisible
 	// for sufficiently long time.
 	*/
-	DaoxPlainArray  *offsets; /* offsets in the vertex buffer object; */
-	DList          *points; /* vertex positions, global coordinates; */
-	DList          *vnorms; /* vertex normals, global coordinates; */
-	DList          *tnorms; /* triangle normals, global coordinates; */
-	uint_t           viewFrame;
+	DArray  *offsets; /* offsets in the vertex buffer object; */
+	DList   *points; /* vertex positions, global coordinates; */
+	DList   *vnorms; /* vertex normals, global coordinates; */
+	DList   *tnorms; /* triangle normals, global coordinates; */
+	uint_t   viewFrame;
 };
 extern DaoType *daox_type_model;
 
