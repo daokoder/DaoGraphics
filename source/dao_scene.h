@@ -136,7 +136,7 @@ struct DaoxSceneNode
 	DaoxMatrix4D    transform; /* local to parent */
 
 	DaoxSceneNode  *parent;
-	DList         *children;
+	DList          *children;
 };
 extern DaoType *daox_type_scene_node;
 
@@ -167,7 +167,7 @@ DaoxVector3D DaoxSceneNode_GetWorldPosition( DaoxSceneNode *self );
 // with the up direction pointing to the direction of the local y-axis (0,1,0),
 // and the right direction pointing to the direction of the local x-axis (1,0,0),
 //
-// Its location and orientation can only be adjusted by transformation (::objectToParent).
+// Its location and orientation can only be adjusted by transformation (::transform).
 */
 struct DaoxCamera
 {
@@ -224,9 +224,9 @@ struct DaoxModel
 	// for sufficiently long time.
 	*/
 	DArray  *offsets; /* offsets in the vertex buffer object; */
-	DList   *points; /* vertex positions, global coordinates; */
-	DList   *vnorms; /* vertex normals, global coordinates; */
-	DList   *tnorms; /* triangle normals, global coordinates; */
+	DList   *points;  /* vertex positions, global coordinates; */
+	DList   *vnorms;  /* vertex normals, global coordinates; */
+	DList   *tnorms;  /* triangle normals, global coordinates; */
 	uint_t   viewFrame;
 };
 extern DaoType *daox_type_model;
@@ -279,10 +279,10 @@ struct DaoxScene
 
 	DList  *nodes;
 	DList  *lights;
-	DMap    *materialNames;
-	DMap    *textureNames;
 	DList  *materials;
 	DList  *textures;
+	DMap   *materialNames;
+	DMap   *textureNames;
 };
 extern DaoType *daox_type_scene;
 

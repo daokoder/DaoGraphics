@@ -88,21 +88,18 @@ extern const DaoxColor daox_gray_color;
 
 
 
-
 typedef struct DaoxVector2D  DaoxVector2D;  /* 2D float vector type (for 2D points); */
 typedef struct DaoxVector3D  DaoxVector3D;  /* 3D float vector type (for 2D points); */
+
 typedef struct DaoxMatrix2D  DaoxMatrix2D;  /* 2D float matrix type; */
 typedef struct DaoxMatrix3D  DaoxMatrix3D;  /* 3D float matrix type (for 2D transforms); */
 typedef struct DaoxMatrix4D  DaoxMatrix4D;  /* 4D float matrix type (for 3D transforms); */
 
-
-
 typedef struct DaoxVertex    DaoxVertex;
 typedef struct DaoxTriangle  DaoxTriangle;
 
-
-typedef struct DaoxOBBox2D  DaoxOBBox2D;
-typedef struct DaoxOBBox3D  DaoxOBBox3D;
+typedef struct DaoxOBBox2D   DaoxOBBox2D;
+typedef struct DaoxOBBox3D   DaoxOBBox3D;
 
 typedef struct DaoxAABBox2D  DaoxAABBox2D;
 
@@ -113,6 +110,7 @@ struct DaoxVector2D
 	float  x;
 	float  y;
 };
+
 DaoxVector2D DaoxVector2D_XY( float x, float y );
 DaoxVector2D DaoxVector2D_Add( DaoxVector2D *self, DaoxVector2D *other );
 DaoxVector2D DaoxVector2D_Sub( DaoxVector2D *self, DaoxVector2D *other );
@@ -288,7 +286,14 @@ struct DaoxOBBox3D
 	DaoxVector3D  C;
 	float         R;
 };
+
+DaoxOBBox3D DaoxOBBox3D_Scale( DaoxOBBox3D *self, float scale );
+DaoxOBBox3D DaoxOBBox3D_Transform( DaoxOBBox3D *self, DaoxMatrix4D *transfrom );
+
 int DaoxOBBox3D_Contain( DaoxOBBox3D *self, DaoxVector3D point );
+void DaoxOBBox3D_ComputeBoundingBox( DaoxOBBox3D *self, DaoxVector3D points[], int count );
+
+void DaoxOBBox3D_Print( DaoxOBBox3D *self );
 
 
 
@@ -311,10 +316,10 @@ DaoxAABBox2D DaoxAABBox2D_Transform( DaoxAABBox2D *self, DaoxMatrix3D *t );
 
 
 
-DaoxVector2D* DArray_PushVector2D( DArray *self );
-DaoxVector3D* DArray_PushVector3D( DArray *self );
-DaoxVertex*   DArray_PushVertex( DArray *self );
-DaoxTriangle* DArray_PushTriangle( DArray *self );
+DaoxVector2D* DArray_PushVector2D( DArray *self, DaoxVector2D *vector2d );
+DaoxVector3D* DArray_PushVector3D( DArray *self, DaoxVector3D *vector3d );
+DaoxVertex*   DArray_PushVertex( DArray *self, DaoxVertex *vertex );
+DaoxTriangle* DArray_PushTriangle( DArray *self, DaoxTriangle *triangle );
 
 DaoxVector2D* DArray_PushVectorXY( DArray *self, float x, float y );
 DaoxVector3D* DArray_PushVectorXYZ( DArray *self, float x, float y, float z );

@@ -128,7 +128,7 @@ void DaoxCanvas_TestFPS()
 		count_reset = current_time - 1000;
 	}
 }
-void DaoxCanvas_glutDisplay(void)
+void DaoxGraphics_glutDisplay(void)
 {
 	if( daox_current_painter && daox_current_canvas ){
 		DaoxCanvas_UpdateScene( daox_current_canvas );
@@ -288,7 +288,7 @@ void DaoxCanvas_glutMove( int x, int y )
 {
 }
 
-void DaoxCanvas_glutInit(int width, int height, const char *title)
+void DaoxGraphics_glutInit(int width, int height, const char *title)
 {
 	int i, argc = 1;
 	char *argv = "Dao Graphics";
@@ -315,9 +315,9 @@ void DaoxCanvas_glutInit(int width, int height, const char *title)
 	glutInitWindowSize(width,height);
 	glutCreateWindow(title);
 
-	glutDisplayFunc(DaoxCanvas_glutDisplay);
+	glutDisplayFunc(DaoxGraphics_glutDisplay);
 	//glutIdleFunc(DaoxCanvas_glutIdle);
-	glutIdleFunc(DaoxCanvas_glutDisplay);
+	glutIdleFunc(DaoxGraphics_glutDisplay);
 	glutReshapeFunc(DaoxCanvas_glutReshape);
 	glutKeyboardFunc(DaoxCanvas_glutKeyboard);
 	glutSpecialFunc(DaoxCanvas_glutSpecialKeyboard);
@@ -339,7 +339,7 @@ static void GLUT_Init( DaoProcess *proc, DaoValue *p[], int N )
 	daox_graphics_device_height = window_height;
 	fps_limit = DaoValue_TryGetInteger( p[3] );
 	test_fps = DaoValue_TryGetInteger( p[4] );
-	DaoxCanvas_glutInit( window_width, window_height, title );
+	DaoxGraphics_glutInit( window_width, window_height, title );
 }
 static void GLUT_SetGraphics( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -360,6 +360,7 @@ static void GLUT_Render( DaoProcess *proc, DaoValue *p[], int N )
 {
 	daox_current_renderer = (DaoxRenderer*) p[0];
 	daox_current_scene = (DaoxScene*) p[1];
+#if 0
 	if( daox_current_renderer->buffer.vertexOffset == 0 ){
 		DaoxModel *model = DaoxModel_New();
 		DaoxMesh *mesh = DaoxMesh_New();
@@ -374,6 +375,7 @@ static void GLUT_Render( DaoProcess *proc, DaoValue *p[], int N )
 		DaoxRenderer_InitShaders( daox_current_renderer );
 		DaoxRenderer_InitBuffers( daox_current_renderer );
 	}
+#endif
 	glutMainLoop();
 }
 static DaoFuncItem DaoxGLUTMeths[]=

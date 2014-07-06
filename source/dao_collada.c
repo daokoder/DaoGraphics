@@ -408,7 +408,7 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 		}
 
 		for(j=0; j<floats->size; j+=3){
-			DaoxVertex *vertex = DArray_PushVertex( unit->vertices );
+			DaoxVertex *vertex = DArray_PushVertex( unit->vertices, NULL );
 			vertex->point.x = floats->data.floats[j];
 			vertex->point.y = floats->data.floats[j+1];
 			vertex->point.z = floats->data.floats[j+2];
@@ -474,7 +474,7 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 			if( tuples->tuples[j].values[offset1] == intup->values[offset1] ){
 				daoint idx = tuples->tuples[j].index + offset1;
 				daoint idx2 = intup->index + offset1;
-				DaoxVertex *vertex = DArray_PushVertex( unit->vertices );
+				DaoxVertex *vertex = DArray_PushVertex( unit->vertices, NULL );
 				DaoxVertex *vertex2 = unit->vertices->data.vertices + integers->data.ints[idx2];
 				integers->data.ints[idx] = unit->vertices->size - 1;
 				vertex->point = vertex2->point;
@@ -511,7 +511,7 @@ int DaoxSceneResource_HandleColladaGeometry( DaoxSceneResource *self, DaoXmlNode
 		jj = vertexStride;
 		kk = 2*vertexStride;
 		for(j=0; j<integers->size; j+=shapeStride){
-			DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles );
+			DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles, NULL );
 			DaoxVertex *A, *B, *C;
 			int *values = integers->data.ints + j;
 			triangle->index[0] = values[ii + offset1];

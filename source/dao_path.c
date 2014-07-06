@@ -1443,14 +1443,14 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 	DaoxTriangulator_Triangulate( triangulator );
 	for(i=0; i<triangulator->points->size; i+=1){
 		DaoxVector2D *pt = triangulator->points->data.vectors2d + i;
-		point = (DaoxVector3D*) DArray_Push( self->mesh->points );
+		point = DArray_PushVector3D( self->mesh->points, NULL );
 		point->x = pt->x;
 		point->y = pt->y;
 		point->z = 0.0;
 	}
 	for(i=0; i<triangulator->triangles->size; i+=1){
 		DaoxTriangle *triangle = triangulator->triangles->data.triangles + i;
-		DaoxTriangle *triangle2 = DArray_PushTriangle( self->mesh->triangles );
+		DaoxTriangle *triangle2 = DArray_PushTriangle( self->mesh->triangles, NULL );
 		int I = triangle->index[0], J = triangle->index[1], K = triangle->index[2];
 		DaoxVector2D P1 = triangulator->points->data.vectors2d[I];
 		DaoxVector2D P2 = triangulator->points->data.vectors2d[J];
@@ -1469,19 +1469,11 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		if( com->first->bezier == 0 ) continue;
 		seg = com->refined.first;
 		do {
-			DaoxVector2D *point = DArray_PushVector2D( points );
-			*point = seg->P1;
-			if( seg->next == NULL ){
-				point = DArray_PushVector2D( points );
-				*point = seg->P2;
-			}
+			DArray_PushVector2D( points, & seg->P1 );
+			if( seg->next == NULL ) DArray_PushVector2D( points, & seg->P2 );
 			if( com->first->bezier >= 2 ){
-				point = DArray_PushVector2D( points );
-				*point = seg->C1;
-				if( com->first->bezier == 3 ){
-					point = DArray_PushVector2D( points );
-					*point = seg->C2;
-				}
+				DArray_PushVector2D( points, & seg->C1 );
+				if( com->first->bezier == 3 ) DArray_PushVector2D( points, & seg->C2 );
 			}
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );

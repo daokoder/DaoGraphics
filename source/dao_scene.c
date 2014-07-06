@@ -446,40 +446,26 @@ void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child )
 
 void DaoxPointable_PointAt( DaoxPointable *self, DaoxVector3D pos )
 {
-	double dot, angle, angle2;
+	double angle;
 	DaoxVector3D axis, newPointDirection;
-	DaoxVector3D xaxis = {1.0,0.0,0.0};
-	DaoxVector3D yaxis = {0.0,1.0,0.0};
 	DaoxVector3D sourcePosition = {0.0,0.0,0.0};
 	DaoxVector3D pointDirection = {0.0,0.0,-1.0};
-	DaoxVector3D rightDirection = {1.0,0.0,0.0};
 	DaoxMatrix4D rotation = DaoxMatrix4D_RotationOnly( & self->base.transform );
 	DaoxMatrix4D translation = DaoxMatrix4D_TranslationOnly( & self->base.transform );
-	DaoxMatrix4D rot, rot2;
+	DaoxMatrix4D rot;
 
+	if( DaoxVector3D_Dist( & self->targetPosition, & pos ) < 1E-6 ) return;
 	self->targetPosition = pos;
 	sourcePosition = DaoxMatrix4D_MulVector( & self->base.transform, & sourcePosition, 1.0 );
 	pointDirection = DaoxMatrix4D_MulVector( & rotation, & pointDirection, 1.0 );
-	rightDirection = DaoxMatrix4D_MulVector( & rotation, & rightDirection, 1.0 );
 	newPointDirection = DaoxVector3D_Sub( & pos, & sourcePosition );
 
 	pointDirection = DaoxVector3D_Normalize( & pointDirection );
 	newPointDirection = DaoxVector3D_Normalize( & newPointDirection );
-
-	dot = DaoxVector3D_Dot( & newPointDirection, & yaxis );
-	angle = DaoxVector3D_Angle( & newPointDirection, & yaxis );
-	angle -= DaoxVector3D_Angle( & pointDirection, & yaxis );
-	rot = DaoxMatrix4D_AxisRotation( rightDirection, - angle );
-	if( fabs( fabs(dot) - 1.0 ) < EPSILON ) goto Final;
-
-	pointDirection.y = newPointDirection.y = 0;
-	angle2 = DaoxVector3D_Angle( & newPointDirection, & xaxis );
-	angle2 -= DaoxVector3D_Angle( & pointDirection, & xaxis );
-	rot2 = DaoxMatrix4D_AxisRotation( yaxis, angle2 );
-	rot = DaoxMatrix4D_MulMatrix( & rot, & rot2 );
+	axis = DaoxVector3D_Cross( & newPointDirection, & pointDirection );
+	angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
+	rot = DaoxMatrix4D_AxisRotation( axis, -angle );
 	rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
-
-Final:
 	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
 }
 void DaoxPointable_PointAtXYZ( DaoxPointable *self, float x, float y, float z )
@@ -907,7 +893,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			DList_Resize( faceCounts, m, 0 );
 			DArray_Reset( vertices, 0 );
 			for(i=0; i<m; ++i){
-				DaoxVertex *vertex = DArray_PushVertex( vertices );
+				DaoxVertex *vertex = DArray_PushVertex( vertices, NULL );
 				vertex->point.x = DaoxBinaryParser_DecodeFloatLE( parser );
 				vertex->point.y = DaoxBinaryParser_DecodeFloatLE( parser );
 				vertex->point.z = DaoxBinaryParser_DecodeFloatLE( parser );
@@ -922,7 +908,7 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			DArray_Reset( triangles, 0 );
 			printf( "triangles: %i %p\n", m, unit );
 			for(i=0; i<m; ++i){
-				DaoxTriangle *triangle = DArray_PushTriangle( triangles );
+				DaoxTriangle *triangle = DArray_PushTriangle( triangles, NULL );
 				DaoxVertex *A, *B, *C;
 				DaoxVector3D AB, BC, N;
 				float norm;
@@ -964,11 +950,11 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			memset( integers->items.pInt, 0, vertices->size*sizeof(daoint) );
 			for(i=0; i<m; ++i){
 				int id = DaoxBinaryParser_DecodeUInt16LE( parser );
-				DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles );
+				DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles, NULL );
 				DaoxTriangle *triangle2 = triangles->data.triangles + id;
 				for(j=0; j<3; ++j){
 					if( integers->items.pInt[ triangle2->index[j] ] == 0 ){
-						DaoxVertex *vertex = DArray_PushVertex( unit->vertices );
+						DaoxVertex *vertex = DArray_PushVertex( unit->vertices, NULL );
 						DaoxVertex *vertex2 = vertices->data.vertices + triangle2->index[j];
 						integers->items.pInt[ triangle2->index[j] ] = unit->vertices->size;
 						*vertex = *vertex2;

@@ -184,6 +184,19 @@ static void SCENE_AddNode( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxSceneNode *node = (DaoxSceneNode*) p[1];
 	DaoxScene_AddNode( self, node );
 }
+static void SCENE_AddBox( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoxModel *model = DaoxModel_New();
+	DaoxMesh *mesh = DaoxMesh_New();
+	DaoxMesh_MakeBoxObject( mesh );
+	DaoxMesh_UpdateTree( mesh, 0 );
+	DaoxModel_SetMesh( model, mesh );
+	DaoxOBBox3D_Print( & model->base.obbox );
+	DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) model, 0, 0, 0 );
+	DaoxScene_AddNode( self, (DaoxSceneNode*) model );
+	DaoProcess_PutValue( proc, (DaoValue*) model );
+}
 void DaoxScene_Load3DS( DaoxScene *self, const char *file );
 static void SCENE_Load3DS( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -205,10 +218,11 @@ static void SCENE_Load3DS( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCamera_LookAtXYZ( camera, 0, 0, 20 );
 	camera->farPlane = 1000;
 }
-static DaoFuncItem DaoxSceneMeths[]=
+static DaoFuncItem DaoxSceneMeths[] =
 {
 	{ SCENE_New,         "Scene()" },
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
+	{ SCENE_AddBox,      "AddBox( self: Scene ) => Model" },
 	{ SCENE_Load3DS,     "Load3DS( self: Scene, file: string )" },
 	{ NULL, NULL }
 };

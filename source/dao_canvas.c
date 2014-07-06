@@ -323,18 +323,14 @@ void DaoxCanvasNode_MarkStateChanged( DaoxCanvasNode *self )
 }
 static void DArray_PushOBBoxVertexPoints2D( DArray *self, DaoxOBBox2D *box )
 {
-	DaoxVector2D *point1, *point2, *point3, *point4;
 	DaoxVector2D dY = DaoxVector2D_Sub( & box->Y, & box->O );
+	DaoxVector2D P = DaoxVector2D_Add( & box->X, & dY );
 
 	DArray_Reserve( self, self->size + 4 );
-	point1 = DArray_PushVector2D( self );
-	point2 = DArray_PushVector2D( self );
-	point3 = DArray_PushVector2D( self );
-	point4 = DArray_PushVector2D( self );
-	*point1 = box->O;
-	*point2 = box->X;
-	*point3 = box->Y;
-	*point4 = DaoxVector2D_Add( & box->X, & dY );
+	DArray_PushVector2D( self, & box->O );
+	DArray_PushVector2D( self, & box->X );
+	DArray_PushVector2D( self, & box->Y );
+	DArray_PushVector2D( self, & P );
 }
 void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 {

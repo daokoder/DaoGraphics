@@ -821,6 +821,7 @@ double DaoxOBBox2D_Area( DaoxOBBox2D *self )
 	//printf( "DaoxOBBox2D_Area: %25.20f %25.20f; %25.20f\n", W, H, W*H );
 	return W*H;
 }
+/* TODO: invariable center */
 DaoxOBBox2D DaoxOBBox2D_Scale( DaoxOBBox2D *self, float scale )
 {
 	DaoxOBBox2D obbox;
@@ -863,6 +864,168 @@ int DaoxOBBox2D_Intersect2( DaoxOBBox2D *self, DaoxOBBox2D *other, double tolera
 	DaoxOBBox2D box1 = DaoxOBBox2D_CopyWithMargin( self, -0.5*tolerance );
 	DaoxOBBox2D box2 = DaoxOBBox2D_CopyWithMargin( other, -0.5*tolerance );
 	return DaoxOBBox2D_Intersect( & box1, & box2 );
+}
+
+
+
+
+DaoxOBBox3D DaoxOBBox3D_Scale( DaoxOBBox3D *self, float scale )
+{
+	DaoxOBBox3D obbox;
+	DaoxVector3D dO = DaoxVector3D_Sub( & self->O, & self->C );
+	DaoxVector3D dX = DaoxVector3D_Sub( & self->X, & self->C );
+	DaoxVector3D dY = DaoxVector3D_Sub( & self->Y, & self->C );
+	DaoxVector3D dZ = DaoxVector3D_Sub( & self->Z, & self->C );
+	dO = DaoxVector3D_Scale( & dO, scale );
+	dX = DaoxVector3D_Scale( & dX, scale );
+	dY = DaoxVector3D_Scale( & dY, scale );
+	dZ = DaoxVector3D_Scale( & dZ, scale );
+	obbox.C = self->C;
+	obbox.O = DaoxVector3D_Add( & obbox.C, & dO );
+	obbox.X = DaoxVector3D_Add( & obbox.C, & dX );
+	obbox.Y = DaoxVector3D_Add( & obbox.C, & dY );
+	obbox.Z = DaoxVector3D_Add( & obbox.C, & dZ );
+	obbox.R = scale * self->R;
+	return obbox;
+}
+DaoxOBBox3D DaoxOBBox3D_Transform( DaoxOBBox3D *self, DaoxMatrix4D *transfrom )
+{
+	DaoxOBBox3D obbox;
+	obbox.O = DaoxMatrix4D_MulVector( transfrom, & self->O, 1 );
+	obbox.X = DaoxMatrix4D_MulVector( transfrom, & self->X, 1 );
+	obbox.Y = DaoxMatrix4D_MulVector( transfrom, & self->Y, 1 );
+	obbox.Z = DaoxMatrix4D_MulVector( transfrom, & self->Z, 1 );
+	obbox.C = DaoxMatrix4D_MulVector( transfrom, & self->C, 1 );
+	obbox.R = self->R;
+	return obbox;
+}
+int DaoxOBBox3D_Contain( DaoxOBBox3D *self, DaoxVector3D point )
+{
+	DaoxVector3D X = DaoxVector3D_Sub( & self->X, & self->O );
+	DaoxVector3D Y = DaoxVector3D_Sub( & self->Y, & self->O );
+	DaoxVector3D Z = DaoxVector3D_Sub( & self->Z, & self->O );
+	double x, dx = DaoxVector3D_Norm2( & X );
+	double y, dy = DaoxVector3D_Norm2( & Y );
+	double z, dz = DaoxVector3D_Norm2( & Z );
+	point = DaoxVector3D_Sub( & point, & self->O );
+	x = DaoxVector3D_Dot( & X, & point );
+	y = DaoxVector3D_Dot( & Y, & point );
+	z = DaoxVector3D_Dot( & Z, & point );
+	return (x >= 0.0 && x <= dx) && (y >= 0.0 && y <= dy) && (z >= 0.0 && z <= dz);
+}
+void DaoxOBBox3D_ComputeBoundingBox( DaoxOBBox3D *self, DaoxVector3D points[], int count )
+{
+	DaoxVector3D xaxis1, xaxis2, yaxis1, yaxis2, zaxis1, zaxis2;
+	DaoxVector3D first, second, third, zero = {0.0,0.0,0.0};
+	DaoxVector3D xaxis, yaxis, zaxis;
+	double xmin, xmax, ymin, ymax, zmin, zmax, margin = 1E-3;
+	double max = -0.0, max1 = -0.0, max2 = -0.0;
+	daoint i, j;
+
+	self->O = self->X = self->Y = self->Z = zero;
+	self->C = zero;
+	self->R = 0;
+	if( count == 0 ) return;
+
+	first = second = third = points[0];
+	for(i=0; i<count; ++i){
+		DaoxVector3D point = points[i];
+		double dist2 = DaoxVector3D_Dist2( & point, & second );
+		if( dist2 > max ){
+			max = dist2;
+			first = point;
+		}
+	}
+	/* Find the vertex that is furthest from the "first": */
+	for(i=0; i<count; ++i){
+		DaoxVector3D point = points[i];
+		double dist = DaoxVector3D_Dist2( & first, & point );
+		if( dist >= max1 ){
+			xaxis = point;
+			max1 = dist;
+		}
+	}
+	xaxis = DaoxVector3D_Sub( & xaxis, & first );
+	max1 = sqrt( max1 );
+	xaxis.x /= max1;
+	xaxis.y /= max1;
+	xaxis.z /= max1;
+	/* Find the vertex that is furthest from the line formed by "first" and "xaxis": */
+	for(i=0; i<count; ++i){
+		DaoxVector3D point = points[i];
+		DaoxVector3D point2 = DaoxVector3D_Sub( & point, & first );
+		double dot = DaoxVector3D_Dot( & point2, & xaxis );
+		DaoxVector3D sub = DaoxVector3D_Scale( & xaxis, dot );
+		DaoxVector3D pp = DaoxVector3D_Sub( & point2, & sub );
+		double dist = DaoxVector3D_Norm2( & pp );
+		if( dist >= max2 ){
+			yaxis = pp;
+			max2 = dist;
+		}
+	}
+	max2 = sqrt( max2 );
+	yaxis.x /= max2;
+	yaxis.y /= max2;
+	yaxis.z /= max2;
+	zaxis = DaoxVector3D_Cross( & xaxis, & yaxis );
+
+	//printf( "dot: %9f\n", DaoxVector3D_Dot( & xaxis, & yaxis ) );
+
+	/* Construct the bounding box aligned to the new "xaxis", "yaxis" and "zaxis": */
+	xmin = xmax = ymin = ymax = zmin = zmax = 0.0;
+	for(i=0; i<count; ++i){
+		DaoxVector3D point = points[i];
+		DaoxVector3D point2 = DaoxVector3D_Sub( & point, & first );
+		double dotx = DaoxVector3D_Dot( & point2, & xaxis );
+		double doty = DaoxVector3D_Dot( & point2, & yaxis );
+		double dotz = DaoxVector3D_Dot( & point2, & zaxis );
+		if( dotx <= xmin ) xmin = dotx;
+		if( doty <= ymin ) ymin = doty;
+		if( dotz <= zmin ) zmin = dotz;
+		if( dotx >= xmax ) xmax = dotx;
+		if( doty >= ymax ) ymax = doty;
+		if( dotz >= zmax ) zmax = dotz;
+	}
+	xmin -= margin;
+	ymin -= margin;
+	zmin -= margin;
+	xmax += margin;
+	ymax += margin;
+	zmax += margin;
+	xaxis1 = DaoxVector3D_Scale( & xaxis, xmin );
+	yaxis1 = DaoxVector3D_Scale( & yaxis, ymin );
+	zaxis1 = DaoxVector3D_Scale( & zaxis, zmin );
+	xaxis2 = DaoxVector3D_Scale( & xaxis, xmax - xmin );
+	yaxis2 = DaoxVector3D_Scale( & yaxis, ymax - ymin );
+	zaxis2 = DaoxVector3D_Scale( & zaxis, zmax - zmin );
+	self->O = first;
+	self->O = DaoxVector3D_Add( & self->O, & xaxis1 );
+	self->O = DaoxVector3D_Add( & self->O, & yaxis1 );
+	self->O = DaoxVector3D_Add( & self->O, & zaxis1 );
+	self->X = DaoxVector3D_Add( & self->O, & xaxis2 );
+	self->Y = DaoxVector3D_Add( & self->O, & yaxis2 );
+	self->Z = DaoxVector3D_Add( & self->O, & zaxis2 );
+
+	xaxis2 = DaoxVector3D_Scale( & xaxis2, 0.5 );
+	yaxis2 = DaoxVector3D_Scale( & yaxis2, 0.5 );
+	zaxis2 = DaoxVector3D_Scale( & zaxis2, 0.5 );
+	self->C = self->O;
+	self->C = DaoxVector3D_Add( & self->C, & xaxis2 );
+	self->C = DaoxVector3D_Add( & self->C, & yaxis2 );
+	self->C = DaoxVector3D_Add( & self->C, & zaxis2 );
+	self->R = sqrt( DaoxVector3D_Dist2( & self->C, & self->O ) );
+
+	//return;
+
+	for(i=0; i<count; ++i){
+		DaoxVector3D point = points[i];
+		if( DaoxOBBox3D_Contain( self, point ) == 0 ) printf( "%5i\n", i );
+	}
+}
+void DaoxOBBox3D_Print( DaoxOBBox3D *self )
+{
+	DaoxVector3D_Print( & self->O );
+	DaoxVector3D_Print( & self->C );
 }
 
 
@@ -920,21 +1083,29 @@ void DaoxAABBox2D_Print( DaoxAABBox2D *self )
 
 
 
-DaoxVector2D* DArray_PushVector2D( DArray *self )
+DaoxVector2D* DArray_PushVector2D( DArray *self, DaoxVector2D *vector2d )
 {
-	return (DaoxVector2D*) DArray_Push( self );
+	DaoxVector2D *res = (DaoxVector2D*) DArray_Push( self );
+	if( vector2d ) *res = *vector2d;
+	return res;
 }
-DaoxVector3D* DArray_PushVector3D( DArray *self )
+DaoxVector3D* DArray_PushVector3D( DArray *self, DaoxVector3D *vector3d )
 {
-	return (DaoxVector3D*) DArray_Push( self );
+	DaoxVector3D *res = (DaoxVector3D*) DArray_Push( self );
+	if( vector3d ) *res = *vector3d;
+	return res;
 }
-DaoxVertex* DArray_PushVertex( DArray *self )
+DaoxVertex* DArray_PushVertex( DArray *self, DaoxVertex *vertex )
 {
-	return (DaoxVertex*) DArray_Push( self );
+	DaoxVertex *res = (DaoxVertex*) DArray_Push( self );
+	if( vertex ) *res = *vertex;
+	return res;
 }
-DaoxTriangle* DArray_PushTriangle( DArray *self )
+DaoxTriangle* DArray_PushTriangle( DArray *self, DaoxTriangle *triangle )
 {
-	return (DaoxTriangle*) DArray_Push( self );
+	DaoxTriangle *res = (DaoxTriangle*) DArray_Push( self );
+	if( triangle ) *res = *triangle;
+	return res;
 }
 
 DaoxVector2D* DArray_PushVectorXY( DArray *self, float x, float y )

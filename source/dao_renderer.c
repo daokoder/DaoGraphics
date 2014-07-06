@@ -265,11 +265,11 @@ void DaoxRenderer_ProcessMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMe
 		direction.z -= cameraPosition.z;// - point.z;
 		/* backface culling in world coordinates: */
 		if( DaoxVector3D_Dot( & direction, & tnorms->data.vectors3d[triangleID] ) > 0.0 ) continue;
-		trg = DArray_PushTriangle( self->triangles );
+		trg = DArray_PushTriangle( self->triangles, NULL );
 		for(j=0; j<3; ++j){
 			id = triangle->index[j];
 			if( mapping[id] == 0 ){
-				DaoxVertex *vertex = DArray_PushVertex( self->vertices );
+				DaoxVertex *vertex = DArray_PushVertex( self->vertices, NULL );
 				vertex->point = points->data.vectors3d[id];
 				vertex->norm = vnorms->data.vectors3d[id];
 				vertex->texUV = unit->vertices->data.vertices[id].texUV;
@@ -486,25 +486,25 @@ void DaoxRenderer_RenderCanvas( DaoxRenderer *self, DaoxCanvas *canvas )
 	}
 	glUniform1i(self->shader.uniforms.vectorGraphics, 0 );
 }
-#if 0
 void DaoxScene_EstimateBoundingBox( DaoxScene *self, DaoxOBBox3D *obbox )
 {
 	DArray *points = DArray_New( sizeof(DaoxVector3D) );
 	daoint i, j, k;
+	printf( "nodes: %i\n", self->nodes->size );
 	for(i=0; i<self->nodes->size; ++i){
-		DaoxSceneNode *unit = self->nodes->items.pCanvasNode[i];
-		for(j=0; j<unit->triangles->size; ++j){
-			DaoxTriangle *triangle = unit->triangles->data.triangles + j;
-			for(k=0; k<3; ++k){
-				DaoxVector3D *point = DArray_PushVector3D( points );
-				*point = unit->vertices->data.vertices[triangle->index[k]].point;
-			}
-		}
+		DaoxSceneNode *node = self->nodes->items.pSceneNode[i];
+		DaoxOBBox3D obbox = DaoxOBBox3D_Transform( & node->obbox, & node->transform );
+		DaoxVector3D CO = DaoxVector3D_Sub( & obbox.C, & obbox.O );
+		DaoxVector3D P = DaoxVector3D_Add( & obbox.C, & CO );
+		DArray_PushVector3D( points, & obbox.O );
+		DArray_PushVector3D( points, & obbox.X );
+		DArray_PushVector3D( points, & obbox.Y );
+		DArray_PushVector3D( points, & obbox.Z );
+		DArray_PushVector3D( points, & P );
 	}
-	DaoxOBBox3D_ComputeBoundingBox( & self->obbox, points->data.vectors3d, points->size );
+	DaoxOBBox3D_ComputeBoundingBox( obbox, points->data.vectors3d, points->size );
 	DArray_Delete( points );
 }
-#endif
 void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam )
 {
 	DaoxViewFrustum fm;
@@ -548,11 +548,25 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	cam->base.objectToParent = DaoxMatrix4D_MulMatrix( & cam->base.objectToParent, & rotation );
 	//DaoxMatrix4D_Print( & cam->objectToWorld );
 #endif
-	DaoxCamera_MoveXYZ( cam, rand()%300, 52+rand()%300, rand()%300 );
-	DaoxCamera_LookAtXYZ( cam, 0, 50, 0 );
+
+	DaoxOBBox3D sceneObbox;
+	DaoxScene_EstimateBoundingBox( scene, & sceneObbox );
+	sceneObbox = DaoxOBBox3D_Scale( & sceneObbox, 1.0 );
+	cam->farPlane = 2*sceneObbox.R;
+	DaoxCamera_Move( cam, sceneObbox.O );
+	DaoxCamera_LookAt( cam, sceneObbox.C );
+	//DaoxCamera_Move( cam, sceneObbox.C );
+	//DaoxCamera_LookAt( cam, sceneObbox.O );
+	DaoxVector3D_Print( & sceneObbox.O );
+	DaoxVector3D_Print( & sceneObbox.C );
+	//printf( "R = %f\n", sceneObbox.R );
+	//DaoxCamera_MoveXYZ( cam, rand()%300, 52+rand()%300, rand()%300 );
+	//DaoxCamera_LookAtXYZ( cam, 0, 50, 0 );
 
 	objectToWorld = DaoxSceneNode_GetWorldTransform( & cam->base );
 	viewMatrix = DaoxMatrix4D_Inverse( & objectToWorld );
+	DaoxMatrix4D_Print( & cam->base.transform );
+	DaoxMatrix4D_Print( & objectToWorld );
 
 	DaoxViewFrustum_Init( & fm, cam );
 	if( DaoxViewFrustum_Difference( & fm, & self->frustum ) > EPSILON ){ // TODO: better handling;
