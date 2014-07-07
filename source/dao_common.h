@@ -65,8 +65,7 @@ extern float daox_graphics_device_width;
 extern float daox_graphics_device_height;
 
 
-typedef struct DaoxColor           DaoxColor;
-
+typedef struct DaoxColor     DaoxColor;
 typedef struct DaoxMaterial  DaoxMaterial;
 
 
@@ -289,6 +288,8 @@ struct DaoxOBBox3D
 
 DaoxOBBox3D DaoxOBBox3D_Scale( DaoxOBBox3D *self, float scale );
 DaoxOBBox3D DaoxOBBox3D_Transform( DaoxOBBox3D *self, DaoxMatrix4D *transfrom );
+
+DaoxVector3D DaoxOBBox3D_GetDiagonalVertex( DaoxOBBox3D *self );
 
 int DaoxOBBox3D_Contain( DaoxOBBox3D *self, DaoxVector3D point );
 void DaoxOBBox3D_ComputeBoundingBox( DaoxOBBox3D *self, DaoxVector3D points[], int count );

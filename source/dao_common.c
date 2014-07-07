@@ -899,6 +899,11 @@ DaoxOBBox3D DaoxOBBox3D_Transform( DaoxOBBox3D *self, DaoxMatrix4D *transfrom )
 	obbox.R = self->R;
 	return obbox;
 }
+DaoxVector3D DaoxOBBox3D_GetDiagonalVertex( DaoxOBBox3D *self )
+{
+	DaoxVector3D CO = DaoxVector3D_Sub( & self->C, & self->O );
+	return DaoxVector3D_Add( & self->C, & CO );
+}
 int DaoxOBBox3D_Contain( DaoxOBBox3D *self, DaoxVector3D point )
 {
 	DaoxVector3D X = DaoxVector3D_Sub( & self->X, & self->O );

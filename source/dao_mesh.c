@@ -89,6 +89,57 @@ void DaoxMeshUnit_Delete( DaoxMeshUnit *self )
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
+void DaoxMeshUnit_MoveBy( DaoxMeshUnit *self, float dx, float dy, float dz )
+{
+	int i;
+
+	for(i=0; i<self->vertices->size; ++i){
+		DaoxVector3D *norm = & self->vertices->data.vertices[i].point;
+		norm->x += dx;
+		norm->y += dy;
+		norm->z += dz;
+	}
+}
+void DaoxMeshUnit_ScaleBy( DaoxMeshUnit *self, float fx, float fy, float fz )
+{
+	int i;
+
+	for(i=0; i<self->vertices->size; ++i){
+		DaoxVector3D *norm = & self->vertices->data.vertices[i].point;
+		norm->x *= fx;
+		norm->y *= fy;
+		norm->z *= fz;
+	}
+}
+void DaoxMeshUnit_UpdateNorms( DaoxMeshUnit *self )
+{
+	int i, j;
+
+	for(i=0; i<self->vertices->size; ++i){
+		DaoxVector3D *norm = & self->vertices->data.vertices[i].norm;
+		norm->x = norm->y = norm->z = 0.0;
+	}
+	for(i=0; i<self->triangles->size; ++i){
+		DaoxTriangle triangle = self->triangles->data.triangles[i];
+		DaoxVector3D A = self->vertices->data.vertices[ triangle.index[0] ].point;
+		DaoxVector3D B = self->vertices->data.vertices[ triangle.index[1] ].point;
+		DaoxVector3D C = self->vertices->data.vertices[ triangle.index[2] ].point;
+		DaoxVector3D AB = DaoxVector3D_Sub( & B, & A );
+		DaoxVector3D BC = DaoxVector3D_Sub( & C, & B );
+		DaoxVector3D facenorm = DaoxVector3D_Cross( & AB, & BC );
+		facenorm = DaoxVector3D_Normalize( & facenorm );
+		for(j=0; j<3; ++j){
+			DaoxVector3D *vnorm = & self->vertices->data.vertices[ triangle.index[j] ].norm;
+			vnorm->x += facenorm.x;
+			vnorm->y += facenorm.y;
+			vnorm->z += facenorm.z;
+		}
+	}
+	for(i=0; i<self->vertices->size; ++i){
+		DaoxVector3D *norm = & self->vertices->data.vertices[i].norm;
+		*norm = DaoxVector3D_Normalize( norm );
+	}
+}
 void DaoxMeshUnit_SetMaterial( DaoxMeshUnit *self, DaoxMaterial *material )
 {
 	GC_Assign( & self->material, material );
@@ -243,6 +294,14 @@ DaoxMeshUnit* DaoxMesh_AddUnit( DaoxMesh *self )
 	DList_Append( self->units, unit );
 	return unit;
 }
+void DaoxMesh_SetMaterial( DaoxMesh *self, DaoxMaterial *material )
+{
+	daoint i;
+	for(i=0; i<self->units->size; ++i){
+		DaoxMeshUnit *unit = (DaoxMeshUnit*) self->units->items.pVoid[i];
+		DaoxMeshUnit_SetMaterial( unit, material );
+	}
+}
 void DaoxMesh_UpdateTree( DaoxMesh *self, int maxtriangles )
 {
 	daoint i;
@@ -251,18 +310,23 @@ void DaoxMesh_UpdateTree( DaoxMesh *self, int maxtriangles )
 		DaoxMeshUnit_UpdateTree( unit, maxtriangles );
 	}
 }
+void DaoxMesh_UpdateNorms( DaoxMesh *self )
+{
+	int i;
+	for(i=0; i<self->units->size; ++i){
+		DaoxMeshUnit *unit = (DaoxMeshUnit*) self->units->items.pVoid[i];
+		DaoxMeshUnit_UpdateNorms( unit );
+	}
+}
 void DaoxMesh_ResetBoundingBox( DaoxMesh *self )
 {
 	DArray *points = DArray_New( sizeof(DaoxVector3D) );
 	daoint i, j, k;
 	for(i=0; i<self->units->size; ++i){
 		DaoxMeshUnit *unit = (DaoxMeshUnit*) self->units->items.pVoid[i];
-		for(j=0; j<unit->triangles->size; ++j){
-			DaoxTriangle *triangle = unit->triangles->data.triangles + j;
-			for(k=0; k<3; ++k){
-				DaoxVector3D point = unit->vertices->data.vertices[triangle->index[k]].point;
-				DArray_PushVector3D( points, & point );
-			}
+		for(j=0; j<unit->vertices->size; ++j){
+			DaoxVector3D point = unit->vertices->data.vertices[j].point;
+			DArray_PushVector3D( points, & point );
 		}
 	}
 	DaoxOBBox3D_ComputeBoundingBox( & self->obbox, points->data.vectors3d, points->size );
@@ -321,26 +385,26 @@ void DaoxMesh_MakeViewFrustumCorners( DaoxMesh *self, float fov, float ratio, fl
 
 static float box_vertices[][3] =
 {
-	{-0.5, -0.5,  0.5},
-	{-0.5, -0.5, -0.5},
-	{-0.5,  0.5, -0.5},
-	{-0.5,  0.5,  0.5},
-	{ 0.5, -0.5,  0.5},
-	{ 0.5, -0.5, -0.5},
-	{ 0.5,  0.5, -0.5},
-	{ 0.5,  0.5,  0.5}
+	{ 0.5F,  0.5, -0.5},
+	{ 0.5F, -0.5, -0.5},
+	{-0.5F, -0.5, -0.5},
+	{-0.5F,  0.5, -0.5},
+	{-0.5F,  0.5,  0.5},
+	{ 0.5F,  0.5,  0.5},
+	{ 0.5F, -0.5,  0.5},
+	{-0.5F, -0.5,  0.5}
 };
 static int box_faces[][4] =
 {
-	{ 4, 3, 2, 1 },
-	{ 2, 6, 5, 1 },
-	{ 3, 7, 6, 2 },
-	{ 8, 7, 3, 4 },
-	{ 5, 8, 4, 1 },
-	{ 6, 7, 8, 5 }
+	{ 0, 1, 2, 3 },
+	{ 3, 4, 7, 2 },
+	{ 0, 5, 6, 1 },
+	{ 5, 4, 7, 6 },
+	{ 5, 0, 3, 4 },
+	{ 6, 1, 2, 7 }
 };
 
-void DaoxMesh_MakeBoxObject( DaoxMesh *self )
+DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self )
 {
 	int i, j;
 	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
@@ -359,12 +423,14 @@ void DaoxMesh_MakeBoxObject( DaoxMesh *self )
 		int *face = box_faces[i];
 		for(j=2; j<4; ++j){
 			DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles, NULL );
-			triangle->index[0] = face[0] - 1;
-			triangle->index[1] = face[j-1] - 1;
-			triangle->index[2] = face[j] - 1;
+			triangle->index[0] = face[0];
+			triangle->index[1] = face[j-1];
+			triangle->index[2] = face[j];
 		}
 	}
+	DaoxMeshUnit_UpdateNorms( unit );
 	DaoxMesh_ResetBoundingBox( self );
+	return unit;
 }
 
 

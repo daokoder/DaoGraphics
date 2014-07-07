@@ -49,6 +49,11 @@ struct DaoxRenderer
 
 	DaoxScene       *scene;
 	DaoxCamera      *camera;
+
+	DaoxMesh        *axisMesh;
+	DaoxModel       *worldAxis;
+	DaoxModel       *localAxis;
+
 	DaoxViewFrustum  frustum;
 	DaoxViewFrustum  localFrustum;  /* In the current object coordinates; */
 
@@ -56,7 +61,7 @@ struct DaoxRenderer
 	DaoxBuffer  buffer;
 	DaoxBuffer  bufferVG;
 
-	DMap     *mapMaterials;
+	DMap    *mapMaterials;
 	DList   *visibleModels;
 	DList   *visibleChunks;
 	DList   *drawLists;
@@ -75,6 +80,7 @@ void DaoxRenderer_InitShaders( DaoxRenderer *self );
 void DaoxRenderer_InitBuffers( DaoxRenderer *self );
 void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam );
 
+void DaoxRenderer_SetCurrentCamera( DaoxRenderer *self, DaoxCamera *camera );
 DaoxCamera* DaoxRenderer_GetCurrentCamera( DaoxRenderer *self );
 
 #endif

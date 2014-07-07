@@ -128,6 +128,10 @@ DaoxMaterial* DaoxMaterial_New()
 {
 	DaoxMaterial *self = (DaoxMaterial*) dao_calloc( 1, sizeof(DaoxMaterial) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_material );
+	self->ambient = daox_black_color;
+	self->diffuse = daox_black_color;
+	self->specular = daox_black_color;
+	self->emission = daox_black_color;
 	self->name = DString_New(1);
 	return self;
 }
@@ -156,6 +160,18 @@ void DaoxMaterial_SetTexture( DaoxMaterial *self, DaoxTexture *texture )
 
 
 
+void DaoxViewFrustum_Normalize( DaoxViewFrustum *self )
+{
+	self->viewDirection = DaoxVector3D_Normalize( & self->viewDirection ); 
+	self->topLeftEdge = DaoxVector3D_Normalize( & self->topLeftEdge ); 
+	self->topRightEdge = DaoxVector3D_Normalize( & self->topRightEdge ); 
+	self->bottomLeftEdge = DaoxVector3D_Normalize( & self->bottomLeftEdge ); 
+	self->bottomRightEdge = DaoxVector3D_Normalize( & self->bottomRightEdge ); 
+	self->leftPlaneNorm = DaoxVector3D_Normalize( & self->leftPlaneNorm ); 
+	self->rightPlaneNorm = DaoxVector3D_Normalize( & self->rightPlaneNorm ); 
+	self->topPlaneNorm = DaoxVector3D_Normalize( & self->topPlaneNorm ); 
+	self->bottomPlaneNorm = DaoxVector3D_Normalize( & self->bottomPlaneNorm ); 
+}
 /*
 // View direction: -z;
 // Up direction:    y;
@@ -229,6 +245,7 @@ void DaoxViewFrustum_Init( DaoxViewFrustum *self, DaoxCamera *camera )
 	self->rightPlaneNorm = DaoxMatrix4D_MulVector( & objectToWorld, & rightPlaneNorm, 0.0 );
 	self->topPlaneNorm = DaoxMatrix4D_MulVector( & objectToWorld, & topPlaneNorm, 0.0 );
 	self->bottomPlaneNorm = DaoxMatrix4D_MulVector( & objectToWorld, & bottomPlaneNorm, 0.0 );
+	DaoxViewFrustum_Normalize( self );
 }
 DaoxViewFrustum DaoxViewFrustum_Transform( DaoxViewFrustum *self, DaoxMatrix4D *matrix )
 {
@@ -245,6 +262,7 @@ DaoxViewFrustum DaoxViewFrustum_Transform( DaoxViewFrustum *self, DaoxMatrix4D *
 	frustum.rightPlaneNorm = DaoxMatrix4D_MulVector( matrix, & self->rightPlaneNorm, 0.0 );
 	frustum.topPlaneNorm = DaoxMatrix4D_MulVector( matrix, & self->topPlaneNorm, 0.0 );
 	frustum.bottomPlaneNorm = DaoxMatrix4D_MulVector( matrix, & self->bottomPlaneNorm, 0.0 );
+	DaoxViewFrustum_Normalize( & frustum );
 	return frustum;
 }
 double DaoxViewFrustum_Difference( DaoxViewFrustum *self, DaoxViewFrustum *other )
@@ -454,7 +472,7 @@ void DaoxPointable_PointAt( DaoxPointable *self, DaoxVector3D pos )
 	DaoxMatrix4D translation = DaoxMatrix4D_TranslationOnly( & self->base.transform );
 	DaoxMatrix4D rot;
 
-	if( DaoxVector3D_Dist( & self->targetPosition, & pos ) < 1E-6 ) return;
+	if( DaoxVector3D_Dist( & self->targetPosition, & pos ) < 1E-9 ) return;
 	self->targetPosition = pos;
 	sourcePosition = DaoxMatrix4D_MulVector( & self->base.transform, & sourcePosition, 1.0 );
 	pointDirection = DaoxMatrix4D_MulVector( & rotation, & pointDirection, 1.0 );
@@ -477,6 +495,33 @@ void DaoxPointable_PointAtXYZ( DaoxPointable *self, float x, float y, float z )
 	DaoxPointable_PointAt( self, pos );
 }
 void DaoxPointable_Move( DaoxPointable *self, DaoxVector3D pos )
+{
+	double angle;
+	DaoxVector3D axis, newPointDirection;
+	DaoxVector3D sourcePosition = {0.0,0.0,0.0};
+	DaoxVector3D pointDirection = {0.0,0.0,-1.0};
+	DaoxMatrix4D rotation = DaoxMatrix4D_RotationOnly( & self->base.transform );
+	DaoxMatrix4D translation = DaoxMatrix4D_Translation( pos.x, pos.y, pos.z );
+	DaoxMatrix4D rot;
+
+	sourcePosition = DaoxMatrix4D_MulVector( & self->base.transform, & sourcePosition, 1.0 );
+
+	if( DaoxVector3D_Dist( & sourcePosition, & pos ) < 1E-9 ) return;
+
+	pointDirection = DaoxMatrix4D_MulVector( & rotation, & pointDirection, 1.0 );
+	newPointDirection = DaoxVector3D_Sub( & self->targetPosition, & pos );
+
+	pointDirection = DaoxVector3D_Normalize( & pointDirection );
+	newPointDirection = DaoxVector3D_Normalize( & newPointDirection );
+	axis = DaoxVector3D_Cross( & newPointDirection, & pointDirection );
+	angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
+	rot = DaoxMatrix4D_AxisRotation( axis, -angle );
+	rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
+	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
+
+	DaoxPointable_PointAt( self, self->targetPosition );
+}
+void DaoxPointable_Move2( DaoxPointable *self, DaoxVector3D pos )
 {
 	DaoxSceneNode_Move( (DaoxSceneNode*) self, pos );
 	DaoxPointable_PointAt( self, self->targetPosition );

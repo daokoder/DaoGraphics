@@ -275,12 +275,24 @@ void DaoxCanvas_Move( int x, int y )
 	if( box.top < 0.1*window_height ) return;
 	DaoxCanvas_SetViewport( daox_current_canvas, box.left, box.right, box.bottom, box.top );
 }
+void DaoxScene_Rotate( int x, int y )
+{
+}
 void DaoxCanvas_glutDrag( int x, int y )
 {
-	if( action_type == ROTATION ){
-		DaoxCanvas_Rotate( x, y );
-	}else{
-		DaoxCanvas_Move( x, y );
+	if( daox_current_canvas ){
+		if( action_type == ROTATION ){
+			DaoxCanvas_Rotate( x, y );
+		}else{
+			DaoxCanvas_Move( x, y );
+		}
+	}
+	if( daox_current_scene ){
+		if( action_type == ROTATION ){
+			DaoxScene_Rotate( x, y );
+		}else{
+			//DaoxScene_Move( x, y );
+		}
 	}
 }
 

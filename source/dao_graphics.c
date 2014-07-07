@@ -66,8 +66,39 @@ DaoTypeBase DaoxTexture_Typer =
 	(FuncPtrDel)DaoxTexture_Delete, NULL
 };
 
+static void MAT_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxMaterial *self = DaoxMaterial_New();
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static void MAT_SetColor( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxMaterial *self = (DaoxMaterial*) p[0];
+	int i;
+	for(i=1; i<N; ++i){
+		DaoTuple *param = (DaoTuple*) p[i];
+		DaoTuple *value = (DaoTuple*) param->values[1];
+		DaoxColor color = { 0.0, 0.0, 0.0, 1.0 };
+		color.red   = value->values[0]->xFloat.value;
+		color.green = value->values[1]->xFloat.value;
+		color.blue  = value->values[2]->xFloat.value;
+		printf( ">>>>>>>>>>>> %i %f\n", param->values[0]->xEnum.value, color.green );
+		switch( param->values[0]->xEnum.value ){
+		case 0: self->ambient  = color; break;
+		case 1: self->diffuse  = color; break;
+		case 2: self->specular = color; break;
+		case 3: self->emission = color; break;
+		}
+	}
+}
 static DaoFuncItem DaoxMaterialMeths[]=
 {
+	{ MAT_New,
+		"Material()"
+	},
+	{ MAT_SetColor,
+		"SetColor( self: Material, ...: tuple<enum<ambient,diffuse,specular,emission>,tuple<float,float,float>> )"
+	},
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxMaterial_Typer =
@@ -77,8 +108,26 @@ DaoTypeBase DaoxMaterial_Typer =
 };
 
 
+static void SNODE_Move( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxSceneNode *self = (DaoxSceneNode*) p[0];
+	float x = p[1]->xFloat.value;
+	float y = p[2]->xFloat.value;
+	float z = p[3]->xFloat.value;
+	DaoxSceneNode_MoveXYZ( self, x, y, z );
+}
+static void SNODE_MoveBy( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxSceneNode *self = (DaoxSceneNode*) p[0];
+	float dx = p[1]->xFloat.value;
+	float dy = p[2]->xFloat.value;
+	float dz = p[3]->xFloat.value;
+	DaoxSceneNode_MoveByXYZ( self, dx, dy, dz );
+}
 static DaoFuncItem DaoxSceneNodeMeths[]=
 {
+	{ SNODE_Move,    "Move( self: SceneNode, x: float, y: float, z: float )" },
+	{ SNODE_MoveBy,  "MoveBy( self: SceneNode, dx: float, dy: float, dz: float )" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxSceneNode_Typer =
@@ -88,6 +137,11 @@ DaoTypeBase DaoxSceneNode_Typer =
 };
 
 
+static void CAM_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCamera *self = DaoxCamera_New();
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
 static void CAM_Move( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCamera *self = (DaoxCamera*) p[0];
@@ -132,6 +186,7 @@ static void CAM_SetFarPlane( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxCameraMeths[]=
 {
+	{ CAM_New,    "Camera()" },
 	{ CAM_Move,    "Move( self: Camera, x: float, y: float, z: float )" },
 	{ CAM_MoveBy,  "MoveBy( self: Camera, dx: float, dy: float, dz: float )" },
 	{ CAM_LookAt,  "LookAt( self: Camera, x: float, y: float, z: float )" },
@@ -149,8 +204,20 @@ DaoTypeBase DaoxCamera_Typer =
 
 
 
+static void LIGHT_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxLight *self = DaoxLight_New();
+	self->lightType = p[0]->xEnum.value;
+	self->intensity.red = p[1]->xFloat.value;
+	self->intensity.green = p[2]->xFloat.value;
+	self->intensity.blue = p[3]->xFloat.value;
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
 static DaoFuncItem DaoxLightMeths[]=
 {
+	{ LIGHT_New,
+		"Light( litype: enum<ambient,point,directional,spot>, red =1F, green =1F, blue =1F )"
+	},
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxLight_Typer =
@@ -160,8 +227,17 @@ DaoTypeBase DaoxLight_Typer =
 	(FuncPtrDel)DaoxLight_Delete, NULL
 };
 
+static void MOD_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxModel *self = (DaoxModel*) p[0];
+	DaoxMaterial *mat = (DaoxMaterial*) p[1];
+	DaoxMesh_SetMaterial( self->mesh, mat );
+}
 static DaoFuncItem DaoxModelMeths[]=
 {
+	{ MOD_SetMaterial,
+		"SetMaterial( self: Model, material: Material )"
+	},
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxModel_Typer =
@@ -186,13 +262,17 @@ static void SCENE_AddNode( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void SCENE_AddBox( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoxMatrix4D transform = DaoxMatrix4D_Identity();
 	DaoxScene *self = (DaoxScene*) p[0];
 	DaoxModel *model = DaoxModel_New();
 	DaoxMesh *mesh = DaoxMesh_New();
 	DaoxMesh_MakeBoxObject( mesh );
 	DaoxMesh_UpdateTree( mesh, 0 );
 	DaoxModel_SetMesh( model, mesh );
-	DaoxOBBox3D_Print( & model->base.obbox );
+	transform.A11 = p[1]->xFloat.value;
+	transform.A22 = p[2]->xFloat.value;
+	transform.A33 = p[3]->xFloat.value;
+	model->base.transform = transform;
 	DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) model, 0, 0, 0 );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) model );
 	DaoProcess_PutValue( proc, (DaoValue*) model );
@@ -222,7 +302,7 @@ static DaoFuncItem DaoxSceneMeths[] =
 {
 	{ SCENE_New,         "Scene()" },
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
-	{ SCENE_AddBox,      "AddBox( self: Scene ) => Model" },
+	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1F, ylen = 1F, zlen = 1F ) => Model" },
 	{ SCENE_Load3DS,     "Load3DS( self: Scene, file: string )" },
 	{ NULL, NULL }
 };
@@ -267,6 +347,12 @@ static void RENDR_New( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxRenderer *self = DaoxRenderer_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void RENDR_SetCurrentCamera( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxRenderer *self = (DaoxRenderer*) p[0];
+	DaoxCamera *cam = (DaoxCamera*) p[1];
+	DaoxRenderer_SetCurrentCamera( self, cam );
+}
 static void RENDR_GetCurrentCamera( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxRenderer *self = (DaoxRenderer*) p[0];
@@ -276,6 +362,7 @@ static void RENDR_GetCurrentCamera( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxRendererMeths[]=
 {
 	{ RENDR_New,         "Renderer()" },
+	{ RENDR_SetCurrentCamera,  "SetCurrentCamera( self: Renderer, camera: Camera )" },
 	{ RENDR_GetCurrentCamera,  "GetCurrentCamera( self: Renderer ) => Camera" },
 	{ NULL, NULL }
 };

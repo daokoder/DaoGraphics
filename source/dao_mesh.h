@@ -46,13 +46,13 @@ typedef struct DaoxMeshUnit   DaoxMeshUnit;
 
 struct DaoxMeshChunk
 {
-	DaoxOBBox3D      obbox;      /* with local coordinates in the mesh; */
-	DArray  *triangles;  /* <int>: with triangle indices in DaoxMesh; */
+	DaoxOBBox3D     obbox;      /* with local coordinates in the mesh; */
+	DArray         *triangles;  /* <int>: with triangle indices in DaoxMeshUnit; */
 
-	DaoxMeshUnit    *unit;
-	DaoxMeshChunk   *parent;
-	DaoxMeshChunk   *left;
-	DaoxMeshChunk   *right;
+	DaoxMeshUnit   *unit;
+	DaoxMeshChunk  *parent;
+	DaoxMeshChunk  *left;
+	DaoxMeshChunk  *right;
 };
 extern DaoType *daox_type_mesh_unit;
 
@@ -68,14 +68,16 @@ struct DaoxMeshUnit
 	DaoxMesh        *mesh;
 	DaoxMeshChunk   *tree;
 	DaoxMaterial    *material;
-	DArray  *vertices;  /* local coordinates; */
-	DArray  *triangles; /* local coordinates (for face norms); */
+	DArray          *vertices;  /* <DaoxVector3D>: local coordinates; */
+	DArray          *triangles; /* <DaoxTriangle>: local coordinates (for face norms); */
 	DaoxOBBox3D      obbox;  /* local coordinates; */
 	uint_t           index;  /* unit index in the mesh; */
 };
 DaoxMeshUnit* DaoxMeshUnit_New();
 void DaoxMeshUnit_Delete( DaoxMeshUnit *self );
 
+void DaoxMeshUnit_MoveBy( DaoxMeshUnit *self, float dx, float dy, float dz );
+void DaoxMeshUnit_ScaleBy( DaoxMeshUnit *self, float fx, float fy, float fz );
 void DaoxMeshUnit_SetMaterial( DaoxMeshUnit *self, DaoxMaterial *material );
 
 
@@ -85,7 +87,7 @@ struct DaoxMesh
 {
 	DAO_CSTRUCT_COMMON;
 
-	DList      *units;
+	DList       *units;
 	DaoxOBBox3D  obbox;  /* local coordinates; */
 };
 extern DaoType *daox_type_mesh;
@@ -94,10 +96,12 @@ DaoxMesh* DaoxMesh_New();
 void DaoxMesh_Delete( DaoxMesh *self );
 
 DaoxMeshUnit* DaoxMesh_AddUnit( DaoxMesh *self );
+void DaoxMesh_SetMaterial( DaoxMesh *self, DaoxMaterial *material );
 void DaoxMesh_ResetBoundingBox( DaoxMesh *self );
 void DaoxMesh_UpdateTree( DaoxMesh *self, int maxtriangles );
 void DaoxMesh_MakeViewFrustumCorners( DaoxMesh *self, float fov, float ratio, float near );
 
+DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self );
 
 
 

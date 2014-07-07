@@ -39,6 +39,8 @@
 
 DaoxRenderer* DaoxRenderer_New()
 {
+	DaoxMaterial *omat, *xmat, *zmat, *ymat;
+	DaoxMeshUnit *origin, *xaxis, *yaxis, *zaxis;
 	DaoxRenderer *self = (DaoxRenderer*) dao_calloc( 1, sizeof(DaoxRenderer) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_renderer );
 	self->visibleModels = DList_New(0);
@@ -51,6 +53,45 @@ DaoxRenderer* DaoxRenderer_New()
 	self->mapping = DArray_New( sizeof(int) );
 	DaoxRenderer_InitShaders( self );
 	DaoxRenderer_InitBuffers( self );
+
+	self->axisMesh = DaoxMesh_New();
+	self->worldAxis = DaoxModel_New();
+	self->localAxis = DaoxModel_New();
+	GC_IncRC( self->axisMesh );
+	GC_IncRC( self->worldAxis );
+	GC_IncRC( self->localAxis );
+
+	origin = DaoxMesh_MakeBoxObject( self->axisMesh );
+	xaxis = DaoxMesh_MakeBoxObject( self->axisMesh );
+	yaxis = DaoxMesh_MakeBoxObject( self->axisMesh );
+	zaxis = DaoxMesh_MakeBoxObject( self->axisMesh );
+
+	omat = DaoxMaterial_New();
+	xmat = DaoxMaterial_New();
+	ymat = DaoxMaterial_New();
+	zmat = DaoxMaterial_New();
+	omat->diffuse = daox_gray_color;
+	xmat->diffuse = daox_red_color;
+	ymat->diffuse = daox_green_color;
+	zmat->diffuse = daox_blue_color;
+
+	DaoxMeshUnit_SetMaterial( origin, omat );
+	DaoxMeshUnit_SetMaterial( xaxis, xmat );
+	DaoxMeshUnit_SetMaterial( yaxis, ymat );
+	DaoxMeshUnit_SetMaterial( zaxis, zmat );
+
+	DaoxMeshUnit_ScaleBy( origin, 0.2, 0.2, 0.2 );
+	DaoxMeshUnit_ScaleBy( xaxis, 1.0, 0.1, 0.1 );
+	DaoxMeshUnit_ScaleBy( yaxis, 0.1, 1.0, 0.1 );
+	DaoxMeshUnit_ScaleBy( zaxis, 0.1, 0.1, 1.0 );
+	DaoxMeshUnit_MoveBy( xaxis, 0.5, 0.0, 0.0 );
+	DaoxMeshUnit_MoveBy( yaxis, 0.0, 0.5, 0.0 );
+	DaoxMeshUnit_MoveBy( zaxis, 0.0, 0.0, 0.5 );
+
+	DaoxMesh_UpdateTree( self->axisMesh, 0 );
+	DaoxModel_SetMesh( self->worldAxis, self->axisMesh );
+	DaoxModel_SetMesh( self->localAxis, self->axisMesh );
+
 	return self;
 }
 void DaoxRenderer_Delete( DaoxRenderer *self )
@@ -65,10 +106,17 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 	DArray_Delete( self->vertices );
 	DArray_Delete( self->triangles );
 	DArray_Delete( self->mapping );
+	GC_DecRC( self->axisMesh );
+	GC_DecRC( self->worldAxis );
+	GC_DecRC( self->localAxis );
 	dao_free( self );
 }
 
 
+void DaoxRenderer_SetCurrentCamera( DaoxRenderer *self, DaoxCamera *camera )
+{
+	GC_Assign( & self->camera, camera );
+}
 DaoxCamera* DaoxRenderer_GetCurrentCamera( DaoxRenderer *self )
 {
 	if( self->camera ) return self->camera;
@@ -490,12 +538,12 @@ void DaoxScene_EstimateBoundingBox( DaoxScene *self, DaoxOBBox3D *obbox )
 {
 	DArray *points = DArray_New( sizeof(DaoxVector3D) );
 	daoint i, j, k;
-	printf( "nodes: %i\n", self->nodes->size );
 	for(i=0; i<self->nodes->size; ++i){
 		DaoxSceneNode *node = self->nodes->items.pSceneNode[i];
 		DaoxOBBox3D obbox = DaoxOBBox3D_Transform( & node->obbox, & node->transform );
-		DaoxVector3D CO = DaoxVector3D_Sub( & obbox.C, & obbox.O );
-		DaoxVector3D P = DaoxVector3D_Add( & obbox.C, & CO );
+		DaoxVector3D P = DaoxOBBox3D_GetDiagonalVertex( & obbox );
+		if( node->ctype == daox_type_light ) continue;
+		if( node->ctype == daox_type_camera ) continue;
 		DArray_PushVector3D( points, & obbox.O );
 		DArray_PushVector3D( points, & obbox.X );
 		DArray_PushVector3D( points, & obbox.Y );
@@ -528,6 +576,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	if( cam == NULL && self->camera == NULL ){
 		self->camera = DaoxCamera_New();
 		DaoGC_IncRC( (DaoValue*) self->camera );
+
 	}
 	if( cam && cam != self->camera ){
 		GC_Assign( & self->camera, cam );
@@ -551,17 +600,23 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 
 	DaoxOBBox3D sceneObbox;
 	DaoxScene_EstimateBoundingBox( scene, & sceneObbox );
-	sceneObbox = DaoxOBBox3D_Scale( & sceneObbox, 1.0 );
-	cam->farPlane = 2*sceneObbox.R;
-	DaoxCamera_Move( cam, sceneObbox.O );
+	sceneObbox = DaoxOBBox3D_Scale( & sceneObbox, 1.2 );
+	cam->farPlane = 10000 + 2*sceneObbox.R;
+
+#if 0
+	DaoxVector3D P = DaoxOBBox3D_GetDiagonalVertex( & sceneObbox );
 	DaoxCamera_LookAt( cam, sceneObbox.C );
+	DaoxCamera_Move( cam, P );
+	DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, sceneObbox.O );
 	//DaoxCamera_Move( cam, sceneObbox.C );
 	//DaoxCamera_LookAt( cam, sceneObbox.O );
 	DaoxVector3D_Print( & sceneObbox.O );
 	DaoxVector3D_Print( & sceneObbox.C );
-	//printf( "R = %f\n", sceneObbox.R );
+	printf( "R = %f, %i\n", sceneObbox.R, lightCount );
 	//DaoxCamera_MoveXYZ( cam, rand()%300, 52+rand()%300, rand()%300 );
 	//DaoxCamera_LookAtXYZ( cam, 0, 50, 0 );
+#endif
+
 
 	objectToWorld = DaoxSceneNode_GetWorldTransform( & cam->base );
 	viewMatrix = DaoxMatrix4D_Inverse( & objectToWorld );
@@ -569,6 +624,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	DaoxMatrix4D_Print( & objectToWorld );
 
 	DaoxViewFrustum_Init( & fm, cam );
+	printf( "%g %g\n", DaoxViewFrustum_Difference( & fm, & self->frustum ), EPSILON );
 	if( DaoxViewFrustum_Difference( & fm, & self->frustum ) > EPSILON ){ // TODO: better handling;
 		DArray *triangles;
 		self->drawLists->size = 0;
@@ -583,6 +639,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 			DaoxSceneNode *node = scene->nodes->items.pSceneNode[i];
 			DaoxRenderer_PrepareNode( self, node );
 		}
+		DaoxRenderer_PrepareNode( self, (DaoxSceneNode*) self->worldAxis );
 		if( self->vertexCount > self->buffer.vertexOffset ){
 			//DaoxRenderer_ProcessTriangles( self );
 			DaoxRenderer_UpdateBuffer2( self, fm.cameraPosition );

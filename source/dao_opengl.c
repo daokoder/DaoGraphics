@@ -346,6 +346,7 @@ void main(void)\n\
 		relativeLightSource[i] = relativeLightSource2;\n\
 	}\n\
 	if( lightCount == 0 ) vertexColor = texColor;\n\
+	//if( true ) vertexColor = texColor;\n\
 	gl_Position = projMatrix * viewMatrix * vec4( position, 1.0 );\n\
 	texCoord2 = texCoord;\n\
 }\n";
