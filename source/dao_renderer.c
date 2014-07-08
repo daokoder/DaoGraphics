@@ -39,6 +39,8 @@
 
 DaoxRenderer* DaoxRenderer_New()
 {
+	float width = 0.01;
+	float length = 0.1;
 	DaoxMaterial *omat, *xmat, *zmat, *ymat;
 	DaoxMeshUnit *origin, *xaxis, *yaxis, *zaxis;
 	DaoxRenderer *self = (DaoxRenderer*) dao_calloc( 1, sizeof(DaoxRenderer) );
@@ -70,23 +72,23 @@ DaoxRenderer* DaoxRenderer_New()
 	xmat = DaoxMaterial_New();
 	ymat = DaoxMaterial_New();
 	zmat = DaoxMaterial_New();
-	omat->diffuse = daox_gray_color;
-	xmat->diffuse = daox_red_color;
-	ymat->diffuse = daox_green_color;
-	zmat->diffuse = daox_blue_color;
+	omat->emission = DaoxColor_Darker( & daox_gray_color, 0.5 );
+	xmat->emission = DaoxColor_Darker( & daox_red_color, 0.75 );
+	ymat->emission = DaoxColor_Darker( & daox_green_color, 0.75 );
+	zmat->emission = DaoxColor_Darker( & daox_blue_color, 0.75 );
 
 	DaoxMeshUnit_SetMaterial( origin, omat );
 	DaoxMeshUnit_SetMaterial( xaxis, xmat );
 	DaoxMeshUnit_SetMaterial( yaxis, ymat );
 	DaoxMeshUnit_SetMaterial( zaxis, zmat );
 
-	DaoxMeshUnit_ScaleBy( origin, 0.2, 0.2, 0.2 );
-	DaoxMeshUnit_ScaleBy( xaxis, 1.0, 0.1, 0.1 );
-	DaoxMeshUnit_ScaleBy( yaxis, 0.1, 1.0, 0.1 );
-	DaoxMeshUnit_ScaleBy( zaxis, 0.1, 0.1, 1.0 );
-	DaoxMeshUnit_MoveBy( xaxis, 0.5, 0.0, 0.0 );
-	DaoxMeshUnit_MoveBy( yaxis, 0.0, 0.5, 0.0 );
-	DaoxMeshUnit_MoveBy( zaxis, 0.0, 0.0, 0.5 );
+	DaoxMeshUnit_ScaleBy( origin, 2*width, 2*width, 2*width );
+	DaoxMeshUnit_ScaleBy( xaxis, length, width, width );
+	DaoxMeshUnit_ScaleBy( yaxis, width, length, width );
+	DaoxMeshUnit_ScaleBy( zaxis, width, width, length );
+	DaoxMeshUnit_MoveBy( xaxis, 0.5*length, 0.0, 0.0 );
+	DaoxMeshUnit_MoveBy( yaxis, 0.0, 0.5*length, 0.0 );
+	DaoxMeshUnit_MoveBy( zaxis, 0.0, 0.0, 0.5*length );
 
 	DaoxMesh_UpdateTree( self->axisMesh, 0 );
 	DaoxModel_SetMesh( self->worldAxis, self->axisMesh );
@@ -152,9 +154,6 @@ void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMe
 	if( chunk->triangles->size == 0 ) return;
 
 	if( knownVisible == 0 ){
-		check = DaoxViewFrustum_Visible( frustum, & chunk->obbox );
-		if( check < 0 ) return;
-		knownVisible = check > 0;
 	}
 
 	if( chunk->left && chunk->left->triangles->size )
@@ -220,7 +219,6 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 	self->localFrustum = DaoxViewFrustum_Transform( & self->frustum, & worldToObject );
 
 	// 2. Check if the obbox box of the object intersect with the frustum;
-	if( DaoxViewFrustum_Visible( & self->localFrustum, & node->obbox ) < 0 ) return;
 
 	if( ctype == daox_type_canvas ){
 		/* The canvas is locally placed on the xy-plane facing z-axis: */
@@ -272,6 +270,7 @@ void DaoxRenderer_ReduceData( DaoxRenderer *self, DaoxSceneNode *node )
 	DaoxModel *model = (DaoxModel*) node;
 	daoint i;
 
+	return;
 	if( node->ctype != daox_type_model ) return;
 	for(i=0; i<node->children->size; ++i){
 		DaoxSceneNode *child = (DaoxSceneNode*) node->children->items.pSceneNode[i];
@@ -598,16 +597,19 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	//DaoxMatrix4D_Print( & cam->objectToWorld );
 #endif
 
+#if 0
 	DaoxOBBox3D sceneObbox;
 	DaoxScene_EstimateBoundingBox( scene, & sceneObbox );
 	sceneObbox = DaoxOBBox3D_Scale( & sceneObbox, 1.2 );
+	sceneObbox = DaoxOBBox3D_ToAABox( & sceneObbox );
 	cam->farPlane = 10000 + 2*sceneObbox.R;
 
-#if 0
 	DaoxVector3D P = DaoxOBBox3D_GetDiagonalVertex( & sceneObbox );
+	DaoxVector3D_Print( & cam->viewTarget );
 	DaoxCamera_LookAt( cam, sceneObbox.C );
 	DaoxCamera_Move( cam, P );
-	DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, sceneObbox.O );
+	//DaoxCamera_RotateBy( cam, 0.005 );
+	//DaoxCamera_AdjustToHorizon( cam );
 	//DaoxCamera_Move( cam, sceneObbox.C );
 	//DaoxCamera_LookAt( cam, sceneObbox.O );
 	DaoxVector3D_Print( & sceneObbox.O );
@@ -624,7 +626,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	DaoxMatrix4D_Print( & objectToWorld );
 
 	DaoxViewFrustum_Init( & fm, cam );
-	printf( "%g %g\n", DaoxViewFrustum_Difference( & fm, & self->frustum ), EPSILON );
+	DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, fm.axisOrigin );
 	if( DaoxViewFrustum_Difference( & fm, & self->frustum ) > EPSILON ){ // TODO: better handling;
 		DArray *triangles;
 		self->drawLists->size = 0;
@@ -726,10 +728,12 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		DaoxColor ambient = material ? material->ambient : daox_gray_color;
 		DaoxColor diffuse = material ? material->diffuse : daox_gray_color;
 		DaoxColor specular = material ? material->specular : daox_gray_color;
+		DaoxColor emission = material ? material->emission : daox_black_color;
 		//printf( "%3i %6i %6i\n", i, data[0], data[1] );
 		glUniform4fv( self->shader.uniforms.ambientColor, 1, & ambient.red );
 		glUniform4fv( self->shader.uniforms.diffuseColor, 1, & diffuse.red );
 		glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
+		glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
 		if( material && material->texture1 ){
 			DaoxTexture *texture = material->texture1;
 			DaoxTexture_glInitTexture( texture );

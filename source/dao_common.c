@@ -41,6 +41,26 @@ const DaoxColor daox_blue_color = { 0.0, 0.0, 1.0, 1.0 };
 const DaoxColor daox_gray_color = { 0.5, 0.5, 0.5, 1.0 };
 
 
+DaoxColor DaoxColor_Darker( DaoxColor *self, float factor )
+{
+	DaoxColor color = *self;
+	if( factor < 0.0 ) factor = 0.0;
+	if( factor > 1.0 ) factor = 1.0;
+	color.red = (1.0 - factor) * color.red;
+	color.green = (1.0 - factor) * color.green;
+	color.blue = (1.0 - factor) * color.blue;
+	return color;
+}
+DaoxColor DaoxColor_Lighter( DaoxColor *self, float factor )
+{
+	DaoxColor color = *self;
+	if( factor < 0.0 ) factor = 0.0;
+	if( factor > 1.0 ) factor = 1.0;
+	color.red = (1.0 - factor) * color.red + factor;
+	color.green = (1.0 - factor) * color.green + factor;
+	color.blue = (1.0 - factor) * color.blue + factor;
+	return color;
+}
 
 
 
@@ -321,6 +341,15 @@ DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D point, DaoxVector3D norm, Daox
 	double PN = DaoxVector3D_Dot( & point, & norm );
 	double T = (PN - P1N) / (P2N - P1N);
 	return DaoxVector3D_Interpolate( P1, P2, T );
+}
+DaoxVector3D DaoxVector3D_ProjectToPlane( DaoxVector3D *self, DaoxVector3D *planeNorm )
+{
+	DaoxVector3D projection = { 0.0, 0.0, 0.0 };
+	DaoxVector3D norm = DaoxVector3D_Normalize( planeNorm );
+	double dot = DaoxVector3D_Dot( self, & norm );
+	if( abs(dot - 1.0) < 1E-16 ) return projection;
+	projection = DaoxVector3D_Scale( & norm, dot );
+	return DaoxVector3D_Sub( self, & projection );
 }
 
 
@@ -897,6 +926,34 @@ DaoxOBBox3D DaoxOBBox3D_Transform( DaoxOBBox3D *self, DaoxMatrix4D *transfrom )
 	obbox.Z = DaoxMatrix4D_MulVector( transfrom, & self->Z, 1 );
 	obbox.C = DaoxMatrix4D_MulVector( transfrom, & self->C, 1 );
 	obbox.R = self->R;
+	return obbox;
+}
+DaoxOBBox3D DaoxOBBox3D_ToAABox( DaoxOBBox3D *self )
+{
+	DaoxOBBox3D obbox;
+	DaoxVector3D P = DaoxOBBox3D_GetDiagonalVertex( self );
+	float xmin, xmax, ymin, ymax, zmin, zmax;
+	xmin = xmax = self->O.x;
+	ymin = ymax = self->O.y;
+	zmin = zmax = self->O.z;
+	if( self->X.x < xmin ) xmin = self->X.x; else if( self->X.x > xmax ) xmax = self->X.x;
+	if( self->X.y < ymin ) ymin = self->X.y; else if( self->X.y > ymax ) ymax = self->X.y;
+	if( self->X.z < zmin ) zmin = self->X.z; else if( self->X.z > zmax ) zmax = self->X.z;
+	if( self->Y.x < xmin ) xmin = self->Y.x; else if( self->Y.x > xmax ) xmax = self->Y.x;
+	if( self->Y.y < ymin ) ymin = self->Y.y; else if( self->Y.y > ymax ) ymax = self->Y.y;
+	if( self->Y.z < zmin ) zmin = self->Y.z; else if( self->Y.z > zmax ) zmax = self->Y.z;
+	if( self->Z.x < xmin ) xmin = self->Z.x; else if( self->Z.x > xmax ) xmax = self->Z.x;
+	if( self->Z.y < ymin ) ymin = self->Z.y; else if( self->Z.y > ymax ) ymax = self->Z.y;
+	if( self->Z.z < zmin ) zmin = self->Z.z; else if( self->Z.z > zmax ) zmax = self->Z.z;
+	if( P.x < xmin ) xmin = P.x; else if( P.x > xmax ) xmax = P.x;
+	if( P.y < ymin ) ymin = P.y; else if( P.y > ymax ) ymax = P.y;
+	if( P.z < zmin ) zmin = P.z; else if( P.z > zmax ) zmax = P.z;
+	obbox.O.x = xmin;  obbox.O.y = ymin;  obbox.O.z = zmin;
+	obbox.X.x = xmax;  obbox.X.y = ymin;  obbox.X.z = zmin;
+	obbox.Y.x = xmin;  obbox.Y.y = ymax;  obbox.Y.z = zmin;
+	obbox.Z.x = xmin;  obbox.Z.y = ymin;  obbox.Z.z = zmax;
+	obbox.C.x = 0.5*(xmin+xmax);  obbox.C.y = 0.5*(ymin+ymax);  obbox.C.z = 0.5*(zmin+zmax);
+	obbox.R = DaoxVector3D_Dist( & obbox.O, & obbox.C );
 	return obbox;
 }
 DaoxVector3D DaoxOBBox3D_GetDiagonalVertex( DaoxOBBox3D *self )

@@ -185,11 +185,21 @@ void DaoxCamera_Delete( DaoxCamera *self );
 
 void DaoxCamera_CopyFrom( DaoxCamera *self, DaoxCamera *other );
 
+DaoxVector3D DaoxCamera_GetPosition( DaoxCamera *self );
+DaoxVector3D DaoxCamera_GetViewDirection( DaoxCamera *self );
+DaoxVector3D DaoxCamera_GetUpDirection( DaoxCamera *self );
+DaoxVector3D DaoxCamera_GetRightDirection( DaoxCamera *self );
+DaoxVector3D DaoxCamera_GetDirection( DaoxCamera *self, DaoxVector3D *localDirection );
+
 void DaoxCamera_Move( DaoxCamera *self, DaoxVector3D pos );
 void DaoxCamera_MoveBy( DaoxCamera *self, DaoxVector3D delta );
-void DaoxCamera_LookAt( DaoxCamera *self, DaoxVector3D pos );
 void DaoxCamera_MoveXYZ( DaoxCamera *self, float x, float y, float z );
 void DaoxCamera_MoveByXYZ( DaoxCamera *self, float dx, float dy, float dz );
+
+void DaoxCamera_RotateBy( DaoxCamera *self, float alpha );
+void DaoxCamera_AdjustToHorizon( DaoxCamera *self );
+
+void DaoxCamera_LookAt( DaoxCamera *self, DaoxVector3D pos );
 void DaoxCamera_LookAtXYZ( DaoxCamera *self, float x, float y, float z );
 
 
@@ -263,6 +273,8 @@ struct DaoxViewFrustum
 	DaoxVector3D  rightPlaneNorm;   /* world coordinates; */
 	DaoxVector3D  topPlaneNorm;     /* world coordinates; */
 	DaoxVector3D  bottomPlaneNorm;  /* world coordinates; */
+
+	DaoxVector3D  axisOrigin; /* For displaying axis; world coordinates; */
 };
 
 void DaoxViewFrustum_Init( DaoxViewFrustum *self, DaoxCamera *camera );

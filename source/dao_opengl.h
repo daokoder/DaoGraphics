@@ -118,6 +118,7 @@ struct DaoxShader
 		uint_t  ambientColor;
 		uint_t  diffuseColor;
 		uint_t  specularColor;
+		uint_t  emissionColor;
 		uint_t  fade_factor;
 		uint_t  material;
 		uint_t  textureCount;

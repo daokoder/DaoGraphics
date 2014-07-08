@@ -166,6 +166,17 @@ static void CAM_LookAt( DaoProcess *proc, DaoValue *p[], int N )
 	float z = p[3]->xFloat.value;
 	DaoxCamera_LookAtXYZ( self, x, y, z );
 }
+static void CAM_Rotate( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCamera *self = (DaoxCamera*) p[0];
+	float angle = p[1]->xFloat.value;
+	DaoxCamera_RotateBy( self, angle );
+}
+static void CAM_Orient( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCamera *self = (DaoxCamera*) p[0];
+	DaoxCamera_AdjustToHorizon( self );
+}
 static void CAM_SetFOV( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCamera *self = (DaoxCamera*) p[0];
@@ -186,10 +197,12 @@ static void CAM_SetFarPlane( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxCameraMeths[]=
 {
-	{ CAM_New,    "Camera()" },
+	{ CAM_New,     "Camera()" },
 	{ CAM_Move,    "Move( self: Camera, x: float, y: float, z: float )" },
 	{ CAM_MoveBy,  "MoveBy( self: Camera, dx: float, dy: float, dz: float )" },
 	{ CAM_LookAt,  "LookAt( self: Camera, x: float, y: float, z: float )" },
+	{ CAM_Rotate,  "Rotate( self: Camera, angle: float )" },
+	{ CAM_Orient,  "Orient( self: Camera )" },
 	{ CAM_SetFOV,  "SetFOV( self: Camera, angle: float )" },
 	{ CAM_SetNearPlane,  "SetNearPlane( self: Camera, dist: float )" },
 	{ CAM_SetFarPlane,   "SetFarPlane( self: Camera, dist: float )" },

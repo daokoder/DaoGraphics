@@ -228,7 +228,6 @@ void DaoxCanvas_glutButton( int button, int state, int x, int y )
 void DaoxCanvas_Rotate( int x, int y )
 {
 	DaoxMatrix3D rotate = {1.0,0.0,0.0,0.0,1.0,0.0};
-	DaoxAABBox2D box = daox_current_canvas->viewport;
 	DaoxVector2D start, end, center = {0.0,0.0};
 	double W2 = 0.5 * window_width;
 	double H2 = 0.5 * window_height;

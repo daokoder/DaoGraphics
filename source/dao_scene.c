@@ -74,11 +74,13 @@ void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image )
 void DaoxTexture_LoadImage( DaoxTexture *self, const char *file )
 {
 	DaoxImage *image = self->image;
+	int ok = 0;
 	if( image == NULL || image->refCount > 1 ){
 		image = DaoxImage_New();
 		DaoxTexture_SetImage( self, image );
 	}
-	DaoxImage_LoadBMP( self->image, file );
+	if( ok == 0 ) ok = DaoxImage_LoadPNG( self->image, file );
+	if( ok == 0 ) ok = DaoxImage_LoadBMP( self->image, file );
 }
 void DaoxTexture_glFreeTexture( DaoxTexture *self )
 {
@@ -162,6 +164,8 @@ void DaoxMaterial_SetTexture( DaoxMaterial *self, DaoxTexture *texture )
 
 void DaoxViewFrustum_Normalize( DaoxViewFrustum *self )
 {
+	DaoxVector3D vector;
+
 	self->viewDirection = DaoxVector3D_Normalize( & self->viewDirection ); 
 	self->topLeftEdge = DaoxVector3D_Normalize( & self->topLeftEdge ); 
 	self->topRightEdge = DaoxVector3D_Normalize( & self->topRightEdge ); 
@@ -171,6 +175,9 @@ void DaoxViewFrustum_Normalize( DaoxViewFrustum *self )
 	self->rightPlaneNorm = DaoxVector3D_Normalize( & self->rightPlaneNorm ); 
 	self->topPlaneNorm = DaoxVector3D_Normalize( & self->topPlaneNorm ); 
 	self->bottomPlaneNorm = DaoxVector3D_Normalize( & self->bottomPlaneNorm ); 
+
+	vector = DaoxVector3D_Scale( & self->viewDirection, self->near + 0.11 );
+	self->axisOrigin = DaoxVector3D_Add( & self->cameraPosition, & vector );
 }
 /*
 // View direction: -z;
@@ -573,25 +580,76 @@ void DaoxCamera_CopyFrom( DaoxCamera *self, DaoxCamera *other )
 	self->farPlane = other->farPlane;
 }
 
+DaoxVector3D DaoxCamera_GetPosition( DaoxCamera *self )
+{
+	DaoxVector3D position = {0.0,0.0,0.0};
+	return DaoxMatrix4D_MulVector( & self->base.transform, & position, 1.0 );
+}
+DaoxVector3D DaoxCamera_GetDirection( DaoxCamera *self, DaoxVector3D *localDirection )
+{
+	DaoxMatrix4D rotation = DaoxMatrix4D_RotationOnly( & self->base.transform );
+	return DaoxMatrix4D_MulVector( & rotation, localDirection, 1.0 );
+}
+DaoxVector3D DaoxCamera_GetViewDirection( DaoxCamera *self )
+{
+	DaoxVector3D direction = {0.0,0.0,-1.0};
+	return DaoxCamera_GetDirection( self, & direction );
+}
+DaoxVector3D DaoxCamera_GetUpDirection( DaoxCamera *self )
+{
+	DaoxVector3D direction = {0.0,1.0,0.0};
+	return DaoxCamera_GetDirection( self, & direction );
+}
+DaoxVector3D DaoxCamera_GetRightDirection( DaoxCamera *self )
+{
+	DaoxVector3D direction = {1.0,0.0,0.0};
+	return DaoxCamera_GetDirection( self, & direction );
+}
+
 void DaoxCamera_Move( DaoxCamera *self, DaoxVector3D pos )
 {
 	DaoxPointable_Move( (DaoxPointable*) self, pos );
-}
-void DaoxCamera_MoveBy( DaoxCamera *self, DaoxVector3D delta )
-{
-	DaoxPointable_MoveBy( (DaoxPointable*) self, delta );
-}
-void DaoxCamera_LookAt( DaoxCamera *self, DaoxVector3D pos )
-{
-	DaoxPointable_PointAt( (DaoxPointable*) self, pos );
 }
 void DaoxCamera_MoveXYZ( DaoxCamera *self, float x, float y, float z )
 {
 	DaoxPointable_MoveXYZ( (DaoxPointable*) self, x, y, z );
 }
+void DaoxCamera_MoveBy( DaoxCamera *self, DaoxVector3D delta )
+{
+	DaoxVector3D position = DaoxMatrix4D_MulVector( & self->base.transform, & delta, 1.0 );;
+	DaoxPointable_Move( (DaoxPointable*) self, position );
+	DaoxPointable_PointAt( (DaoxPointable*) self, self->viewTarget );
+}
 void DaoxCamera_MoveByXYZ( DaoxCamera *self, float dx, float dy, float dz )
 {
-	DaoxPointable_MoveByXYZ( (DaoxPointable*) self, dx, dy, dz );
+	DaoxVector3D delta;
+	delta.x = dx;
+	delta.y = dy;
+	delta.z = dz;
+	DaoxCamera_MoveBy( self, delta );
+}
+void DaoxCamera_RotateBy( DaoxCamera *self, float alpha )
+{
+	DaoxVector3D cameraPosition = DaoxCamera_GetPosition( self );
+	DaoxVector3D cameraDirection = DaoxCamera_GetViewDirection( self );
+	DaoxMatrix4D rotation = DaoxMatrix4D_RotationOnly( & self->base.transform );
+	DaoxMatrix4D translation = DaoxMatrix4D_TranslationOnly( & self->base.transform );
+	DaoxMatrix4D rot = DaoxMatrix4D_AxisRotation( cameraDirection, alpha );
+	rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
+	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
+}
+void DaoxCamera_AdjustToHorizon( DaoxCamera *self )
+{
+	DaoxVector3D zaxis = { 0.0, 0.0, 1.0 };
+	DaoxVector3D cameraDirection = DaoxCamera_GetViewDirection( self );
+	DaoxVector3D projection = DaoxVector3D_ProjectToPlane( & zaxis, & cameraDirection );
+	DaoxVector3D cameraUp = DaoxCamera_GetUpDirection( self );
+	float angle = DaoxVector3D_Angle( & cameraUp, & projection );
+	DaoxCamera_RotateBy( self, angle ); /* XXX: Rotation direction; */
+}
+void DaoxCamera_LookAt( DaoxCamera *self, DaoxVector3D pos )
+{
+	DaoxPointable_PointAt( (DaoxPointable*) self, pos );
 }
 void DaoxCamera_LookAtXYZ( DaoxCamera *self, float x, float y, float z )
 {
@@ -1134,10 +1192,11 @@ void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
 			break;
 		case 0x0030 :
 			amount = DaoxBinaryParser_DecodeUInt16LE( parser ) / 100.0;
-			printf( "%f\n", amount );
+			printf( "WARNING: unhandled chunk %f\n", amount );
 			//if( parentid == 0xA200 )
 			break;
 		default :
+			printf( "WARNING: unhandled chunk %x\n", chunkid );
 			parser->source += chunklen - 6;
 			break;
 		}

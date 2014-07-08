@@ -298,6 +298,7 @@ uniform vec4 lightIntensity[32];\n\
 uniform vec4 ambientColor;\n\
 uniform vec4 diffuseColor;\n\
 uniform vec4 specularColor;\n\
+uniform vec4 emissionColor;\n\
 uniform vec3 cameraPosition;\n\
 uniform mat4 projMatrix;\n\
 uniform mat4 viewMatrix;\n\
@@ -323,9 +324,10 @@ vec4 ComputeLight( vec3 lightSource, vec4 lightIntensity, vec4 texColor )\n\
 	cosAngIncidence = clamp(cosAngIncidence, 0, 1);\n\
 	vec3 reflection = 0.5*(1 + cosAngIncidence) * worldNormal;\n\
 	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
-	vertexColor += lightIntensity * texColor * dot(reflection, relativeCameraPosition);\n\
-	vertexColor += lightIntensity * specularColor * dot(reflection, relativeCameraPosition);\n\
-	vertexColor += lightIntensity * ambientColor;\n\
+	float dotvalue = dot(reflection, relativeCameraPosition);\n\
+	vertexColor += lightIntensity * texColor * dotvalue;\n\
+	vertexColor += lightIntensity * specularColor * dotvalue;\n\
+	vertexColor += lightIntensity * ambientColor + emissionColor;\n\
 	return vertexColor;\n\
 }\n\
 \n\
@@ -517,6 +519,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.ambientColor = glGetUniformLocation(self->program, "ambientColor");
 	self->uniforms.diffuseColor = glGetUniformLocation(self->program, "diffuseColor");
 	self->uniforms.specularColor = glGetUniformLocation(self->program, "specularColor");
+	self->uniforms.emissionColor = glGetUniformLocation(self->program, "emissionColor");
 	self->uniforms.textureCount = glGetUniformLocation(self->program, "textureCount");
 	self->uniforms.textures[0] = glGetUniformLocation(self->program, "textures[0]");
 	self->uniforms.textures[1] = glGetUniformLocation(self->program, "textures[1]");

@@ -68,25 +68,6 @@ extern float daox_graphics_device_height;
 typedef struct DaoxColor     DaoxColor;
 typedef struct DaoxMaterial  DaoxMaterial;
 
-
-struct DaoxColor
-{
-	float  red;
-	float  green;
-	float  blue;
-	float  alpha;
-};
-
-extern const DaoxColor daox_black_color;
-extern const DaoxColor daox_white_color;
-extern const DaoxColor daox_red_color;
-extern const DaoxColor daox_green_color;
-extern const DaoxColor daox_blue_color;
-extern const DaoxColor daox_gray_color;
-
-
-
-
 typedef struct DaoxVector2D  DaoxVector2D;  /* 2D float vector type (for 2D points); */
 typedef struct DaoxVector3D  DaoxVector3D;  /* 3D float vector type (for 2D points); */
 
@@ -101,6 +82,27 @@ typedef struct DaoxOBBox2D   DaoxOBBox2D;
 typedef struct DaoxOBBox3D   DaoxOBBox3D;
 
 typedef struct DaoxAABBox2D  DaoxAABBox2D;
+
+
+
+extern const DaoxColor daox_black_color;
+extern const DaoxColor daox_white_color;
+extern const DaoxColor daox_red_color;
+extern const DaoxColor daox_green_color;
+extern const DaoxColor daox_blue_color;
+extern const DaoxColor daox_gray_color;
+
+
+struct DaoxColor
+{
+	float  red;
+	float  green;
+	float  blue;
+	float  alpha;
+};
+
+DaoxColor DaoxColor_Darker( DaoxColor *self, float factor );
+DaoxColor DaoxColor_Lighter( DaoxColor *self, float factor );
 
 
 
@@ -156,6 +158,7 @@ DaoxVector3D  DaoxVector3D_Scale( DaoxVector3D *self, double scale );
 DaoxVector3D  DaoxVector3D_Cross( DaoxVector3D *self, DaoxVector3D *other );
 DaoxVector3D  DaoxVector3D_Normalize( DaoxVector3D *self );
 DaoxVector3D  DaoxVector3D_Interpolate( DaoxVector3D A, DaoxVector3D B, float t );
+DaoxVector3D  DaoxVector3D_ProjectToPlane( DaoxVector3D *self, DaoxVector3D *planeNorm );
 
 double DaoxVector3D_Norm2( DaoxVector3D *self );
 double DaoxVector3D_Dot( DaoxVector3D *self, DaoxVector3D *other );
@@ -288,6 +291,7 @@ struct DaoxOBBox3D
 
 DaoxOBBox3D DaoxOBBox3D_Scale( DaoxOBBox3D *self, float scale );
 DaoxOBBox3D DaoxOBBox3D_Transform( DaoxOBBox3D *self, DaoxMatrix4D *transfrom );
+DaoxOBBox3D DaoxOBBox3D_ToAABox( DaoxOBBox3D *self );
 
 DaoxVector3D DaoxOBBox3D_GetDiagonalVertex( DaoxOBBox3D *self );
 
