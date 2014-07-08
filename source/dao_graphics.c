@@ -392,6 +392,13 @@ static void RES_New( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxSceneResource *self = DaoxSceneResource_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void RES_LoadObjFile( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxSceneResource *self = (DaoxSceneResource*) p[0];
+	const char *file = DaoValue_TryGetChars( p[1] );
+	DaoxScene *scene = DaoxSceneResource_LoadObjFile( self, file );
+	DaoProcess_PutValue( proc, (DaoValue*) scene );
+}
 static void RES_LoadColladaFile( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxSceneResource *self = (DaoxSceneResource*) p[0];
@@ -402,6 +409,7 @@ static void RES_LoadColladaFile( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxResourceMeths[]=
 {
 	{ RES_New,              "Resource()" },
+	{ RES_LoadObjFile,      "LoadObjFile( self: Resource, file: string ) => Scene" },
 	{ RES_LoadColladaFile,  "LoadColladaFile( self: Resource, file: string ) => Scene" },
 	{ NULL, NULL }
 };

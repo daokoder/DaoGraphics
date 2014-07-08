@@ -31,6 +31,7 @@
 
 
 #include "dao_resource.h"
+#include "daoLexer.h"
 
 
 typedef struct DaoxIntTuple   DaoxIntTuple;
@@ -76,5 +77,24 @@ void DaoxColladaParser_Delete( DaoxColladaParser *self );
 DaoxScene* DaoxSceneResource_LoadColladaSource( DaoxSceneResource *self, DString *source );
 DaoxScene* DaoxSceneResource_LoadColladaFile( DaoxSceneResource *self, const char *file );
 
+
+typedef struct DaoxObjParser DaoxObjParser;
+
+struct DaoxObjParser
+{
+	DaoLexer  *lexer;
+	DaoLexer  *lexer2;
+	DArray    *integers;
+	DArray    *vlist;
+	DArray    *vtlist;
+	DArray    *vnlist;
+	DMap      *faceVertMap;
+};
+
+DaoxObjParser* DaoxObjParser_New();
+void DaoxObjParser_Delete( DaoxObjParser *self );
+
+DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *source );
+DaoxScene* DaoxSceneResource_LoadObjFile( DaoxSceneResource *self, const char *file );
 
 #endif
