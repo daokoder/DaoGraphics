@@ -43,6 +43,7 @@ struct DaoxRenderer
 {
 	DAO_CSTRUCT_COMMON;
 
+	uchar_t  showAxis;
 	uint_t   frameIndex;
 	uint_t   vertexCount;
 	uint_t   triangleCount;

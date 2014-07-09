@@ -154,6 +154,9 @@ void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMe
 	if( chunk->triangles->size == 0 ) return;
 
 	if( knownVisible == 0 ){
+		check = DaoxViewFrustum_Visible( frustum, & chunk->obbox );
+		if( check < 0 ) return;
+		knownVisible = check > 0;
 	}
 
 	if( chunk->left && chunk->left->triangles->size )
@@ -219,6 +222,7 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 	self->localFrustum = DaoxViewFrustum_Transform( & self->frustum, & worldToObject );
 
 	// 2. Check if the obbox box of the object intersect with the frustum;
+	if( DaoxViewFrustum_Visible( & self->localFrustum, & node->obbox ) < 0 ) return;
 
 	if( ctype == daox_type_canvas ){
 		/* The canvas is locally placed on the xy-plane facing z-axis: */
@@ -270,7 +274,6 @@ void DaoxRenderer_ReduceData( DaoxRenderer *self, DaoxSceneNode *node )
 	DaoxModel *model = (DaoxModel*) node;
 	daoint i;
 
-	return;
 	if( node->ctype != daox_type_model ) return;
 	for(i=0; i<node->children->size; ++i){
 		DaoxSceneNode *child = (DaoxSceneNode*) node->children->items.pSceneNode[i];
@@ -641,7 +644,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 			DaoxSceneNode *node = scene->nodes->items.pSceneNode[i];
 			DaoxRenderer_PrepareNode( self, node );
 		}
-		DaoxRenderer_PrepareNode( self, (DaoxSceneNode*) self->worldAxis );
+		if( self->showAxis ) DaoxRenderer_PrepareNode( self, (DaoxSceneNode*) self->worldAxis );
 		if( self->vertexCount > self->buffer.vertexOffset ){
 			//DaoxRenderer_ProcessTriangles( self );
 			DaoxRenderer_UpdateBuffer2( self, fm.cameraPosition );

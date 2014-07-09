@@ -197,7 +197,7 @@ void DaoxCamera_MoveXYZ( DaoxCamera *self, float x, float y, float z );
 void DaoxCamera_MoveByXYZ( DaoxCamera *self, float dx, float dy, float dz );
 
 void DaoxCamera_RotateBy( DaoxCamera *self, float alpha );
-void DaoxCamera_AdjustToHorizon( DaoxCamera *self );
+void DaoxCamera_Orient( DaoxCamera *self, int xyz );
 
 void DaoxCamera_LookAt( DaoxCamera *self, DaoxVector3D pos );
 void DaoxCamera_LookAtXYZ( DaoxCamera *self, float x, float y, float z );

@@ -173,8 +173,21 @@ void DaoxCanvas_Zoom( int zoomin )
 	box.top    -= dh;
 	DaoxCanvas_SetViewport( daox_current_canvas, box.left, box.right, box.bottom, box.top );
 }
+void DaoxScene_Zoom( int zoomin )
+{
+	if( daox_current_renderer ){
+		DaoxCamera *camera = DaoxRenderer_GetCurrentCamera( daox_current_renderer );
+		DaoxVector3D pos = DaoxCamera_GetPosition( camera );
+		float dist = DaoxVector3D_Dist( & pos, & camera->viewTarget );
+		float delta = dist / 2;
+		DaoxCamera_MoveByXYZ( camera, 0, 0, zoomin ? - delta : delta );
+	}
+}
 void DaoxCanvas_glutKeyboard( unsigned char key, int x, int y )
 {
+	if( key == '+' ||  key == '-' ){
+		if( daox_current_renderer ) DaoxScene_Zoom( key == '+' );
+	}
 	if( daox_current_canvas == NULL ) return;
 	if( DaoCstruct_CallKeyboardMethod( (DaoCstruct*) daox_current_canvas, "OnKeyboard", key, x, y ) ) return;
 
@@ -192,13 +205,15 @@ void DaoxCanvas_glutSpecialKeyboard( int key, int x, int y )
 {
 	if( daox_current_renderer ){
 		DaoxCamera *camera = DaoxRenderer_GetCurrentCamera( daox_current_renderer );
+		DaoxVector3D pos = DaoxCamera_GetPosition( camera );
+		float dist = DaoxVector3D_Dist( & pos, & camera->viewTarget );
+		float delta = dist / 2;
 		float dx = 0.0;
 		float dy = 0.0;
 		float dz = 0.0;
-		float delta = 10*camera->nearPlane;
 		switch( key ){
-		case GLUT_KEY_UP    : dz = - delta; break;
-		case GLUT_KEY_DOWN  : dz = + delta; break;
+		case GLUT_KEY_UP    : dy = + delta; break;
+		case GLUT_KEY_DOWN  : dy = - delta; break;
 		case GLUT_KEY_LEFT  : dx = - delta; break;
 		case GLUT_KEY_RIGHT : dx = + delta; break;
 		}

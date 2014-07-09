@@ -638,14 +638,24 @@ void DaoxCamera_RotateBy( DaoxCamera *self, float alpha )
 	rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
 	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
 }
-void DaoxCamera_AdjustToHorizon( DaoxCamera *self )
+void DaoxCamera_Orient( DaoxCamera *self, int xyz )
 {
+	DaoxVector3D xaxis = { 1.0, 0.0, 0.0 };
+	DaoxVector3D yaxis = { 0.0, 1.0, 0.0 };
 	DaoxVector3D zaxis = { 0.0, 0.0, 1.0 };
-	DaoxVector3D cameraDirection = DaoxCamera_GetViewDirection( self );
-	DaoxVector3D projection = DaoxVector3D_ProjectToPlane( & zaxis, & cameraDirection );
+	DaoxVector3D upaxis = xyz == 1 ? xaxis : (xyz == 2 ? yaxis : zaxis);
 	DaoxVector3D cameraUp = DaoxCamera_GetUpDirection( self );
+	DaoxVector3D cameraDirection = DaoxCamera_GetViewDirection( self );
+	DaoxVector3D projection = DaoxVector3D_ProjectToPlane( & upaxis, & cameraDirection );
+	DaoxVector3D cross = DaoxVector3D_Cross( & cameraUp, & projection );
 	float angle = DaoxVector3D_Angle( & cameraUp, & projection );
-	DaoxCamera_RotateBy( self, angle ); /* XXX: Rotation direction; */
+	float dot = DaoxVector3D_Dot( & cross, & cameraDirection );
+	DaoxCamera_RotateBy( self, 2*M_PI - angle );
+	printf( "DaoxCamera_AdjustToHorizon: %g %g %i\n", dot, angle, xyz );
+	DaoxVector3D_Print( & cameraDirection );
+	DaoxVector3D_Print( & cameraUp );
+	DaoxVector3D_Print( & projection );
+	DaoxVector3D_Print( & cross );
 }
 void DaoxCamera_LookAt( DaoxCamera *self, DaoxVector3D pos )
 {

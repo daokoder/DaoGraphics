@@ -175,7 +175,7 @@ static void CAM_Rotate( DaoProcess *proc, DaoValue *p[], int N )
 static void CAM_Orient( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCamera *self = (DaoxCamera*) p[0];
-	DaoxCamera_AdjustToHorizon( self );
+	DaoxCamera_Orient( self, p[1]->xEnum.value + 1 );
 }
 static void CAM_SetFOV( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -202,7 +202,7 @@ static DaoFuncItem DaoxCameraMeths[]=
 	{ CAM_MoveBy,  "MoveBy( self: Camera, dx: float, dy: float, dz: float )" },
 	{ CAM_LookAt,  "LookAt( self: Camera, x: float, y: float, z: float )" },
 	{ CAM_Rotate,  "Rotate( self: Camera, angle: float )" },
-	{ CAM_Orient,  "Orient( self: Camera )" },
+	{ CAM_Orient,  "Orient( self: Camera, worldUpAxis: enum<X,Y,Z> = $Z )" },
 	{ CAM_SetFOV,  "SetFOV( self: Camera, angle: float )" },
 	{ CAM_SetNearPlane,  "SetNearPlane( self: Camera, dist: float )" },
 	{ CAM_SetFarPlane,   "SetFarPlane( self: Camera, dist: float )" },
@@ -372,11 +372,20 @@ static void RENDR_GetCurrentCamera( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCamera *cam = DaoxRenderer_GetCurrentCamera( self );
 	DaoProcess_PutValue( proc, (DaoValue*) cam );
 }
+static void RENDR_Enable( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxRenderer *self = (DaoxRenderer*) p[0];
+	switch( p[1]->xEnum.value ){
+	case 0 : self->showAxis = 0; break;
+	case 1 : self->showAxis = 1; break;
+	}
+}
 static DaoFuncItem DaoxRendererMeths[]=
 {
 	{ RENDR_New,         "Renderer()" },
 	{ RENDR_SetCurrentCamera,  "SetCurrentCamera( self: Renderer, camera: Camera )" },
 	{ RENDR_GetCurrentCamera,  "GetCurrentCamera( self: Renderer ) => Camera" },
+	{ RENDR_Enable,  "Enable( self: Renderer, what: enum<none,axis> )" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxRenderer_Typer =
@@ -394,9 +403,12 @@ static void RES_New( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void RES_LoadObjFile( DaoProcess *proc, DaoValue *p[], int N )
 {
+	DaoxScene *scene;
 	DaoxSceneResource *self = (DaoxSceneResource*) p[0];
-	const char *file = DaoValue_TryGetChars( p[1] );
-	DaoxScene *scene = DaoxSceneResource_LoadObjFile( self, file );
+	DString *codePath = proc->activeRoutine->nameSpace->path;
+	DString *file = p[1]->xString.value;
+	Dao_MakePath( codePath, file );
+	scene = DaoxSceneResource_LoadObjFile( self, file->chars );
 	DaoProcess_PutValue( proc, (DaoValue*) scene );
 }
 static void RES_LoadColladaFile( DaoProcess *proc, DaoValue *p[], int N )

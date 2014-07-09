@@ -347,7 +347,8 @@ DaoxVector3D DaoxVector3D_ProjectToPlane( DaoxVector3D *self, DaoxVector3D *plan
 	DaoxVector3D projection = { 0.0, 0.0, 0.0 };
 	DaoxVector3D norm = DaoxVector3D_Normalize( planeNorm );
 	double dot = DaoxVector3D_Dot( self, & norm );
-	if( abs(dot - 1.0) < 1E-16 ) return projection;
+	printf( "DaoxVector3D_ProjectToPlane: %g\n", dot );
+	if( fabs(dot - 1.0) < 1E-16 ) return projection;
 	projection = DaoxVector3D_Scale( & norm, dot );
 	return DaoxVector3D_Sub( self, & projection );
 }

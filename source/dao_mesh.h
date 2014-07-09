@@ -98,6 +98,7 @@ void DaoxMesh_Delete( DaoxMesh *self );
 DaoxMeshUnit* DaoxMesh_AddUnit( DaoxMesh *self );
 void DaoxMesh_SetMaterial( DaoxMesh *self, DaoxMaterial *material );
 void DaoxMesh_ResetBoundingBox( DaoxMesh *self );
+void DaoxMesh_UpdateNorms( DaoxMesh *self );
 void DaoxMesh_UpdateTree( DaoxMesh *self, int maxtriangles );
 void DaoxMesh_MakeViewFrustumCorners( DaoxMesh *self, float fov, float ratio, float near );
 

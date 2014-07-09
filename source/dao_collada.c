@@ -867,7 +867,12 @@ static int DaoxToken_CheckKeyword( DaoToken *token, const char *keyword )
 	if( token->type != DTOK_IDENTIFIER ) return 0;
 	return strcmp( token->string.chars, keyword ) == 0;
 }
-int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *parser, DString *source )
+static int DaoxToken_CheckKeywords( DaoToken *token, const char *keywords )
+{
+	if( token->type != DTOK_IDENTIFIER ) return 0;
+	return DString_Match( & token->string, keywords, NULL, NULL );
+}
+int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *parser, DString *source, DString *path )
 {
 	DNode *it;
 	DaoToken **tokens;
@@ -887,31 +892,47 @@ int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *
 		DaoToken *token = tokens[i];
 		if( DaoxToken_CheckKeyword( token, "newmtl" ) ){
 			if( i >= N1 ) goto InvalidFormat;
+			DString_Reset( string, 0 );
+			while( (++i) < N && tokens[i]->line == token->line ) {
+				DString_Append( string, & tokens[i]->string );
+			}
+			printf( "new material: %s\n", string->chars );
 			material = DaoxMaterial_New();
-			DString_Assign( material->name, & tokens[i+1]->string );
+			DString_Assign( material->name, string );
 			DMap_Insert( self->materials, material->name, material );
-			i += 2;
 		}else if( DaoxToken_CheckKeyword( token, "Ns" ) ){
 			i += 2;
 		}else if( DaoxToken_CheckKeyword( token, "Ni" ) ){
 			i += 2;
-		}else if( DaoxToken_CheckKeyword( token, "Kd" ) ){
+		}else if( DaoxToken_CheckKeywords( token, "^ (Ka|Kd|Ks|Ke) $" ) ){
+			const char *keys = "KaKdKsKe";
+			const char *s = strstr( keys, token->string.chars );
+			int ctype = (s - keys) / 2;
+			DaoxColor *color = & material->diffuse;
+			printf( "ctype %i %s\n", ctype, token->string.chars );
 			k = 0;
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DaoToken *tok = tokens[i];
 				if( tok->type < DTOK_DIGITS_DEC ) goto InvalidFormat;
 				if( tok->type > DTOK_NUMBER_SCI ) goto InvalidFormat;
 				if( k >= 3 ) goto InvalidFormat;
 				numbers[k++] = DaoToken_ToDouble( tok );
 			}
-			material->diffuse.red = numbers[0];
-			material->diffuse.green = numbers[1];
-			material->diffuse.blue = numbers[2];
+			switch( ctype ){
+			case 0 : color = & material->ambient; break;
+			case 1 : color = & material->diffuse; break;
+			case 2 : color = & material->specular; break;
+			case 3 : color = & material->emission; break;
+			}
+			color->red = numbers[0];
+			color->green = numbers[1];
+			color->blue = numbers[2];
 		}else if( DaoxToken_CheckKeyword( token, "map_Kd" ) ){
 			DString_Reset( string, 0 );
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
+			Dao_MakePath( path, string );
 			DString_Change( string, "%\\", "/", 0 );
 			texture = DaoxTexture_New();
 			DaoxMaterial_SetTexture( material, texture );
@@ -931,13 +952,18 @@ int DaoxSceneResource_LoadObjMtlFile( DaoxSceneResource *self, DaoxObjParser *pa
 	int res;
 	FILE *fin = fopen( file, "r" );
 	DString *source = DString_New(1);
+	DString *path = DString_New(1);
+	DString_SetChars( path, file );
+	DString_Change( path, "%\\", "/", 0 );
+	DString_Change( path, "[^/]+ $", "", 1 );
 	DaoFile_ReadAll( fin, source, 1 );
-	res = DaoxSceneResource_LoadObjMtlSource( self, parser, source );
+	res = DaoxSceneResource_LoadObjMtlSource( self, parser, source, path );
 	DString_Delete( source );
+	DString_Delete( path );
 	return res;
 }
 
-DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *source )
+DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *source, DString *path )
 {
 	DNode *it;
 	DaoToken **tokens;
@@ -968,24 +994,15 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 		DaoToken *token = tokens[i];
 		if( DaoxToken_CheckKeyword( token, "mtllib" ) ){
 			DString_Reset( string, 0 );
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
+			Dao_MakePath( path, string );
 			printf( "%s\n", string->chars );
 			DaoxSceneResource_LoadObjMtlFile( self, parser, string->chars );
 		}else if( DaoxToken_CheckKeyword( token, "v" ) ){
-			if( model ){
-				printf( ">> %i %i %i\n", vcount, vtcount, tcount );
-				DaoxMesh_UpdateTree( mesh, 0 ); 
-				DaoxMesh_ResetBoundingBox( mesh );
-				DaoxModel_SetMesh( model, mesh );
-				DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
-				model = NULL;
-				vcount = vtcount = vncount = tcount = 0;
-				DMap_Reset( parser->faceVertMap );
-			}
 			k = 0;
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DaoToken *tok = tokens[i];
 				int sign = 2*(tokens[i-1]->type != DTOK_SUB) - 1;
 				if( tok->type == DTOK_SUB ) continue;
@@ -1002,12 +1019,14 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 			vcount += 1;
 		}else if( DaoxToken_CheckKeyword( token, "vt" ) ){
 			k = 0;
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DaoToken *tok = tokens[i];
+				int sign = 2*(tokens[i-1]->type != DTOK_SUB) - 1;
+				if( tok->type == DTOK_SUB ) continue;
 				if( tok->type < DTOK_DIGITS_DEC ) goto InvalidFormat;
 				if( tok->type > DTOK_NUMBER_SCI ) goto InvalidFormat;
 				if( k >= 3 ) goto InvalidFormat;
-				numbers[k++] = DaoToken_ToDouble( tok );
+				numbers[k++] = sign * DaoToken_ToDouble( tok );
 			}
 			vector.x = numbers[0];
 			vector.y = numbers[1];
@@ -1017,7 +1036,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 			vtcount += 1;
 		}else if( DaoxToken_CheckKeyword( token, "vn" ) ){
 			k = 0;
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DaoToken *tok = tokens[i];
 				int sign = 2*(tokens[i-1]->type != DTOK_SUB) - 1;
 				if( tok->type == DTOK_SUB ) continue;
@@ -1031,32 +1050,49 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 			vector.z = numbers[2];
 			DArray_PushVector3D( parser->vnlist, & vector );
 			vncount += 1;
-		}else if( DaoxToken_CheckKeyword( token, "g" ) ){
+		}else if( DaoxToken_CheckKeywords( token, "^ (o|g) $" ) ){
+			if( model && vcount ){
+				printf( ">> %i %i %i\n", vcount, vtcount, tcount );
+				DaoxMesh_UpdateTree( mesh, 0 ); 
+				DaoxMesh_ResetBoundingBox( mesh );
+				if( vncount == 0 ) DaoxMesh_UpdateNorms( mesh );
+				DaoxModel_SetMesh( model, mesh );
+				DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
+				model = NULL;
+				DMap_Reset( parser->faceVertMap );
+			}
 			DString_Reset( string, 0 );
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
-			printf( "node: %s\n", string->chars );
+			printf( "node: %s %i\n", string->chars, i );
 			model = DaoxModel_New();
 			mesh = DaoxMesh_New();
 			material = NULL;
+			unit = NULL;
+			vcount = vtcount = vncount = tcount = 0;
 		}else if( DaoxToken_CheckKeyword( token, "usemtl" ) ){
 			DString_Reset( string, 0 );
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
 			it = DMap_Find( self->materials, string );
 			printf( ">> %s %p\n", string->chars, it );
 			if( it ) material = (DaoxMaterial*) it->value.pVoid;
+			unit = NULL;
 		}else if( DaoxToken_CheckKeyword( token, "s" ) ){
 			unit = DaoxMesh_AddUnit( mesh );
 			DaoxMeshUnit_SetMaterial( unit, material );
 			i += 2;
 		}else if( DaoxToken_CheckKeyword( token, "f" ) ){
+			if( unit == NULL ){
+				unit = DaoxMesh_AddUnit( mesh );
+				DaoxMeshUnit_SetMaterial( unit, material );
+			}
 			parser->integers->size = 0;
 			k = 0;
 			//printf( "\n" );
-			while( i < N1 && tokens[++i]->line == token->line ) {
+			while( (++i) < N && tokens[i]->line == token->line ) {
 				DaoToken *tok = tokens[i];
 				if( tok->type != DTOK_DIGITS_DEC ) goto InvalidFormat;
 				if( k >= 3 ) goto InvalidFormat;
@@ -1103,18 +1139,21 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 		}else{
 			i += 1;
 		}
+		fflush( stdout );
 	}
 	if( model ){
-		printf( ">> %i %i %i\n", vcount, vtcount, tcount );
+		printf( ">> %i %i %i %i\n", vcount, vtcount, vncount, tcount );
 		DaoxMesh_UpdateTree( mesh, 0 ); 
 		DaoxMesh_ResetBoundingBox( mesh );
+		DaoxOBBox3D_Print( & mesh->obbox );
+		if( vncount == 0 ) DaoxMesh_UpdateNorms( mesh );
 		DaoxModel_SetMesh( model, mesh );
 		DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
 	}
 	printf( "nodes: %i\n", scene->nodes->size );
 	return scene;
 InvalidFormat:
-	printf( "ERROR: invalid format!\n" );
+	printf( "ERROR: invalid format at line %i!\n", tokens[i]->line );
 	return NULL;
 }
 DaoxScene* DaoxSceneResource_LoadObjFile( DaoxSceneResource *self, const char *file )
@@ -1122,8 +1161,14 @@ DaoxScene* DaoxSceneResource_LoadObjFile( DaoxSceneResource *self, const char *f
 	DaoxScene *scene;
 	FILE *fin = fopen( file, "r" );
 	DString *source = DString_New(1);
+	DString *path = DString_New(1);
+	DString_SetChars( path, file );
+	DString_Change( path, "%\\", "/", 0 );
+	DString_Change( path, "[^/]+ $", "", 1 );
+	printf( "%s\n", path->chars );
 	DaoFile_ReadAll( fin, source, 1 );
-	scene = DaoxSceneResource_LoadObjSource( self, source );
+	scene = DaoxSceneResource_LoadObjSource( self, source, path );
 	DString_Delete( source );
+	DString_Delete( path );
 	return scene;
 }
