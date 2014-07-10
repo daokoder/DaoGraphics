@@ -179,7 +179,7 @@ void DaoxScene_Zoom( int zoomin )
 		DaoxCamera *camera = DaoxRenderer_GetCurrentCamera( daox_current_renderer );
 		DaoxVector3D pos = DaoxCamera_GetPosition( camera );
 		float dist = DaoxVector3D_Dist( & pos, & camera->viewTarget );
-		float delta = dist / 2;
+		float delta = dist / 4;
 		DaoxCamera_MoveByXYZ( camera, 0, 0, zoomin ? - delta : delta );
 	}
 }
@@ -207,7 +207,7 @@ void DaoxCanvas_glutSpecialKeyboard( int key, int x, int y )
 		DaoxCamera *camera = DaoxRenderer_GetCurrentCamera( daox_current_renderer );
 		DaoxVector3D pos = DaoxCamera_GetPosition( camera );
 		float dist = DaoxVector3D_Dist( & pos, & camera->viewTarget );
-		float delta = dist / 2;
+		float delta = dist / 4;
 		float dx = 0.0;
 		float dy = 0.0;
 		float dz = 0.0;

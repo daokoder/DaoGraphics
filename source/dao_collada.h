@@ -88,6 +88,7 @@ struct DaoxObjParser
 	DArray    *vlist;
 	DArray    *vtlist;
 	DArray    *vnlist;
+	DArray    *flist;
 	DMap      *faceVertMap;
 };
 

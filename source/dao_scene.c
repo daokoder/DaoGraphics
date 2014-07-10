@@ -312,7 +312,7 @@ static int CheckLine( DaoxVector3D point, DaoxVector3D norm, DaoxVector3D P1, Da
 	P2 = DaoxVector3D_Sub( & P2, & point );
 	dot1 = DaoxVector3D_Dot( & P1, & norm );
 	dot2 = DaoxVector3D_Dot( & P2, & norm );
-	if( dot1 * dot2 <= 0.0 ) return 0;
+	if( dot1 * dot2 <= EPSILON ) return 0;
 	if( dot1 < 0.0 ) return -1;
 	return 1;
 }
@@ -488,9 +488,13 @@ void DaoxPointable_PointAt( DaoxPointable *self, DaoxVector3D pos )
 	pointDirection = DaoxVector3D_Normalize( & pointDirection );
 	newPointDirection = DaoxVector3D_Normalize( & newPointDirection );
 	axis = DaoxVector3D_Cross( & newPointDirection, & pointDirection );
-	angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
-	rot = DaoxMatrix4D_AxisRotation( axis, -angle );
-	rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
+	if( DaoxVector3D_Norm2( & axis ) > 1E-9 ){
+		angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
+		rot = DaoxMatrix4D_AxisRotation( axis, -angle );
+		rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
+	}else{
+		rot = rotation;
+	}
 	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
 }
 void DaoxPointable_PointAtXYZ( DaoxPointable *self, float x, float y, float z )
@@ -521,9 +525,13 @@ void DaoxPointable_Move( DaoxPointable *self, DaoxVector3D pos )
 	pointDirection = DaoxVector3D_Normalize( & pointDirection );
 	newPointDirection = DaoxVector3D_Normalize( & newPointDirection );
 	axis = DaoxVector3D_Cross( & newPointDirection, & pointDirection );
-	angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
-	rot = DaoxMatrix4D_AxisRotation( axis, -angle );
-	rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
+	if( DaoxVector3D_Norm2( & axis ) > 1E-9 ){
+		angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
+		rot = DaoxMatrix4D_AxisRotation( axis, -angle );
+		rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
+	}else{
+		rot = rotation;
+	}
 	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
 
 	DaoxPointable_PointAt( self, self->targetPosition );

@@ -847,7 +847,8 @@ DaoxObjParser* DaoxObjParser_New()
 	self->vlist = DArray_New( sizeof(DaoxVector3D) );
 	self->vtlist = DArray_New( sizeof(DaoxVector3D) );
 	self->vnlist = DArray_New( sizeof(DaoxVector3D) );
-	self->faceVertMap = DHash_New( DAO_DATA_COMPLEX, 0 );
+	self->flist = DArray_New( sizeof(int) );
+	self->faceVertMap = DMap_New( DAO_DATA_COMPLEX, 0 );
 	return self;
 }
 void DaoxObjParser_Delete( DaoxObjParser *self )
@@ -858,6 +859,7 @@ void DaoxObjParser_Delete( DaoxObjParser *self )
 	DArray_Delete( self->vlist );
 	DArray_Delete( self->vtlist );
 	DArray_Delete( self->vnlist );
+	DArray_Delete( self->flist );
 	DMap_Delete( self->faceVertMap );
 	dao_free( self );
 }
@@ -872,6 +874,95 @@ static int DaoxToken_CheckKeywords( DaoToken *token, const char *keywords )
 	if( token->type != DTOK_IDENTIFIER ) return 0;
 	return DString_Match( & token->string, keywords, NULL, NULL );
 }
+
+static DaoxMeshUnit* DaoxObjParser_ConstructMeshUnit( DaoxObjParser *self, DaoxMesh *mesh )
+{
+	DNode *it;
+	DaoxVertex vertex;
+	DaoxVector3D vector;
+	DaoxMeshUnit *unit = DaoxMesh_AddUnit( mesh );
+	complex16 buffer = {0.0, 0.0};
+	uint_t *quadints = (uint_t*) & buffer;
+	daoint i, j, k, N = self->flist->size;
+	int tcount = 0;
+
+	for(i=0; i<N; ){
+		int count = self->flist->data.ints[i];
+		int smooth = self->flist->data.ints[i+1];
+		quadints[1] = quadints[2] = 0;
+		quadints[3] = smooth;
+		self->integers->size = 0;
+		//printf( "i = %i; count = %i; smooth = %i\n", i, count, smooth );
+		for(i+=2, j=0; j<count; i+=3, ++j){
+			quadints[0] = self->flist->data.ints[i];   /* vertex index; */
+			quadints[1] = self->flist->data.ints[i+1]; /* texture index; */
+			quadints[2] = self->flist->data.ints[i+2]; /* norm index; */
+			//printf( "%i: %i/%i/%i\n", i, quadints[0], quadints[1], quadints[2] );
+			if( smooth != 0 && quadints[2] == 0 ){
+				it = DMap_Find( self->faceVertMap, quadints );
+				if( it != NULL ){
+					DArray_PushInt( self->integers, it->value.pInt );
+					DArray_PushInt( self->integers, quadints[2] );
+					continue;
+				}
+			}
+
+			memset( & vertex, 0, sizeof(DaoxVertex) );
+			vertex.point = self->vlist->data.vectors3d[ quadints[0]-1 ];
+			if( quadints[1] ){
+				vector = self->vtlist->data.vectors3d[ quadints[1]-1 ];
+				vertex.texUV.x = vector.x;
+				vertex.texUV.y = vector.y;
+			}
+			if( quadints[2] ){
+				vector = self->vnlist->data.vectors3d[ quadints[2]-1 ];
+				vertex.norm = vector;
+			}
+			MAP_Insert( self->faceVertMap, quadints, unit->vertices->size );
+			DArray_PushInt( self->integers, unit->vertices->size );
+			DArray_PushInt( self->integers, quadints[2] );
+			DArray_PushVertex( unit->vertices, & vertex );
+		}
+		for(j=4; j<self->integers->size; j+=2){
+			DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles, NULL );
+			DaoxVector3D A, B, C, AB, BC, facenorm;
+			int hasnorms[3];
+
+			tcount += 1;
+			triangle->index[0] = self->integers->data.ints[0];
+			triangle->index[1] = self->integers->data.ints[j-2];
+			triangle->index[2] = self->integers->data.ints[j];
+			hasnorms[0] = self->integers->data.ints[1];
+			hasnorms[1] = self->integers->data.ints[j-1];
+			hasnorms[2] = self->integers->data.ints[j+1];
+			if( hasnorms[0] || hasnorms[1] || hasnorms[2] ) continue;
+
+			A = unit->vertices->data.vertices[ triangle->index[0] ].point;
+			B = unit->vertices->data.vertices[ triangle->index[1] ].point;
+			C = unit->vertices->data.vertices[ triangle->index[2] ].point;
+			AB = DaoxVector3D_Sub( & B, & A );
+			BC = DaoxVector3D_Sub( & C, & B );
+			facenorm = DaoxVector3D_Cross( & AB, & BC );
+			facenorm = DaoxVector3D_Normalize( & facenorm );
+			for(k=0; k<3; ++k){
+				DaoxVector3D *norm = &unit->vertices->data.vertices[triangle->index[k]].norm;
+				if( hasnorms[k] ) continue;
+				norm->x += facenorm.x;
+				norm->y += facenorm.y;
+				norm->z += facenorm.z;
+			}
+		}
+	}
+	for(i=0; i<unit->vertices->size; ++i){
+		DaoxVector3D *norm = & unit->vertices->data.vertices[i].norm;
+		*norm = DaoxVector3D_Normalize( norm );
+	}
+	self->flist->size = 0;
+	DMap_Reset( self->faceVertMap );
+	printf( "triangle count: %i\n", tcount );
+	return unit;
+}
+
 int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *parser, DString *source, DString *path )
 {
 	DNode *it;
@@ -984,6 +1075,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 	double numbers[4] = {0.0};
 	daoint vcount = 0, vtcount = 0, vncount = 0;
 	daoint i, j, k, N, N1, tcount = 0;
+	int smooth = 1;
 
 	printf( "DaoxSceneResource_LoadObjSource\n" );
 	DaoLexer_Tokenize( parser->lexer, source->chars, 0 );
@@ -1050,28 +1142,36 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 			vector.z = numbers[2];
 			DArray_PushVector3D( parser->vnlist, & vector );
 			vncount += 1;
-		}else if( DaoxToken_CheckKeywords( token, "^ (o|g) $" ) ){
-			if( model && vcount ){
+		}else if( token->type == DTOK_IDENTIFIER && token->string.size == 1
+				&& (token->string.chars[0] == 'o' || token->string.chars[0] == 'g') ){
+			if( model && parser->flist->size ){
 				printf( ">> %i %i %i\n", vcount, vtcount, tcount );
+				unit = DaoxObjParser_ConstructMeshUnit( parser, mesh );
+				DaoxMeshUnit_SetMaterial( unit, material );
 				DaoxMesh_UpdateTree( mesh, 0 ); 
 				DaoxMesh_ResetBoundingBox( mesh );
-				if( vncount == 0 ) DaoxMesh_UpdateNorms( mesh );
 				DaoxModel_SetMesh( model, mesh );
 				DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
 				model = NULL;
-				DMap_Reset( parser->faceVertMap );
 			}
 			DString_Reset( string, 0 );
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
 			printf( "node: %s %i\n", string->chars, i );
-			model = DaoxModel_New();
-			mesh = DaoxMesh_New();
-			material = NULL;
-			unit = NULL;
+			if( model == NULL ){
+				model = DaoxModel_New();
+				mesh = DaoxMesh_New();
+				material = NULL;
+			}
 			vcount = vtcount = vncount = tcount = 0;
 		}else if( DaoxToken_CheckKeyword( token, "usemtl" ) ){
+			if( model && parser->flist->size ){
+				unit = DaoxObjParser_ConstructMeshUnit( parser, mesh );
+				DaoxMeshUnit_SetMaterial( unit, material );
+				DaoxMesh_UpdateTree( mesh, 0 ); 
+				DaoxMesh_ResetBoundingBox( mesh );
+			}
 			DString_Reset( string, 0 );
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
@@ -1079,17 +1179,13 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 			it = DMap_Find( self->materials, string );
 			printf( ">> %s %p\n", string->chars, it );
 			if( it ) material = (DaoxMaterial*) it->value.pVoid;
-			unit = NULL;
 		}else if( DaoxToken_CheckKeyword( token, "s" ) ){
-			unit = DaoxMesh_AddUnit( mesh );
-			DaoxMeshUnit_SetMaterial( unit, material );
+			smooth = DaoToken_ToInteger( tokens[i+1] ); /* XXX: s off */
 			i += 2;
 		}else if( DaoxToken_CheckKeyword( token, "f" ) ){
-			if( unit == NULL ){
-				unit = DaoxMesh_AddUnit( mesh );
-				DaoxMeshUnit_SetMaterial( unit, material );
-			}
-			parser->integers->size = 0;
+			int offset = parser->flist->size;
+			DArray_PushInt( parser->flist, 0 );
+			DArray_PushInt( parser->flist, smooth );
 			k = 0;
 			//printf( "\n" );
 			while( (++i) < N && tokens[i]->line == token->line ) {
@@ -1098,26 +1194,9 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 				if( k >= 3 ) goto InvalidFormat;
 				integers[k++] = DaoToken_ToInteger( tok );
 				if( i >= N1 || tokens[i+1]->type != DTOK_DIV ){
+					parser->flist->data.ints[offset] += 1;
+					for(j=0; j<3; ++j) DArray_PushInt( parser->flist, integers[j] );
 					//printf( "%i/%i/%i\n", integers[0], integers[1], integers[2] );
-					it = DMap_Find( parser->faceVertMap, integers );
-					if( it != NULL ){
-						DArray_PushInt( parser->integers, it->value.pInt );
-					}else{
-						memset( & vertex, 0, sizeof(DaoxVertex) );
-						vertex.point = vlist->data.vectors3d[ integers[0]-1 ];
-						if( integers[1] ){
-							vector = vtlist->data.vectors3d[ integers[1]-1 ];
-							vertex.texUV.x = vector.x;
-							vertex.texUV.y = vector.y;
-						}
-						if( integers[2] ){
-							vector = vnlist->data.vectors3d[ integers[2]-1 ];
-							vertex.norm = vector;
-						}
-						DMap_Insert( parser->faceVertMap, integers, unit->vertices->size );
-						DArray_PushInt( parser->integers, unit->vertices->size );
-						DArray_PushVertex( unit->vertices, & vertex );
-					}
 					k = integers[1] = integers[2] = 0;
 				}else if( tokens[++i]->type == DTOK_DIV ){
 					if( (i+1) >= N ) goto InvalidFormat;
@@ -1129,13 +1208,6 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 					goto InvalidFormat;
 				}
 			}
-			for(j=2; j<parser->integers->size; ++j){
-				DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles, NULL );
-				triangle->index[0] = parser->integers->data.ints[0];
-				triangle->index[1] = parser->integers->data.ints[j-1];
-				triangle->index[2] = parser->integers->data.ints[j];
-				tcount += 1;
-			}
 		}else{
 			i += 1;
 		}
@@ -1143,10 +1215,11 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 	}
 	if( model ){
 		printf( ">> %i %i %i %i\n", vcount, vtcount, vncount, tcount );
+		unit = DaoxObjParser_ConstructMeshUnit( parser, mesh );
+		DaoxMeshUnit_SetMaterial( unit, material );
 		DaoxMesh_UpdateTree( mesh, 0 ); 
 		DaoxMesh_ResetBoundingBox( mesh );
 		DaoxOBBox3D_Print( & mesh->obbox );
-		if( vncount == 0 ) DaoxMesh_UpdateNorms( mesh );
 		DaoxModel_SetMesh( model, mesh );
 		DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
 	}

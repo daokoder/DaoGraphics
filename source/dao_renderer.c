@@ -39,8 +39,8 @@
 
 DaoxRenderer* DaoxRenderer_New()
 {
-	float width = 0.01;
-	float length = 0.1;
+	float width = 0.005;
+	float length = 0.05;
 	DaoxMaterial *omat, *xmat, *zmat, *ymat;
 	DaoxMeshUnit *origin, *xaxis, *yaxis, *zaxis;
 	DaoxRenderer *self = (DaoxRenderer*) dao_calloc( 1, sizeof(DaoxRenderer) );

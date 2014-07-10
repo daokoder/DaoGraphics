@@ -41,7 +41,7 @@ const DaoxColor daox_blue_color = { 0.0, 0.0, 1.0, 1.0 };
 const DaoxColor daox_gray_color = { 0.5, 0.5, 0.5, 1.0 };
 
 
-DaoxColor DaoxColor_Darker( DaoxColor *self, float factor )
+DaoxColor DaoxColor_Darker( const DaoxColor *self, float factor )
 {
 	DaoxColor color = *self;
 	if( factor < 0.0 ) factor = 0.0;
@@ -51,7 +51,7 @@ DaoxColor DaoxColor_Darker( DaoxColor *self, float factor )
 	color.blue = (1.0 - factor) * color.blue;
 	return color;
 }
-DaoxColor DaoxColor_Lighter( DaoxColor *self, float factor )
+DaoxColor DaoxColor_Lighter( const DaoxColor *self, float factor )
 {
 	DaoxColor color = *self;
 	if( factor < 0.0 ) factor = 0.0;
@@ -298,7 +298,7 @@ double DaoxVector3D_Angle( DaoxVector3D *self, DaoxVector3D *other )
 double DaoxVector3D_DotSqrt( DaoxVector3D *self, DaoxVector3D *other )
 {
 	double dot = DaoxVector3D_Dot( self, other );
-	double dot2 = sqrt( abs(dot) );
+	double dot2 = sqrt( fabs(dot) );
 	return dot > 0 ? dot2 : -dot2;
 }
 double DaoxVector3D_Dist2( DaoxVector3D *self, DaoxVector3D *other )

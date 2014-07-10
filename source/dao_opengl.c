@@ -330,6 +330,16 @@ vec4 ComputeLight( vec3 lightSource, vec4 lightIntensity, vec4 texColor )\n\
 	vertexColor += lightIntensity * ambientColor + emissionColor;\n\
 	return vertexColor;\n\
 }\n\
+vec4 ComputeAllLights( vec4 vertexColor, vec4 texColor )\n\
+{\n\
+	for(int i=0; i<lightCount; ++i){\n\
+		vec3 relativeLightSource2 = lightSource[i] - position;\n\
+		relativeLightSource2 = normalize( relativeLightSource2 );\n\
+		vertexColor += ComputeLight( relativeLightSource2, lightIntensity[i], texColor );\n\
+		relativeLightSource[i] = relativeLightSource2;\n\
+	}\n\
+	return vertexColor;\n\
+}\n\
 \n\
 void main(void)\n\
 {\n\
@@ -341,12 +351,7 @@ void main(void)\n\
 	relativeCameraPosition = normalize( cameraPosition - position );\n\
 	vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
 	if( textureCount > 0 || vectorGraphics > 0 ) texColor = vec4( 1.0, 1.0, 1.0, 1.0 );\n\
-	for(int i=0; i<lightCount; ++i){\n\
-		vec3 relativeLightSource2 = lightSource[i] - position;\n\
-		relativeLightSource2 = normalize( relativeLightSource2 );\n\
-		vertexColor += ComputeLight( relativeLightSource2, lightIntensity[i], texColor );\n\
-		relativeLightSource[i] = relativeLightSource2;\n\
-	}\n\
+	vertexColor = ComputeAllLights( vertexColor, texColor );\n\
 	if( lightCount == 0 ) vertexColor = texColor;\n\
 	//if( true ) vertexColor = texColor;\n\
 	gl_Position = projMatrix * viewMatrix * vec4( position, 1.0 );\n\
@@ -371,21 +376,13 @@ in  vec3 relativeLightSource[32];\n\
 in  vec3 relativeCameraPosition;\n\
 out vec4 fragColor;\n\
 \n\
-vec4 ComputeLight( vec3 lightSource, vec4 lightIntensity, vec4 texColor )\n\
-{\n\
-	float cosAngIncidence = dot( worldNormal, lightSource );\n\
-	cosAngIncidence = clamp(cosAngIncidence, 0, 1);\n\
-	vec3 reflection = (1 + cosAngIncidence) * worldNormal;\n\
-	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
-	vertexColor += lightIntensity * texColor * dot(reflection, relativeCameraPosition);\n\
-	return vertexColor;\n\
-}\n\
 void main(void)\n\
 {\n\
 	fragColor = vertexColor;\n\
 	if( textureCount > 0 ){\n\
 		vec4 texColor = texture( textures[0], texCoord2 );\n\
-		fragColor = vertexColor * texColor;\n\
+		vec4 fragRGB = texColor * vertexColor;\n\
+		fragColor = vec4( fragRGB[0], fragRGB[1], fragRGB[2], vertexColor[3] );\n\
 		if( lightCount == 0 ) fragColor = texColor;\n\
 	}\n\
 	if( vectorGraphics > 0 ){ \n\

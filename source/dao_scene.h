@@ -88,6 +88,7 @@ extern DaoType *daox_type_texture;
 DaoxTexture* DaoxTexture_New();
 void DaoxTexture_Delete( DaoxTexture *self );
 void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image );
+void DaoxTexture_LoadImage( DaoxTexture *self, const char *file );
 void DaoxTexture_glInitTexture( DaoxTexture *self );
 
 

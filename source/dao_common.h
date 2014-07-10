@@ -101,8 +101,8 @@ struct DaoxColor
 	float  alpha;
 };
 
-DaoxColor DaoxColor_Darker( DaoxColor *self, float factor );
-DaoxColor DaoxColor_Lighter( DaoxColor *self, float factor );
+DaoxColor DaoxColor_Darker( const DaoxColor *self, float factor );
+DaoxColor DaoxColor_Lighter( const DaoxColor *self, float factor );
 
 
 
