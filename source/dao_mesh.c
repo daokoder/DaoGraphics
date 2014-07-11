@@ -455,8 +455,6 @@ DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self )
 {
 	int i, j;
 	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
-	unit->vertices->size = 0;
-	unit->triangles->size = 0;
 	for(i=0; i<8; ++i){
 		DaoxVertex *vertex = DArray_PushVertex( unit->vertices, NULL );
 		vertex->point.x = box_vertices[i][0];

@@ -42,16 +42,17 @@ DaoxSceneResource* DaoxSceneResource_New()
 {
 	DaoxSceneResource *self = (DaoxSceneResource*) dao_calloc( 1, sizeof(DaoxSceneResource) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_resource );
-	self->scenes = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->lights = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->cameras = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->images = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->textures = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->effects = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->materials = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->scenes     = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->lights     = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->cameras    = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->images     = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->textures   = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->effects    = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->materials  = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	self->geometries = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->xmlDOM = DaoXmlDOM_New();
-	self->xmlParser = DaoXmlParser_New();
+	self->terrains   = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
+	self->xmlDOM     = DaoXmlDOM_New();
+	self->xmlParser  = DaoXmlParser_New();
 	return self;
 }
 void DaoxSceneResource_Delete( DaoxSceneResource *self )
@@ -65,6 +66,7 @@ void DaoxSceneResource_Delete( DaoxSceneResource *self )
 	DMap_Delete( self->effects );
 	DMap_Delete( self->materials );
 	DMap_Delete( self->geometries );
+	DMap_Delete( self->terrains );
 	DaoXmlDOM_Delete( self->xmlDOM );
 	DaoXmlParser_Delete( self->xmlParser );
 	dao_free( self );
@@ -114,3 +116,8 @@ DaoxScene* DaoxSceneResource_CreateScene( DaoxSceneResource *self )
 }
 
 
+DaoxMesh* DaoxSceneResource_MakeTerrain( DaoxSceneResource *self, DaoxImage *heightmap )
+{
+	DaoxMesh *mesh = DaoxMesh_New();
+	DaoxMeshUnit *unit = DaoxMesh_AddUnit( mesh );
+}

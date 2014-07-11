@@ -262,6 +262,21 @@ DaoTypeBase DaoxModel_Typer =
 
 
 
+
+static DaoFuncItem DaoxTerrainMeths[]=
+{
+	{ NULL, NULL }
+};
+DaoTypeBase DaoxTerrain_Typer =
+{
+	"Terrain", NULL, NULL, (DaoFuncItem*) DaoxTerrainMeths,
+	{ & DaoxSceneNode_Typer, 0 }, {0},
+	(FuncPtrDel)DaoxTerrain_Delete, NULL
+};
+
+
+
+
 static void SCENE_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxScene *self = DaoxScene_New();
@@ -290,11 +305,30 @@ static void SCENE_AddBox( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxScene_AddNode( self, (DaoxSceneNode*) model );
 	DaoProcess_PutValue( proc, (DaoValue*) model );
 }
+static void SCENE_AddTerrain( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoxImage *heightmap = (DaoxImage*) p[1];
+	DaoxTerrain *terrain = DaoxTerrain_New();
+	float width = p[2]->xFloat.value;
+	float length = p[3]->xFloat.value;
+	float height = p[4]->xFloat.value;
+
+	DaoxTerrain_SetHeightmap( terrain, heightmap );
+	DaoxTerrain_SetSize( terrain, width, length, height );
+	DaoxTerrain_Rebuild( terrain, height / 16 );
+	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
+	DaoProcess_PutValue( proc, (DaoValue*) terrain );
+}
 static DaoFuncItem DaoxSceneMeths[] =
 {
 	{ SCENE_New,         "Scene()" },
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
 	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1F, ylen = 1F, zlen = 1F ) => Model" },
+	{ SCENE_AddTerrain,
+		"AddTerrain( self: Scene, heightmap: Image, width = 1F, length = 1F, height = 1F )"
+			"=> Terrain"
+	},
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxScene_Typer =
@@ -411,6 +445,7 @@ DaoType *daox_type_scene_node = NULL;
 DaoType *daox_type_camera = NULL;
 DaoType *daox_type_light = NULL;
 DaoType *daox_type_model = NULL;
+DaoType *daox_type_terrain = NULL;
 DaoType *daox_type_scene = NULL;
 DaoType *daox_type_painter = NULL;
 DaoType *daox_type_renderer = NULL;
@@ -437,6 +472,7 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_camera = DaoNamespace_WrapType( ns, & DaoxCamera_Typer, 0 );
 	daox_type_light = DaoNamespace_WrapType( ns, & DaoxLight_Typer, 0 );
 	daox_type_model = DaoNamespace_WrapType( ns, & DaoxModel_Typer, 0 );
+	daox_type_terrain = DaoNamespace_WrapType( ns, & DaoxTerrain_Typer, 0 );
 	daox_type_scene = DaoNamespace_WrapType( ns, & DaoxScene_Typer, 0 );
 	daox_type_painter = DaoNamespace_WrapType( ns, & DaoxPainter_Typer, 0 );
 	daox_type_renderer = DaoNamespace_WrapType( ns, & DaoxRenderer_Typer, 0 );

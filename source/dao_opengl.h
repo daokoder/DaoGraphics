@@ -73,22 +73,22 @@ enum DaoxSamplerID
 
 struct DaoGLVertex2D
 {
-	struct{ GLfloat  x, y; }        point;
-	struct{ GLfloat  k, l, m, o; }  texKLMO; /* texture coordinates or KLM for bezier curves; */
+	struct { GLfloat  x, y; }        point;
+	struct { GLfloat  k, l, m, o; }  texKLMO; /* texture coordinates or KLM for bezier curve; */
 };
 
 struct DaoGLVertex3D
 {
-	struct{ GLfloat  x, y, z; }  point;
-	struct{ GLfloat  x, y, z; }  norm;
-	struct{ GLfloat  x, y; }     texUV;
+	struct { GLfloat  x, y, z; }  point;
+	struct { GLfloat  x, y, z; }  norm;
+	struct { GLfloat  x, y; }     texUV;
 };
 
 struct DaoGLVertex3DVG
 {
-	struct{ GLfloat  x, y, z; }     point;
-	struct{ GLfloat  x, y, z; }     norm;
-	struct{ GLfloat  k, l, m, o; }  texKLMO;
+	struct { GLfloat  x, y, z; }     point;
+	struct { GLfloat  x, y, z; }     norm;
+	struct { GLfloat  k, l, m, o; }  texKLMO;
 };
 
 struct DaoGLTriangle

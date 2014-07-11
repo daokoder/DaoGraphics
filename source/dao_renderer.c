@@ -48,6 +48,7 @@ DaoxRenderer* DaoxRenderer_New()
 	self->visibleModels = DList_New(0);
 	self->visibleChunks = DList_New(0);
 	self->drawLists = DList_New(0);
+	self->terrains = DList_New( DAO_DATA_VALUE );
 	self->canvases = DList_New( DAO_DATA_VALUE );
 	self->mapMaterials = DMap_New(0,0);
 	self->vertices = DArray_New( sizeof(DaoxVertex) );
@@ -100,6 +101,7 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 {
 	DaoxShader_Free( & self->shader );
 	DaoCstruct_Free( (DaoCstruct*) self );
+	DList_Delete( self->terrains );
 	DList_Delete( self->canvases );
 	DList_Delete( self->drawLists );
 	DList_Delete( self->visibleChunks );
@@ -631,6 +633,15 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 
 	DaoxViewFrustum_Init( & fm, cam );
 	DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, fm.axisOrigin );
+
+	DList_Clear( self->terrains );
+	for(i=0; i<scene->nodes->size; ++i){
+		DaoxSceneNode *node = scene->nodes->items.pSceneNode[i];
+		if( node->ctype == daox_type_terrain ){
+			DList_Append( self->terrains, (DaoxTerrain*) node );
+		}
+	}
+
 	if( DaoxViewFrustum_Difference( & fm, & self->frustum ) > EPSILON ){ // TODO: better handling;
 		DArray *triangles;
 		self->drawLists->size = 0;
@@ -641,6 +652,9 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		//printf( "prepare\n" );
 		DMap_Clear( self->mapMaterials );
 		DList_Clear( self->canvases );
+		for(i=0; i<self->terrains->size; ++i){
+			DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
+		}
 		for(i=0; i<scene->nodes->size; ++i){
 			DaoxSceneNode *node = scene->nodes->items.pSceneNode[i];
 			DaoxRenderer_PrepareNode( self, node );

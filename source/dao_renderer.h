@@ -67,6 +67,7 @@ struct DaoxRenderer
 	DList   *visibleChunks;
 	DList   *drawLists;
 
+	DList   *terrains;
 	DList   *canvases;
 
 	DArray  *vertices;   /* <DaoxVertex> */

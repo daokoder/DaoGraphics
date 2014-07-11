@@ -48,6 +48,7 @@ typedef struct DaoxSceneNode   DaoxSceneNode;
 typedef struct DaoxCamera      DaoxCamera;
 typedef struct DaoxLight       DaoxLight;
 typedef struct DaoxModel       DaoxModel;
+typedef struct DaoxTerrain     DaoxTerrain;
 typedef struct DaoxScene       DaoxScene;
 
 
@@ -122,6 +123,42 @@ void DaoxMaterial_Delete( DaoxMaterial *self );
 
 void DaoxMaterial_CopyFrom( DaoxMaterial *self, DaoxMaterial *other );
 void DaoxMaterial_SetTexture( DaoxMaterial *self, DaoxTexture *texture );
+
+
+
+
+typedef struct DaoxViewFrustum  DaoxViewFrustum;
+
+struct DaoxViewFrustum
+{
+	float  left;
+	float  right;
+	float  top;
+	float  bottom;
+	float  near;
+	float  far;
+
+	DaoxMatrix4D  worldToCamera;
+	DaoxVector3D  cameraPosition;   /* world coordinates; */
+	DaoxVector3D  viewDirection;    /* world coordinates; */
+	DaoxVector3D  nearViewCenter;   /* world coordinates; */
+	DaoxVector3D  farViewCenter;    /* world coordinates; */
+	DaoxVector3D  topLeftEdge;      /* world coordinates; */
+	DaoxVector3D  topRightEdge;     /* world coordinates; */
+	DaoxVector3D  bottomLeftEdge;   /* world coordinates; */
+	DaoxVector3D  bottomRightEdge;  /* world coordinates; */
+	DaoxVector3D  leftPlaneNorm;    /* world coordinates; */
+	DaoxVector3D  rightPlaneNorm;   /* world coordinates; */
+	DaoxVector3D  topPlaneNorm;     /* world coordinates; */
+	DaoxVector3D  bottomPlaneNorm;  /* world coordinates; */
+
+	DaoxVector3D  axisOrigin; /* For displaying axis; world coordinates; */
+};
+
+void DaoxViewFrustum_Init( DaoxViewFrustum *self, DaoxCamera *camera );
+int  DaoxViewFrustum_Visible( DaoxViewFrustum *self, DaoxOBBox3D *box );
+DaoxViewFrustum DaoxViewFrustum_Transform( DaoxViewFrustum *self, DaoxMatrix4D *transform );
+double DaoxViewFrustum_Difference( DaoxViewFrustum *self, DaoxViewFrustum *other );
 
 
 
@@ -249,39 +286,63 @@ void DaoxModel_TransformMesh( DaoxModel *self );
 
 
 
+typedef struct DaoxTerrainPoint DaoxTerrainPoint;
+typedef struct DaoxTerrainPatch DaoxTerrainPatch;
 
-typedef struct DaoxViewFrustum  DaoxViewFrustum;
-
-struct DaoxViewFrustum
+struct DaoxTerrainPoint
 {
-	float  left;
-	float  right;
-	float  top;
-	float  bottom;
-	float  near;
-	float  far;
-
-	DaoxMatrix4D  worldToCamera;
-	DaoxVector3D  cameraPosition;   /* world coordinates; */
-	DaoxVector3D  viewDirection;    /* world coordinates; */
-	DaoxVector3D  nearViewCenter;   /* world coordinates; */
-	DaoxVector3D  farViewCenter;    /* world coordinates; */
-	DaoxVector3D  topLeftEdge;      /* world coordinates; */
-	DaoxVector3D  topRightEdge;     /* world coordinates; */
-	DaoxVector3D  bottomLeftEdge;   /* world coordinates; */
-	DaoxVector3D  bottomRightEdge;  /* world coordinates; */
-	DaoxVector3D  leftPlaneNorm;    /* world coordinates; */
-	DaoxVector3D  rightPlaneNorm;   /* world coordinates; */
-	DaoxVector3D  topPlaneNorm;     /* world coordinates; */
-	DaoxVector3D  bottomPlaneNorm;  /* world coordinates; */
-
-	DaoxVector3D  axisOrigin; /* For displaying axis; world coordinates; */
+	uint_t      activeIndex;
+	uint_t      refCount;
+	DaoxVertex  vertex;
 };
 
-void DaoxViewFrustum_Init( DaoxViewFrustum *self, DaoxCamera *camera );
-int  DaoxViewFrustum_Visible( DaoxViewFrustum *self, DaoxOBBox3D *box );
-DaoxViewFrustum DaoxViewFrustum_Transform( DaoxViewFrustum *self, DaoxMatrix4D *transform );
-double DaoxViewFrustum_Difference( DaoxViewFrustum *self, DaoxViewFrustum *other );
+/*
+// Indexing of vertex points and sub patches:
+//    1----Y----0
+//    |    |    |
+//    |    |    |
+//    -----O----X
+//    |    |    |
+//    |    |    |
+//    2---------3
+*/
+struct DaoxTerrainPatch
+{
+	float  heightDiff;
+
+	DaoxVector3D       normal;
+	DaoxTerrainPoint  *points[4];
+	DaoxTerrainPatch  *subs[4];
+};
+
+struct DaoxTerrain
+{
+	DaoxSceneNode  base;
+
+	float  width;   /* x-axis; */
+	float  length;  /* y-axis; */
+	float  height;  /* z-axis; */
+
+	DaoxImage         *heightmap;
+	DaoxTerrainPatch  *patchTree;
+
+	DArray  *vertices;
+	DArray  *triangles;
+
+	DList   *activePoints;
+	DList   *pointCache;
+	DList   *patchCache;
+};
+extern DaoType *daox_type_terrain;
+
+DaoxTerrain* DaoxTerrain_New();
+void DaoxTerrain_Delete( DaoxTerrain *self );
+
+void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float height );
+void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap );
+void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float mdiff, DList *pts );
+void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff );
+void DaoxTerrain_Update( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 
 

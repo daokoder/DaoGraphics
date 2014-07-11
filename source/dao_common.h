@@ -36,6 +36,7 @@
 	struct DaoxMeshUnit     **pMeshUnit; \
 	struct DaoxModel        **pModel; \
 	struct DaoxLight        **pLight; \
+	struct DaoxTerrain      **pTerrain; \
 	struct DaoxCanvas       **pCanvas; \
 	struct DaoxCanvasState  **pCanvasState; \
 	struct DaoxCanvasNode   **pCanvasNode; \

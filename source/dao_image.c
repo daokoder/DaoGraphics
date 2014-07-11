@@ -230,8 +230,10 @@ static void IMAGE_New( DaoProcess *proc, DaoValue *p[], int N )
 static void IMAGE_Load( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxImage *self = (DaoxImage*) p[0];
-	DString *file = DaoValue_TryGetString( p[1] );
+	DString *codePath = proc->activeRoutine->nameSpace->path;
+	DString *file = p[1]->xString.value;
 	int ret = 0;
+	Dao_MakePath( codePath, file );
 	if( DString_Match( file, "<I>%.PNG $", NULL, NULL ) ){
 		ret = DaoxImage_LoadPNG( self, file->chars );
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
@@ -242,8 +244,10 @@ static void IMAGE_Load( DaoProcess *proc, DaoValue *p[], int N )
 static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxImage *self = (DaoxImage*) p[0];
-	DString *file = DaoValue_TryGetString( p[1] );
+	DString *codePath = proc->activeRoutine->nameSpace->path;
+	DString *file = p[1]->xString.value;
 	int ret = 0;
+	Dao_MakePath( codePath, file );
 	if( DString_Match( file, "<I>%.PNG $", NULL, NULL ) ){
 		ret = DaoxImage_SavePNG( self, file->chars );
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){

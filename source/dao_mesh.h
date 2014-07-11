@@ -107,5 +107,4 @@ void DaoxMesh_MakeViewFrustumCorners( DaoxMesh *self, float fov, float ratio, fl
 DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self );
 
 
-
 #endif

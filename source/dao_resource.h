@@ -50,6 +50,7 @@ struct DaoxSceneResource
 	DMap  *effects;
 	DMap  *materials;
 	DMap  *geometries;
+	DMap  *terrains;
 
 	DaoXmlDOM     *xmlDOM;
 	DaoXmlParser  *xmlParser;
@@ -63,5 +64,6 @@ DaoxScene* DaoxSceneResource_GetScene( DaoxSceneResource *self );
 
 DaoxScene* DaoxSceneResource_CreateScene( DaoxSceneResource *self );
 
+DaoxMesh* DaoxSceneResource_MakeTerrain( DaoxSceneResource *self, DaoxImage *heightmap );
 
 #endif
