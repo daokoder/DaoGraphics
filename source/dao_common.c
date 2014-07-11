@@ -330,9 +330,13 @@ DaoxVector3D DaoxTriangle_Normal( DaoxVector3D *A, DaoxVector3D *B, DaoxVector3D
 {
 	DaoxVector3D AB = DaoxVector3D_Sub( B, A );
 	DaoxVector3D BC = DaoxVector3D_Sub( C, B );
-	DaoxVector3D N = DaoxVector3D_Cross( & AB, & BC );
-	double norm = DaoxVector3D_Norm2( & N );
-	return DaoxVector3D_Scale( & N, 1.0 / sqrt( norm ) );
+	DaoxVector3D CA = DaoxVector3D_Sub( A, C );
+	DaoxVector3D N1 = DaoxVector3D_Cross( & AB, & BC );
+	DaoxVector3D N2 = DaoxVector3D_Cross( & BC, & CA );
+	DaoxVector3D N3 = DaoxVector3D_Cross( & CA, & AB );
+	DaoxVector3D N = DaoxVector3D_Add( & N1, & N2 );
+	N = DaoxVector3D_Add( & N, & N3 );
+	return DaoxVector3D_Normalize( & N );
 }
 DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D point, DaoxVector3D norm, DaoxVector3D P1, DaoxVector3D P2 )
 {
@@ -1078,7 +1082,7 @@ void DaoxOBBox3D_ComputeBoundingBox( DaoxOBBox3D *self, DaoxVector3D points[], i
 	self->C = DaoxVector3D_Add( & self->C, & zaxis2 );
 	self->R = sqrt( DaoxVector3D_Dist2( & self->C, & self->O ) );
 
-	//return;
+	return;
 
 	for(i=0; i<count; ++i){
 		DaoxVector3D point = points[i];

@@ -52,7 +52,6 @@ DaoxSceneResource* DaoxSceneResource_New()
 	self->geometries = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	self->xmlDOM = DaoXmlDOM_New();
 	self->xmlParser = DaoXmlParser_New();
-	self->collada = DaoxColladaParser_New();
 	return self;
 }
 void DaoxSceneResource_Delete( DaoxSceneResource *self )
@@ -68,7 +67,6 @@ void DaoxSceneResource_Delete( DaoxSceneResource *self )
 	DMap_Delete( self->geometries );
 	DaoXmlDOM_Delete( self->xmlDOM );
 	DaoXmlParser_Delete( self->xmlParser );
-	DaoxColladaParser_Delete( self->collada );
 	dao_free( self );
 }
 DaoxScene* DaoxSceneResource_GetScene( DaoxSceneResource *self )
@@ -116,18 +114,3 @@ DaoxScene* DaoxSceneResource_CreateScene( DaoxSceneResource *self )
 }
 
 
-
-DaoxScene* Test_Collada()
-{
-	FILE *fin = fopen( "duck.dae", "r" );
-	//FILE *fin = fopen( "cube_triangulate.dae", "r" );
-	//FILE *fin = fopen( "Seymour/Seymour_triangulate.dae", "r" );
-	DString *source = DString_New(1);
-	DaoxSceneResource *resource = DaoxSceneResource_New();
-	DaoFile_ReadAll( fin, source, 1 );
-	DaoxSceneResource_LoadColladaSource( resource, source );
-	return DaoxSceneResource_GetScene( resource );
-	DaoxSceneResource_Delete( resource );
-	DString_Delete( source );
-	exit(0);
-}

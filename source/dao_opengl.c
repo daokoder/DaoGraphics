@@ -325,6 +325,7 @@ vec4 ComputeLight( vec3 lightSource, vec4 lightIntensity, vec4 texColor )\n\
 	vec3 reflection = 0.5*(1 + cosAngIncidence) * worldNormal;\n\
 	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
 	float dotvalue = dot(reflection, relativeCameraPosition);\n\
+	dotvalue = clamp(dotvalue, 0, 1);\n\
 	vertexColor += lightIntensity * texColor * dotvalue;\n\
 	vertexColor += lightIntensity * specularColor * dotvalue;\n\
 	vertexColor += lightIntensity * ambientColor + emissionColor;\n\

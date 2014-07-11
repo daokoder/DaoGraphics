@@ -135,10 +135,7 @@ static DaoxMeshUnit* DaoxObjParser_ConstructMeshUnit( DaoxObjParser *self, DaoxM
 			A = unit->vertices->data.vertices[ triangle->index[0] ].point;
 			B = unit->vertices->data.vertices[ triangle->index[1] ].point;
 			C = unit->vertices->data.vertices[ triangle->index[2] ].point;
-			AB = DaoxVector3D_Sub( & B, & A );
-			BC = DaoxVector3D_Sub( & C, & B );
-			facenorm = DaoxVector3D_Cross( & AB, & BC );
-			facenorm = DaoxVector3D_Normalize( & facenorm );
+			facenorm = DaoxTriangle_Normal( & A, & B, & C );
 			for(k=0; k<3; ++k){
 				DaoxVector3D *norm = &unit->vertices->data.vertices[triangle->index[k]].norm;
 				if( hasnorms[k] ) continue;

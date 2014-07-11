@@ -47,6 +47,37 @@ void DaoxMeshChunk_Delete( DaoxMeshChunk *self )
 	DArray_Delete( self->triangles );
 	dao_free( self );
 }
+void DaoxMeshChunk_ResetNormalInfo( DaoxMeshChunk *self )
+{
+	DaoxVertex *vertices = self->unit->vertices->data.vertices;
+	DaoxTriangle *triangles = self->unit->triangles->data.triangles;
+	daoint i, j;
+
+	self->angle = 0.0;
+	self->normal.x = self->normal.y = self->normal.z = 0.0;
+	for(i=0; i<self->triangles->size; ++i){
+		DaoxTriangle triangle = triangles[ self->triangles->data.ints[i] ];
+		for(j=0; j<3; ++j){
+			DaoxVector3D A = vertices[ triangle.index[0] ].point;
+			DaoxVector3D B = vertices[ triangle.index[1] ].point;
+			DaoxVector3D C = vertices[ triangle.index[2] ].point;
+			DaoxVector3D N = DaoxTriangle_Normal( & A, & B, & C );
+			self->normal = DaoxVector3D_Add( & self->normal, & N );
+		}
+	}
+	self->normal = DaoxVector3D_Normalize( & self->normal );
+	for(i=0; i<self->triangles->size; ++i){
+		DaoxTriangle triangle = triangles[ self->triangles->data.ints[i] ];
+		for(j=0; j<3; ++j){
+			DaoxVector3D A = vertices[ triangle.index[0] ].point;
+			DaoxVector3D B = vertices[ triangle.index[1] ].point;
+			DaoxVector3D C = vertices[ triangle.index[2] ].point;
+			DaoxVector3D N = DaoxTriangle_Normal( & A, & B, & C );
+			float angle = DaoxVector3D_Angle( & self->normal, & N );
+			if( angle > self->angle ) self->angle = angle;
+		}
+	}
+}
 void DaoxMeshChunk_ResetBoundingBox( DaoxMeshChunk *self, DArray *buffer )
 {
 	//printf( "DaoxMeshChunk_ResetBoundingBox: %i\n", self->triangles->size );
@@ -203,6 +234,11 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 	if( self->tree == NULL ) self->tree = DaoxMeshChunk_New( self );
 	self->tree->triangles->size = 0;
 	for(i=0; i<self->triangles->size; ++i) DArray_PushInt( self->tree->triangles, i );
+
+	DaoxMeshChunk_ResetBoundingBox( self->tree, points );
+	self->obbox = self->tree->obbox;
+	DaoxOBBox3D_Print( & self->obbox );
+
 	printf( "DaoxMeshUnit_UpdateTree: %i\n", maxtriangles );
 	DList_Append( nodes, self->tree );
 	for(i=0; i<nodes->size; ++i){
@@ -210,12 +246,19 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 		DaoxVector3D OX, OY, OZ, longest;
 		int *ids = node->triangles->data.ints;
 		int count = node->triangles->size;
+		int divtype = 0; /* 0: space; 1: normal; */
 		float x2, y2, z2;
 
 		DaoxMeshChunk_ResetBoundingBox( node, points );
+		DaoxMeshChunk_ResetNormalInfo( node );
 		if( count == 0 ) continue;
 
-		if( count <= maxtriangles ) continue;
+		if( node->angle > 0.25 * M_PI && count >= 16 ){
+			divtype = 1;
+		}else if( count <= maxtriangles ){
+			//printf( "chunk size: %i; angle: %g\n", count, node->angle );
+			continue;
+		}
 
 		OX = DaoxVector3D_Sub( & node->obbox.X, & node->obbox.O );
 		OY = DaoxVector3D_Sub( & node->obbox.Y, & node->obbox.O );
@@ -223,6 +266,7 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 		x2 = DaoxVector3D_Norm2( & OX );
 		y2 = DaoxVector3D_Norm2( & OY );
 		z2 = DaoxVector3D_Norm2( & OZ );
+		/* Get the longest direction: */
 		if( y2 > x2 ){
 			OX = OY;
 			x2 = y2;
@@ -240,12 +284,17 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 			DaoxVector3D A = vertices[ triangle.index[0] ].point;
 			DaoxVector3D B = vertices[ triangle.index[1] ].point;
 			DaoxVector3D C = vertices[ triangle.index[2] ].point;
-			DaoxVector3D AB = DaoxVector3D_Add( & A, & B );
-			DaoxVector3D ABC = DaoxVector3D_Add( & AB, & C );
-			ABC = DaoxVector3D_Scale( & ABC, 0.333333333 );
-			ABC = DaoxVector3D_Sub( & ABC, & node->obbox.O );
 			sorting[j].index = node->triangles->data.ints[j];
-			sorting[j].value = DaoxVector3D_Dot( & ABC, & OX );
+			if( divtype == 0 ){
+				DaoxVector3D AB = DaoxVector3D_Add( & A, & B );
+				DaoxVector3D ABC = DaoxVector3D_Add( & AB, & C );
+				ABC = DaoxVector3D_Scale( & ABC, 0.333333333 );
+				ABC = DaoxVector3D_Sub( & ABC, & node->obbox.O );
+				sorting[j].value = DaoxVector3D_Dot( & ABC, & OX );
+			}else{
+				DaoxVector3D N = DaoxTriangle_Normal( & A, & B, & C );
+				sorting[j].value = DaoxVector3D_Dot( & N, & OX );
+			}
 		}
 		TriangleInfo_QuickSort( sorting, 0, node->triangles->size - 1 );
 		if( node->left == NULL ) node->left = DaoxMeshChunk_New( self );
@@ -262,8 +311,6 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 		DList_Append( nodes, node->left );
 		DList_Append( nodes, node->right );
 	}
-	self->obbox = self->tree->obbox;
-	DaoxOBBox3D_Print( & self->obbox );
 	DArray_Delete( points );
 	DList_Delete( nodes );
 }

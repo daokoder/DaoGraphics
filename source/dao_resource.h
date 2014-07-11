@@ -33,7 +33,6 @@
 #include "dao_xml.h"
 
 
-struct DaoxColladaParser;
 typedef struct DaoxSceneResource  DaoxSceneResource;
 
 
@@ -54,8 +53,6 @@ struct DaoxSceneResource
 
 	DaoXmlDOM     *xmlDOM;
 	DaoXmlParser  *xmlParser;
-
-	struct DaoxColladaParser  *collada;
 };
 extern DaoType *daox_type_resource;
 
