@@ -28,7 +28,7 @@
 
 #include <string.h>
 #include "dao_resource.h"
-#include "dao_collada.h"
+#include "dao_format.h"
 
 
 

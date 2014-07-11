@@ -30,7 +30,7 @@
 #include "dao_painter.h"
 #include "dao_renderer.h"
 #include "dao_resource.h"
-#include "dao_collada.h"
+#include "dao_format.h"
 
 
 DaoVmSpace *__daoVmSpace = NULL;
@@ -290,33 +290,11 @@ static void SCENE_AddBox( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxScene_AddNode( self, (DaoxSceneNode*) model );
 	DaoProcess_PutValue( proc, (DaoValue*) model );
 }
-void DaoxScene_Load3DS( DaoxScene *self, const char *file );
-static void SCENE_Load3DS( DaoProcess *proc, DaoValue *p[], int N )
-{
-	int j;
-	DaoxCamera *camera = NULL;
-	DaoxScene *scene = (DaoxScene*) p[0];
-	DaoxScene_Load3DS( scene, p[1]->xString.value->chars );
-	return;
-	for(j=0; j<scene->nodes->size; ++j){
-		DaoxSceneNode *node = (DaoxSceneNode*) scene->nodes->items.pVoid[j];
-		if( node->ctype == daox_type_camera ) camera = (DaoxCamera*) node;
-	}
-	camera = DaoxCamera_New();
-	DaoxScene_AddNode( scene, (DaoxSceneNode*) camera );
-
-	camera->fovAngle = 30;
-	camera->aspectRatio = 0.8;//WIDTH / (float)HEIGHT;
-	DaoxCamera_MoveXYZ( camera, 0, 1000, 50 );
-	DaoxCamera_LookAtXYZ( camera, 0, 0, 20 );
-	camera->farPlane = 1000;
-}
 static DaoFuncItem DaoxSceneMeths[] =
 {
 	{ SCENE_New,         "Scene()" },
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
 	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1F, ylen = 1F, zlen = 1F ) => Model" },
-	{ SCENE_Load3DS,     "Load3DS( self: Scene, file: string )" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxScene_Typer =
@@ -411,18 +389,10 @@ static void RES_LoadObjFile( DaoProcess *proc, DaoValue *p[], int N )
 	scene = DaoxSceneResource_LoadObjFile( self, file->chars );
 	DaoProcess_PutValue( proc, (DaoValue*) scene );
 }
-static void RES_LoadColladaFile( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxSceneResource *self = (DaoxSceneResource*) p[0];
-	const char *file = DaoValue_TryGetChars( p[1] );
-	DaoxScene *scene = DaoxSceneResource_LoadColladaFile( self, file );
-	DaoProcess_PutValue( proc, (DaoValue*) scene );
-}
 static DaoFuncItem DaoxResourceMeths[]=
 {
 	{ RES_New,              "Resource()" },
 	{ RES_LoadObjFile,      "LoadObjFile( self: Resource, file: string ) => Scene" },
-	{ RES_LoadColladaFile,  "LoadColladaFile( self: Resource, file: string ) => Scene" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxResource_Typer =
@@ -448,22 +418,8 @@ DaoType *daox_type_resource = NULL;
 
 
 
-int WIDTH = 900;
-int HEIGHT = 600;
-void reshape(int width, int height);
-void display(void);
-
-DaoxCamera *camera = NULL;
-DaoxScene *scene = NULL;
-DaoxRenderer *renderer = NULL;
-
-
-DaoxScene* Test_Collada();
-
 DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
-
-static void Test();
 
 DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
@@ -487,189 +443,6 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_resource = DaoNamespace_WrapType( ns, & DaoxResource_Typer, 0 );
 	DaoVectorGraphics_OnLoad( vmSpace, ns );
 	DaoGLUT_OnLoad( vmSpace, ns );
-	//Test();
 	return 0;
 }
 
-void Test()
-{
-	//scene = Test_Collada();
-
-	//DaoVectorGraphics_OnLoad( vmSpace, ns );
-
-	scene = DaoxScene_New();
-	camera = DaoxCamera_New();
-
-	camera->fovAngle = 30;
-	camera->aspectRatio = WIDTH / (float)HEIGHT;
-
-	DaoxModel *model = DaoxModel_New();
-	DaoxMesh *mesh = DaoxMesh_New();
-	DaoxMesh_MakeViewFrustumCorners( mesh, camera->fovAngle, camera->aspectRatio, camera->nearPlane );
-	//DaoxMesh_MakeBoxObject( mesh );
-	DaoxMesh_UpdateTree( mesh, 0 );
-	DaoxModel_SetMesh( model, mesh );
-
-
-	//DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) model, 0, 0, -5 );
-
-	DaoxScene_AddNode( scene, (DaoxSceneNode*) camera );
-	//DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
-
-	//DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) model, 4.5, 0, 0 );
-	//DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) camera, 0, 8, 30 );
-	//DaoxCamera_MoveXYZ( camera, 0, 0, 3 );
-
-	DaoxCamera_MoveXYZ( camera, 0, 1000, 50 );
-	DaoxCamera_LookAtXYZ( camera, 0, 0, 20 );
-	camera->farPlane = 1000;
-#if 0
-#endif
-
-#if 0
-	// Grumman-F14:
-	DaoxCamera_MoveXYZ( camera, 5, 20, 5 );
-	DaoxCamera_LookAtXYZ( camera, 0, 0, 2 );
-	camera->farPlane = 1000;
-#endif
-
-#if 0
-	// MP_US_Engi:
-	DaoxCamera_MoveXYZ( camera, 0, -200, 100 );
-	DaoxCamera_LookAtXYZ( camera, 0, 100, 100 );
-	DaoxCamera_LookAtXYZ( camera, 0, 400, 0 );
-	camera->farPlane = 10000;
-#endif
-
-	DaoxScene_Load3DS( scene, "BTR80.3ds" );
-	//DaoxScene_Load3DS( scene, "fels.3ds" );
-	//DaoxScene_Load3DS( scene, "teapot.3ds" );
-	//DaoxScene_Load3DS( scene, "x29.3ds" );
-	//DaoxScene_Load3DS( scene, "ironman.max" );
-	//DaoxScene_Load3DS( scene, "Well/Well.3DS" );
-	//DaoxScene_Load3DS( scene, "Grumman-F14-Tomcat/f14d.3ds" );
-	//DaoxScene_Load3DS( scene, "MP_US_Engi.3ds" );
-	//DaoxScene_Load3DS( scene, "rhino.3ds" );
-	//DaoxScene_Load3DS( scene, "burger.3ds" );
-	//DaoxScene_Load3DS( scene, "fighter1/fighter1.3ds" );
-	//DaoxScene_Load3DS( scene, "cube_with_specular_texture.3DS" );
-	//DaoxScene_Load3DS( scene, "cube_with_diffuse_texture.3DS" );
-
-	DaoxMatrix4D rotation = DaoxMatrix4D_EulerRotation( 0.5, 0.3, 0.4 );
-	DaoxMatrix4D inverse = DaoxMatrix4D_Inverse( & rotation );
-	DaoxMatrix4D prod = DaoxMatrix4D_MulMatrix( & rotation, & inverse );
-	DaoxMatrix4D_Print( & rotation );
-	DaoxMatrix4D_Print( & inverse );
-	DaoxMatrix4D_Print( & prod );
-
-	printf( "nodes: %i\n", scene->nodes->size );
-
-
-	int j;
-	for(j=1; j<0; ++j){
-		DaoxModel *model2 = DaoxModel_New();
-		DaoxModel_SetMesh( model2, mesh );
-		DaoxScene_AddNode( scene, (DaoxSceneNode*) model2 );
-		DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) model2, (j+1)*1.5, 0, 0 );
-	}
-	for(j=1; j<scene->nodes->size; ++j){
-		DaoxSceneNode *node = (DaoxSceneNode*) scene->nodes->items.pVoid[j];
-		if( node->ctype == daox_type_camera ) camera = (DaoxCamera*) node;
-	}
-	camera->fovAngle = 60;
-	camera->aspectRatio = WIDTH / (float)HEIGHT;
-
-	DaoxSceneNode_AddChild( (DaoxSceneNode*) camera, (DaoxSceneNode*) model );
-
-	DaoxVector3D pos = DaoxSceneNode_GetWorldPosition( (DaoxSceneNode*) camera );
-	DaoxVector3D_Print( & pos );
-
-
-	int i, argc = 1;
-	char *argv = "Dao Graphics";
-
-#ifdef FREEGLUT
-	glutInitContextVersion (3, 2);
-	glutInitContextFlags (GLUT_FORWARD_COMPATIBLE
-#ifdef DEBUG
-			| GLUT_DEBUG
-#endif
-	);
-#endif
-
-	glutInit(&argc, &argv);
-	glutInitWindowSize(WIDTH,HEIGHT);
-	glutInitWindowPosition(100,100);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE
-#ifndef FREEGLUT
-			|GLUT_3_2_CORE_PROFILE
-#endif
-			);
-
-	glutCreateWindow( argv );
-	glutDisplayFunc(display);
-	glutReshapeFunc(reshape);
-
-
-	renderer = DaoxRenderer_New();
-	//DaoxRenderer_InitShaders( renderer );
-	//DaoxRenderer_InitBuffers( renderer );
-
-	glClearColor(0.8f,0.8f,0.8f,1.f);
-
-
-	glEnable(GL_LIGHTING);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	//glEnable(GL_NORMALIZE);
-
-	//glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-
-	glViewport(0, 0, WIDTH, HEIGHT);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glMatrixMode(GL_MODELVIEW);
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glLoadIdentity();
-
-	glutGet(GLUT_ELAPSED_TIME);
-	glutMainLoop();
-}
-#if 0
-#endif
-
-
-void DaoxCanvas_ApplyMaxFPS( int fps_limit );
-void DaoxCanvas_TestFPS();
-
-
-static float angle = 50.f;
-static float angle_step = 0.f;
-void do_motion (void)
-{
-	static GLint prev_time = 0;
-
-	int time = glutGet(GLUT_ELAPSED_TIME);
-	angle_step = (time-prev_time)*0.0003;
-	angle += angle_step;
-	prev_time = time;
-
-	glutPostRedisplay ();
-}
-void reshape(int width, int height)
-{
-}
-GLuint scene_list = 0;
-void display(void)
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	DaoxRenderer_Render( renderer, scene, camera );
-	glutSwapBuffers();
-
-	DaoxCanvas_ApplyMaxFPS( 3000 );
-	DaoxCanvas_TestFPS();
-	do_motion();
-}

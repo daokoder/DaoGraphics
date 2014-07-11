@@ -16,7 +16,7 @@ project_headers =
 	"source/dao_resource.h" ,
 	"source/dao_xml.h" ,
 	"source/dao_png.h" ,
-	"source/dao_collada.h" ,
+	"source/dao_format.h" ,
 	"source/dao_opengl.h" ,
 	"source/dao_glut.h" 
 }
@@ -37,7 +37,7 @@ project_sources =
 	"source/dao_resource.c" ,
 	"source/dao_xml.c" ,
 	"source/dao_png.c" ,
-	"source/dao_collada.c" ,
+	"source/dao_format.c" ,
 	"source/dao_opengl.c" ,
 	"source/dao_glut.c" 
 }

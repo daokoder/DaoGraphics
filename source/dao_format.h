@@ -34,49 +34,6 @@
 #include "daoLexer.h"
 
 
-typedef struct DaoxIntTuple   DaoxIntTuple;
-typedef struct DaoxIntTuples  DaoxIntTuples;
-typedef struct DaoxColladaParser  DaoxColladaParser;
-
-
-struct DaoxIntTuple
-{
-	int  index;
-	int  values[7];
-};
-
-
-struct DaoxIntTuples
-{
-	DaoxIntTuple  *tuples;
-	uint_t        *counts;
-	uint_t         size;
-	uint_t         capacity;
-	uint_t         dim;
-	uint_t         max;
-};
-
-
-
-struct DaoxColladaParser
-{
-	DMap     *tags;
-	DString  *string;
-
-	DArray  *integers;
-	DArray  *integers2;
-	DArray  *floats;
-	DArray  *floats2;
-	DArray  *floats3;
-	DaoxIntTuples   *tuples;
-};
-DaoxColladaParser* DaoxColladaParser_New();
-void DaoxColladaParser_Delete( DaoxColladaParser *self );
-
-
-DaoxScene* DaoxSceneResource_LoadColladaSource( DaoxSceneResource *self, DString *source );
-DaoxScene* DaoxSceneResource_LoadColladaFile( DaoxSceneResource *self, const char *file );
-
 
 typedef struct DaoxObjParser DaoxObjParser;
 
