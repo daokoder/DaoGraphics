@@ -154,7 +154,11 @@ void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMe
 
 	if( chunk->triangles->size == 0 ) return;
 
+	angle = DaoxVector3D_Angle( & chunk->normal, & frustum->viewDirection );
+	if( (chunk->angle + angle) < 0.5*M_PI ) return; /* Not facing to the camera; */
 
+	check = DaoxViewFrustum_Visible( frustum, & chunk->obbox );
+	if( check < 0 ) return;
 
 	if( chunk->left && chunk->left->triangles->size )
 		DaoxRenderer_PrepareMeshChunk( self, model, chunk->left, frustum );
@@ -219,6 +223,7 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 	self->localFrustum = DaoxViewFrustum_Transform( & self->frustum, & worldToObject );
 
 	// 2. Check if the obbox box of the object intersect with the frustum;
+	if( DaoxViewFrustum_Visible( & self->localFrustum, & node->obbox ) < 0 ) return;
 
 	if( ctype == daox_type_canvas ){
 		/* The canvas is locally placed on the xy-plane facing z-axis: */
@@ -438,7 +443,7 @@ void DaoxRenderer_UpdateBuffer2( DaoxRenderer *self, DaoxVector3D camPos )
 			if( offsets[unit->index] ) offset2 = offsets[unit->index] - 1;
 
 			offset2 += self->buffer.vertexOffset;
-			for(k=0; k<chunk->triangles->size && glt<triangleCount /*XXX*/; ++k,++glt){
+			for(k=0; k<chunk->triangles->size; ++k,++glt){
 				int m = chunk->triangles->data.ints[k];
 				DaoxTriangle *triangle = & unit->triangles->data.triangles[m];
 				DaoGLTriangle *triangle2 = gltriangles + glt;
