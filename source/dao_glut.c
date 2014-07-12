@@ -180,7 +180,12 @@ void DaoxScene_Zoom( int zoomin )
 		DaoxVector3D pos = DaoxCamera_GetPosition( camera );
 		float dist = DaoxVector3D_Dist( & pos, & camera->viewTarget );
 		float delta = dist / 4;
-		DaoxCamera_MoveByXYZ( camera, 0, 0, zoomin ? - delta : delta );
+		//DaoxCamera_MoveByXYZ( camera, 0, 0, zoomin ? - delta : delta );
+		if( zoomin ){
+			camera->fovAngle *= 0.75;
+		}else{
+			camera->fovAngle *= 1.5;
+		}
 	}
 }
 void DaoxCanvas_glutKeyboard( unsigned char key, int x, int y )

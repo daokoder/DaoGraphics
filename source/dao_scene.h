@@ -292,25 +292,33 @@ typedef struct DaoxTerrainPatch DaoxTerrainPatch;
 struct DaoxTerrainPoint
 {
 	uint_t      activeIndex;
-	uint_t      refCount;
+	ushort_t    divLevel;
+	ushort_t    refCount;
 	DaoxVertex  vertex;
+
+	DaoxTerrainPoint *east;
+	DaoxTerrainPoint *west;
+	DaoxTerrainPoint *south;
+	DaoxTerrainPoint *north;
 };
+
 
 /*
 // Indexing of vertex points and sub patches:
-//    1----Y----0
-//    |    |    |
-//    |    |    |
-//    -----O----X
-//    |    |    |
-//    |    |    |
-//    2---------3
+//    1-----Y-----0
+//    |     |     |
+//    |     |     |
+//    ------O-----X
+//    |     |__|__|
+//    |     |  |  |
+//    2-----------3
 */
 struct DaoxTerrainPatch
 {
 	float  heightDiff;
 
 	DaoxVector3D       normal;
+	DaoxTerrainPoint  *center;
 	DaoxTerrainPoint  *points[4];
 	DaoxTerrainPatch  *subs[4];
 };
@@ -326,10 +334,9 @@ struct DaoxTerrain
 	DaoxImage         *heightmap;
 	DaoxTerrainPatch  *patchTree;
 
-	DArray  *vertices;
 	DArray  *triangles;
+	DList   *vertices;
 
-	DList   *activePoints;
 	DList   *pointCache;
 	DList   *patchCache;
 };
@@ -342,7 +349,7 @@ void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float he
 void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap );
 void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float mdiff, DList *pts );
 void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff );
-void DaoxTerrain_Update( DaoxTerrain *self, DaoxViewFrustum *frustum );
+void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 
 

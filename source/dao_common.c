@@ -930,7 +930,7 @@ DaoxOBBox3D DaoxOBBox3D_Transform( DaoxOBBox3D *self, DaoxMatrix4D *transfrom )
 	obbox.Y = DaoxMatrix4D_MulVector( transfrom, & self->Y, 1 );
 	obbox.Z = DaoxMatrix4D_MulVector( transfrom, & self->Z, 1 );
 	obbox.C = DaoxMatrix4D_MulVector( transfrom, & self->C, 1 );
-	obbox.R = self->R;
+	obbox.R = DaoxVector3D_Dist( & obbox.O, & obbox.C );
 	return obbox;
 }
 DaoxOBBox3D DaoxOBBox3D_ToAABox( DaoxOBBox3D *self )

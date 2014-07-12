@@ -56,9 +56,9 @@ struct DaoxRenderer
 	DaoxModel       *localAxis;
 
 	DaoxViewFrustum  frustum;
-	DaoxViewFrustum  localFrustum;  /* In the current object coordinates; */
 
 	DaoxShader  shader;
+	DaoxBuffer  terrainBuffer;
 	DaoxBuffer  buffer;
 	DaoxBuffer  bufferVG;
 

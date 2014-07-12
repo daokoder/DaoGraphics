@@ -140,32 +140,37 @@ void DaoxRenderer_InitBuffers( DaoxRenderer *self )
 	int norm = self->shader.attributes.normal;
 	int texuv  = self->shader.attributes.texCoord;
 	int texmo  = self->shader.attributes.texMO;
+	DaoxBuffer_Init3D( & self->terrainBuffer, pos, norm, texuv, texmo );
 	DaoxBuffer_Init3D( & self->buffer, pos, norm, texuv, texmo );
 	DaoxBuffer_Init3DVG( & self->bufferVG, pos, norm, texuv, texmo );
 }
 
 
-void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMeshChunk *chunk, DaoxViewFrustum *frustum )
+void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMeshChunk *chunk, DaoxMatrix4D *objectToWorld )
 {
 	DNode *it;
 	DList *chunks;
 	DaoxMaterial *material;
 	DaoxVertex *vertices = chunk->unit->vertices->data.vertices;
+	DaoxVector3D normal;
+	DaoxOBBox3D obbox;
 	daoint i, m, check;
 	float angle;
 
 	if( chunk->triangles->size == 0 ) return;
 
-	angle = DaoxVector3D_Angle( & chunk->normal, & frustum->viewDirection );
+	normal = DaoxMatrix4D_MulVector( objectToWorld, & chunk->normal, 0.0 );
+	angle = DaoxVector3D_Angle( & normal, & self->frustum.viewDirection );
 	if( (chunk->angle + angle) < 0.5*M_PI ) return; /* Not facing to the camera; */
 
-	check = DaoxViewFrustum_Visible( frustum, & chunk->obbox );
+	obbox = DaoxOBBox3D_Transform( & chunk->obbox, objectToWorld );
+	check = DaoxViewFrustum_Visible( & self->frustum, & obbox );
 	if( check < 0 ) return;
 
 	if( chunk->left && chunk->left->triangles->size )
-		DaoxRenderer_PrepareMeshChunk( self, model, chunk->left, frustum );
+		DaoxRenderer_PrepareMeshChunk( self, model, chunk->left, objectToWorld );
 	if( chunk->right && chunk->right->triangles->size )
-		DaoxRenderer_PrepareMeshChunk( self, model, chunk->right, frustum );
+		DaoxRenderer_PrepareMeshChunk( self, model, chunk->right, objectToWorld );
 
 	if( chunk->left && chunk->left->triangles->size ) return;
 	if( chunk->right && chunk->right->triangles->size ) return;
@@ -187,7 +192,7 @@ void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMe
 	DList_Append( chunks, chunk );
 	self->triangleCount += chunk->triangles->size;
 }
-void DaoxRenderer_PrepareMesh( DaoxRenderer *self, DaoxModel *model, DaoxMesh *mesh )
+void DaoxRenderer_PrepareMesh( DaoxRenderer *self, DaoxModel *model, DaoxMesh *mesh, DaoxMatrix4D *objectToWorld )
 {
 	DaoxVertex *vertex;
 	daoint i;
@@ -196,7 +201,7 @@ void DaoxRenderer_PrepareMesh( DaoxRenderer *self, DaoxModel *model, DaoxMesh *m
 		DaoxMeshUnit *unit = mesh->units->items.pMeshUnit[i];
 		int currentCount = self->triangleCount;
 		if( unit->tree == NULL ) return;
-		DaoxRenderer_PrepareMeshChunk( self, model, unit->tree, & self->localFrustum );
+		DaoxRenderer_PrepareMeshChunk( self, model, unit->tree, objectToWorld );
 		if( self->triangleCount > currentCount ){
 			DArray *vertices = unit->vertices;
 			self->vertexCount += vertices->size;
@@ -214,23 +219,23 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 	DaoType *ctype = node->ctype;
 	DaoxModel *model = (DaoxModel*) node;
 	DaoxMatrix4D objectToWorld;
-	DaoxMatrix4D worldToObject;
+	DaoxOBBox3D obbox;
 	daoint i;
 
 	if( ctype != daox_type_model && ctype != daox_type_canvas ) goto PrepareChildren;
 
 	// 1. Transform view frustum to object coordinates;
 	objectToWorld = DaoxSceneNode_GetWorldTransform( node );
-	worldToObject = DaoxMatrix4D_Inverse( & objectToWorld );
-	self->localFrustum = DaoxViewFrustum_Transform( & self->frustum, & worldToObject );
+	obbox = DaoxOBBox3D_Transform( & node->obbox, & objectToWorld );
 
 	// 2. Check if the obbox box of the object intersect with the frustum;
-	if( DaoxViewFrustum_Visible( & self->localFrustum, & node->obbox ) < 0 ) return;
+	if( DaoxViewFrustum_Visible( & self->frustum, & obbox ) < 0 ) return;
 
 	if( ctype == daox_type_canvas ){
 		/* The canvas is locally placed on the xy-plane facing z-axis: */
-		DaoxVector3D canvasNorm = {0.0,0.0,1.0};
-		double dot = DaoxVector3D_Dot( & canvasNorm, & self->localFrustum.cameraPosition );
+		DaoxVector3D canvasNorm0 = {0.0,0.0,1.0};
+		DaoxVector3D canvasNorm = DaoxMatrix4D_MulVector( & objectToWorld, & canvasNorm0, 0.0 );
+		double dot = DaoxVector3D_Dot( & canvasNorm, & self->frustum.cameraPosition );
 		if( dot < 0.0 ) return;
 		DaoxRenderer_PrepareCanvas( self, (DaoxCanvas*) node );
 		return;
@@ -238,7 +243,7 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 
 	DArray_Reset( model->offsets, model->mesh->units->size );
 	memset( model->offsets->data.ints, 0, model->mesh->units->size*sizeof(int) );
-	DaoxRenderer_PrepareMesh( self, model, model->mesh );
+	DaoxRenderer_PrepareMesh( self, model, model->mesh, & objectToWorld );
 
 PrepareChildren:
 	for(i=0; i<node->children->size; ++i){
@@ -558,6 +563,71 @@ void DaoxScene_EstimateBoundingBox( DaoxScene *self, DaoxOBBox3D *obbox )
 	DaoxOBBox3D_ComputeBoundingBox( obbox, points->data.vectors3d, points->size );
 	DArray_Delete( points );
 }
+void DaoxRenderer_DrawTerrains( DaoxRenderer *self, DaoxViewFrustum *frustum )
+{
+	DaoGLVertex3D *glvertices;
+	DaoGLTriangle *gltriangles;
+	int i, j, vcount = 0, tcount = 0;
+	for(i=0; i<self->terrains->size; ++i){
+		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
+		DaoxTerrain_UpdateView( terrain, frustum );
+		vcount += terrain->vertices->size;
+		tcount += terrain->triangles->size;
+	}
+	printf( ">> %i %i\n", vcount, tcount );
+	glvertices = DaoxBuffer_MapVertices3D( & self->terrainBuffer, vcount );
+	gltriangles = DaoxBuffer_MapTriangles( & self->terrainBuffer, tcount );
+	vcount = tcount = 0;
+
+	glBindVertexArray( self->terrainBuffer.vertexVAO );
+	glBindBuffer( GL_ARRAY_BUFFER, self->terrainBuffer.vertexVBO );
+	//glEnableClientState(GL_VERTEX_ARRAY);
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->terrainBuffer.triangleVBO );
+	for(i=0; i<self->terrains->size; ++i){
+		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
+		int M = 3*terrain->triangles->size;
+		int K = tcount;
+		printf( "%i %i\n", vcount, tcount );
+		for(j=0; j<terrain->vertices->size; ++j){
+			DaoxTerrainPoint *point = (DaoxTerrainPoint*) terrain->vertices->items.pVoid[j];
+			DaoxVertex *vertex = & point->vertex;
+			DaoGLVertex3D *glvertex = glvertices + vcount + j;
+			glvertex->point.x = vertex->point.x;
+			glvertex->point.y = vertex->point.y;
+			glvertex->point.z = vertex->point.z;
+			glvertex->norm.x = vertex->norm.x;
+			glvertex->norm.y = vertex->norm.y;
+			glvertex->norm.z = vertex->norm.z;
+			glvertex->texUV.x = vertex->texUV.x;
+			glvertex->texUV.y = vertex->texUV.y;
+		}
+		for(j=0; j<terrain->triangles->size; ++j){
+			DaoxTriangle *triangle = & terrain->triangles->data.triangles[j];
+			DaoGLTriangle *gltriangle = gltriangles + tcount + j;
+			gltriangle->index[0] = triangle->index[0] + vcount;
+			gltriangle->index[1] = triangle->index[1] + vcount;
+			gltriangle->index[2] = triangle->index[2] + vcount;
+		}
+		vcount += terrain->vertices->size;
+		tcount += terrain->triangles->size;
+
+		DaoxMaterial *material = NULL;
+		DaoxColor ambient = material ? material->ambient : daox_red_color;
+		DaoxColor diffuse = material ? material->diffuse : daox_green_color;
+		DaoxColor specular = material ? material->specular : daox_black_color;
+		DaoxColor emission = material ? material->emission : daox_black_color;
+		//printf( "%3i %6i %6i\n", i, data[0], data[1] );
+		glUniform4fv( self->shader.uniforms.ambientColor, 1, & ambient.red );
+		glUniform4fv( self->shader.uniforms.diffuseColor, 1, & diffuse.red );
+		glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
+		glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
+		glUniform1i(self->shader.uniforms.textureCount, 0 );
+		glDrawRangeElements( GL_TRIANGLES, 0, M, M, GL_UNSIGNED_INT, (void*)K );
+	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+	glBindVertexArray(0);
+}
 void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam )
 {
 	DaoxViewFrustum fm;
@@ -652,9 +722,6 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		//printf( "prepare\n" );
 		DMap_Clear( self->mapMaterials );
 		DList_Clear( self->canvases );
-		for(i=0; i<self->terrains->size; ++i){
-			DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
-		}
 		for(i=0; i<scene->nodes->size; ++i){
 			DaoxSceneNode *node = scene->nodes->items.pSceneNode[i];
 			DaoxRenderer_PrepareNode( self, node );
@@ -728,6 +795,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform3fv(self->shader.uniforms.lightSource, lightCount, & lightSource[0].x );
 	glUniform4fv(self->shader.uniforms.lightIntensity, lightCount, & lightIntensity[0].red );
 
+	DaoxRenderer_DrawTerrains( self, & fm );
 
 	glBindVertexArray( self->buffer.vertexVAO );
 	glBindBuffer( GL_ARRAY_BUFFER, self->buffer.vertexVBO );
