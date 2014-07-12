@@ -317,7 +317,6 @@ struct DaoxTerrainPatch
 {
 	float  heightDiff;
 
-	DaoxVector3D       normal;
 	DaoxTerrainPoint  *center;
 	DaoxTerrainPoint  *points[4];
 	DaoxTerrainPatch  *subs[4];

@@ -614,7 +614,7 @@ void DaoxRenderer_DrawTerrains( DaoxRenderer *self, DaoxViewFrustum *frustum )
 		DaoxMaterial *material = NULL;
 		DaoxColor ambient = material ? material->ambient : daox_red_color;
 		DaoxColor diffuse = material ? material->diffuse : daox_green_color;
-		DaoxColor specular = material ? material->specular : daox_black_color;
+		DaoxColor specular = material ? material->specular : daox_blue_color;
 		DaoxColor emission = material ? material->emission : daox_black_color;
 		//printf( "%3i %6i %6i\n", i, data[0], data[1] );
 		glUniform4fv( self->shader.uniforms.ambientColor, 1, & ambient.red );
