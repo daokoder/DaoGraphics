@@ -332,6 +332,7 @@ struct DaoxTerrain
 	float  width;   /* x-axis; */
 	float  length;  /* y-axis; */
 	float  height;  /* z-axis; */
+	float  depth;
 
 	DaoxImage         *heightmap;
 	DaoxTerrainPatch  *patchTree;

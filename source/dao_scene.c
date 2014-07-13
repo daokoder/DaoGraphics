@@ -818,6 +818,7 @@ DaoxTerrain* DaoxTerrain_New()
 	self->pointCache = DList_New(0);
 	self->patchCache = DList_New(0);
 	self->width = self->length = self->height = 1.0;
+	self->depth = 1.0;
 	return self;
 }
 void DaoxTerrain_CachePatch( DaoxTerrain *self, DaoxTerrainPatch *patch )
@@ -985,7 +986,6 @@ void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float maxHe
 	DaoxTerrainPoint *mid01, *mid12, *mid23, *mid30, *points[4];
 	DaoxTerrainPoint *center = patch->center;
 
-
 	mid01 = patch->points[0];
 	while( mid01 != patch->points[1] && mid01->divLevel != level ) mid01 = mid01->west;
 	if( mid01 == patch->points[1] ){
@@ -1089,25 +1089,18 @@ static void DaoxTerrain_ComputeNormals( DaoxTerrain *self, DaoxTerrainPatch *pat
 {
 	int i;
 	if( patch->subs[0] == NULL ){
-		DaoxTerrainPoint *first = patch->points[0];
-		while( first != patch->points[1] ){
+		DaoxTerrainPoint *first;
+		for(first = patch->points[0]; first != patch->points[1]; first = first->west){
 			DaoxTerrain_UpdateNormals( self, patch->center, first, first->west );
-			first = first->west;
 		}
-		first = patch->points[1];
-		while( first != patch->points[2] ){
+		for(first = patch->points[1]; first != patch->points[2]; first = first->south){
 			DaoxTerrain_UpdateNormals( self, patch->center, first, first->south );
-			first = first->south;
 		}
-		first = patch->points[2];
-		while( first != patch->points[3] ){
+		for(first = patch->points[2]; first != patch->points[3]; first = first->east){
 			DaoxTerrain_UpdateNormals( self, patch->center, first, first->east );
-			first = first->east;
 		}
-		first = patch->points[3];
-		while( first != patch->points[0] ){
+		for(first = patch->points[3]; first != patch->points[0]; first = first->north){
 			DaoxTerrain_UpdateNormals( self, patch->center, first, first->north );
-			first = first->north;
 		}
 		return;
 	}
@@ -1118,11 +1111,28 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff )
 	int i;
 	float width = self->width;
 	float length = self->length;
+	DaoxTerrainPatch *patch = self->patchTree;
+	DaoxTerrainPoint *first, *base;
 	DaoxTerrainPoint *points[4];
 	DList *pointList;
 
-	if( self->patchTree ) DaoxTerrain_CachePatch( self, self->patchTree );
-	if( self->baseCenter ) DList_Append( self->pointCache, self->baseCenter );
+	if( self->patchTree ){
+		/* Caching base points: */
+		DList_Append( self->pointCache, self->baseCenter );
+		for(first = patch->points[0]; first != patch->points[1]; first = first->west){
+			if( first->west->north ) DList_Append( self->pointCache, first->west->north );
+		}
+		for(first = patch->points[1]; first != patch->points[2]; first = first->south){
+			if( first->south->west ) DList_Append( self->pointCache, first->south->west );
+		}
+		for(first = patch->points[2]; first != patch->points[3]; first = first->east){
+			if( first->east->south ) DList_Append( self->pointCache, first->east->south );
+		}
+		for(first = patch->points[3]; first != patch->points[0]; first = first->north){
+			if( first->north->east ) DList_Append( self->pointCache, first->north->east );
+		}
+		DaoxTerrain_CachePatch( self, self->patchTree );
+	}
 	printf( "Patch Cache: %i\n", self->patchCache->size );
 	
 	self->patchTree = NULL;
@@ -1146,11 +1156,41 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff )
 	points[2]->north = points[1];
 
 	pointList = DList_New(0);
-	self->patchTree = DaoxTerrain_MakePatch( self, points, pointList, 0 );
+	self->patchTree = patch = DaoxTerrain_MakePatch( self, points, pointList, 0 );
+	self->baseCenter = DaoxTerrain_MakePoint( self, 0.0, 0.0 );
+	self->baseCenter->point.z = - self->depth;
 
 	for(i=0; i<4; ++i) DList_Append( pointList, points[i] );
 	if( (self->patchTree->maxHeight - self->patchTree->minHeight) > maxHeightDiff ){
 		DaoxTerrain_Refine( self, self->patchTree, maxHeightDiff, pointList );
+	}
+
+	printf( "tree: %p\n", self->patchTree );
+	/* Making base points: */
+	for(first = patch->points[0]; first != patch->points[1]; first = first->west){
+		base = DaoxTerrain_MakePoint( self, 0.0, 0.0 );
+		base->point = first->west->point;
+		base->point.z = - self->depth;
+		first->west->north = base;
+		//printf( "make base point: %p %p %p\n", first, first->west, base );
+	}
+	for(first = patch->points[1]; first != patch->points[2]; first = first->south){
+		base = DaoxTerrain_MakePoint( self, 0.0, 0.0 );
+		base->point = first->south->point;
+		base->point.z = - self->depth;
+		first->south->west = base;
+	}
+	for(first = patch->points[2]; first != patch->points[3]; first = first->east){
+		base = DaoxTerrain_MakePoint( self, 0.0, 0.0 );
+		base->point = first->east->point;
+		base->point.z = - self->depth;
+		first->east->south = base;
+	}
+	for(first = patch->points[3]; first != patch->points[0]; first = first->north){
+		base = DaoxTerrain_MakePoint( self, 0.0, 0.0 );
+		base->point = first->north->point;
+		base->point.z = - self->depth;
+		first->north->east = base;
 	}
 	DaoxTerrain_ComputeNormals( self, self->patchTree );
 	for(i=0; i<pointList->size; ++i){
@@ -1175,6 +1215,14 @@ static void DaoxTerrain_MakeTriangle( DaoxTerrain *self, DaoxTerrainPoint *cente
 	triangle.index[1] = first->activeIndex - 1;
 	triangle.index[2] = second->activeIndex - 1;
 	DArray_PushTriangle( self->triangles, & triangle );
+}
+static void DaoxTerrain_MakeBaseTriangle( DaoxTerrain *self, DaoxTerrainPoint *first, DaoxTerrainPoint *second, DaoxTerrainPoint *baseFirst, DaoxTerrainPoint *baseSecond, DaoxTerrainPoint *baseCenter )
+{
+	DaoxTerrain_TryActivatePoint( self, baseFirst );
+	DaoxTerrain_TryActivatePoint( self, baseSecond );
+	DaoxTerrain_MakeTriangle( self, baseFirst, second, first );
+	DaoxTerrain_MakeTriangle( self, second, baseFirst, baseSecond );
+	DaoxTerrain_MakeTriangle( self, baseCenter, baseSecond, baseFirst );
 }
 static int DaoxTerrain_PatchVisible( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
 {
@@ -1222,31 +1270,29 @@ static int DaoxTerrain_PatchHasFineView( DaoxTerrain *self, DaoxTerrainPatch *pa
 static void DaoxTerrain_UpdatePatchView( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
 {
 	int i, bl;
-	if( DaoxTerrain_PatchVisible( self, patch, frustum ) < 0 ) return;
+	if( DaoxTerrain_PatchVisible( self, patch, frustum ) < 0 ){
+		/* For building coarse but complete mesh: */
+		for(i=0; i<4; ++i) DaoxTerrain_TryActivatePoint( self, patch->points[i] );
+		DaoxTerrain_MakeTriangle( self, patch->points[0], patch->points[1], patch->points[2] );
+		DaoxTerrain_MakeTriangle( self, patch->points[0], patch->points[2], patch->points[3] );
+		return;
+	}
 	if( patch->subs[0] == NULL || DaoxTerrain_PatchHasFineView( self, patch, frustum ) ){
 		DaoxTerrainPoint *first;
 
 		DaoxTerrain_TryActivatePoint( self, patch->center );
 
-		first = patch->points[0];
-		while( first != patch->points[1] ){
+		for(first = patch->points[0]; first != patch->points[1]; first = first->west){
 			DaoxTerrain_MakeTriangle( self, patch->center, first, first->west );
-			first = first->west;
 		}
-		first = patch->points[1];
-		while( first != patch->points[2] ){
+		for(first = patch->points[1]; first != patch->points[2]; first = first->south){
 			DaoxTerrain_MakeTriangle( self, patch->center, first, first->south );
-			first = first->south;
 		}
-		first = patch->points[2];
-		while( first != patch->points[3] ){
+		for(first = patch->points[2]; first != patch->points[3]; first = first->east){
 			DaoxTerrain_MakeTriangle( self, patch->center, first, first->east );
-			first = first->east;
 		}
-		first = patch->points[3];
-		while( first != patch->points[0] ){
+		for(first = patch->points[3]; first != patch->points[0]; first = first->north){
 			DaoxTerrain_MakeTriangle( self, patch->center, first, first->north );
-			first = first->north;
 		}
 		return;
 	}
@@ -1254,7 +1300,11 @@ static void DaoxTerrain_UpdatePatchView( DaoxTerrain *self, DaoxTerrainPatch *pa
 }
 void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum )
 {
+	DaoxTerrainPatch *patch = self->patchTree;
+	DaoxTerrainPoint *first, *baseFirst, *baseSecond;
+	DaoxTerrainPoint *baseCenter;
 	daoint i, j;
+
 	for(i=0; i<self->vertices->size; ++i){
 		DaoxTerrainPoint *point = (DaoxTerrainPoint*) self->vertices->items.pVoid[i];
 		point->activeIndex = 0;
@@ -1264,6 +1314,45 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum )
 
 	if( self->patchTree == NULL ) DaoxTerrain_Rebuild( self, self->height / 16.0 );
 	DaoxTerrain_UpdatePatchView( self, self->patchTree, frustum );
+
+	patch = self->patchTree;
+	baseCenter = self->baseCenter;
+	DaoxTerrain_TryActivatePoint( self, self->baseCenter );
+
+	printf( "tree: %p\n", self->patchTree );
+	for(first = patch->points[0]; first != patch->points[1]; ){
+		DaoxTerrainPoint *second = first->west;
+		while( second->activeIndex == 0 ) second = second->west;
+		baseFirst = first == patch->points[0] ? patch->points[0]->east : first->north;
+		baseSecond = second->north;
+		//printf( "use base point: %p %p %p\n", first, second, baseSecond );
+		DaoxTerrain_MakeBaseTriangle( self, first, second, baseFirst, baseSecond, baseCenter );
+		first = second;
+	}
+	for(first = patch->points[1]; first != patch->points[2]; ){
+		DaoxTerrainPoint *second = first->south;
+		while( second->activeIndex == 0 ) second = second->south;
+		baseFirst = first == patch->points[1] ? patch->points[1]->north : first->west;
+		baseSecond = second->west;
+		DaoxTerrain_MakeBaseTriangle( self, first, second, baseFirst, baseSecond, baseCenter );
+		first = second;
+	}
+	for(first = patch->points[2]; first != patch->points[3]; ){
+		DaoxTerrainPoint *second = first->east;
+		while( second->activeIndex == 0 ) second = second->east;
+		baseFirst = first == patch->points[2] ? patch->points[2]->west : first->south;
+		baseSecond = second->south;
+		DaoxTerrain_MakeBaseTriangle( self, first, second, baseFirst, baseSecond, baseCenter );
+		first = second;
+	}
+	for(first = patch->points[3]; first != patch->points[0]; ){
+		DaoxTerrainPoint *second = first->north;
+		while( second->activeIndex == 0 ) second = second->north;
+		baseFirst = first == patch->points[3] ? patch->points[3]->south : first->east;
+		baseSecond = second->east;
+		DaoxTerrain_MakeBaseTriangle( self, first, second, baseFirst, baseSecond, baseCenter );
+		first = second;
+	}
 }
 
 
@@ -1322,404 +1411,5 @@ void DaoxScene_AddMaterial( DaoxScene *self, DString *name, DaoxMaterial *materi
 	DList_Append( self->materials, material );
 }
 
-
-
-
-
-
-
-
-
-typedef struct DaoxBinaryParser DaoxBinaryParser;
-
-struct DaoxBinaryParser
-{
-	uchar_t  *source;
-	uchar_t  *end;
-	uchar_t  *error;
-};
-
-uint_t DaoxBinaryParser_DecodeUInt16LE( DaoxBinaryParser *self )
-{
-	uint_t res;
-	if( (self->source + 2) > self->end ){
-		self->source = self->error;
-		return 0;
-	}
-	res = (self->source[1]<<8)|(self->source[0]);
-	self->source += 2;
-	return res;
-}
-uint_t DaoxBinaryParser_DecodeUInt32LE( DaoxBinaryParser *self )
-{
-	uint_t res;
-	if( (self->source + 4) > self->end ){
-		self->source = self->error;
-		return 0;
-	}
-	res = (self->source[3]<<24)|(self->source[2]<<16)|(self->source[1]<<8)|(self->source[0]);
-	self->source += 4;
-	return res;
-}
-uint_t DaoxBinaryParser_DecodeUInt32BE( DaoxBinaryParser *self )
-{
-	uint_t res;
-	if( (self->source + 4) > self->end ){
-		self->source = self->error;
-		return 0;
-	}
-	res = (self->source[0]<<24)|(self->source[1]<<16)|(self->source[2]<<8)|(self->source[3]);
-	self->source += 4;
-	return res;
-}
-/*
-// IEEE 754 single-precision binary floating-point format:
-//   sign(1)--exponent(8)--fraction(23)--
-//   S  EEEEEEEE  FFFFFFFFFFFFFFFFFFFFFFF
-//   31       22                        0
-//
-//   value = (-1)^S  *  ( 1 + \sigma_0^22 (b_i * 2^{-(23-i)}) )  *  2^{E-127}
-*/
-double DaoxBinaryParser_DecodeFloatLE( DaoxBinaryParser *self )
-{
-	double value = 1.0;
-	uint_t bits = DaoxBinaryParser_DecodeUInt32LE( self );
-	uint_t negative = bits & (1<<31);
-	int i, expon;
-
-	if( (self->source + 4) > self->end ){
-		self->source = self->error;
-		return 0;
-	}
-	if( bits == 0 ) return 0;
-	if( bits == (0x7FF<<20) ) return INFINITY;
-	if( bits == ((0x7FF<<20)|1) ) return NAN;
-
-	bits = (bits<<1)>>1;
-	expon = (bits>>23) - 127;
-	for(i=0; i<23; ++i){
-		if( (bits>>i)&0x1 ){
-			int e = -(23-i);
-			if( e >= 0 )
-				value += pow( 2, e );
-			else
-				value += 1.0 / pow( 2, -e );
-		}
-	}
-	if( expon >= 0 )
-		value *= pow( 2, expon );
-	else
-		value /= pow( 2, -expon );
-	if( negative ) value = -value;
-	return value;
-}
-char* DaoxBinaryParser_DecodeString( DaoxBinaryParser *self )
-{
-	char *s = (char*) self->source;
-	while( *self->source ) self->source += 1;
-	self->source += 1;
-	return s;
-}
-enum ColorType
-{
-	AMBIENT, DIFFUSE, SPECULAR
-};
-void DaoxScene_Parse3DS( DaoxScene *self, DString *source )
-{
-	DaoxColor tmpColor;
-	DaoxVector3D vector;
-	DaoxVector3D vector2;
-	DaoxMatrix4D matrix;
-	DaoxColor *color = NULL;
-	DaoxImage *image = NULL;
-	DaoxTexture *texture = NULL;
-	DaoxMeshUnit *unit = NULL;
-	DaoxMesh *mesh = NULL;
-	DaoxModel *model = NULL;
-	DaoxLight *light = NULL;
-	DaoxCamera *camera = NULL;
-	DaoxMaterial *material = NULL;
-	DaoxBinaryParser parser0;
-	DaoxBinaryParser *parser = & parser0;
-	DArray *vertices = DArray_New( sizeof(DaoxVertex) );
-	DArray *triangles = DArray_New( sizeof(DaoxTriangle) );
-	DList *integers = DList_New(0);
-	DList *chunkids = DList_New(0);
-	DList *chunkends = DList_New(0);
-	DList *faceCounts = DList_New(0);
-	DString *string = DString_New(1);
-	DNode *it = NULL;
-	int colortype = AMBIENT;
-	int i, j, k, m, n;
-	float x, y, z, floats[16];
-	float amount;
-
-	parser->source = (uchar_t*) source->chars;
-	parser->end = parser->source + source->size;
-	parser->error = parser->end + 1;
-	while( parser->source < parser->end ){
-		uint_t chunkid = DaoxBinaryParser_DecodeUInt16LE( parser );
-		uint_t chunklen = DaoxBinaryParser_DecodeUInt32LE( parser );
-		uint_t parentid = (daoint) DList_Back( chunkids );
-		if( parser->source >= parser->end ) break;
-		while( chunkends->size && ((uchar_t*)DList_Back( chunkends )) < parser->source ){
-			DList_PopBack( chunkends );
-			DList_PopBack( chunkids );
-		}
-		DList_PushBack( chunkends, parser->source + (chunklen - 6) );
-		DList_PushBack( chunkids, (void*)(size_t)chunkid );
-		printf( "chunk: %6X -> %6X %6i\n", parentid, chunkid, chunklen );
-		switch( chunkid ){
-		case 0x4D4D : /* Main Chunk */
-		case 0x3D3D : /* 3D Editor Chunk */
-			break;
-		case 0x4000 : /* Object Block */
-			DaoxBinaryParser_DecodeString( parser );
-			break;
-		case 0x4100 : /* Triangular Mesh */
-			if( model ){
-				DaoxMesh_UpdateTree( mesh, 0 );
-				DaoxMesh_ResetBoundingBox( mesh );
-				DaoxModel_SetMesh( model, mesh );
-				DaoxScene_AddNode( self, (DaoxSceneNode*) model );
-			}
-			printf( "mesh\n" );
-			model = DaoxModel_New();
-			mesh = DaoxMesh_New();
-			break;
-		case 0x4110 : /* Vertices List */
-			m = DaoxBinaryParser_DecodeUInt16LE( parser );
-			printf( "vertices: %i %p\n", m, unit );
-			DList_Resize( faceCounts, m, 0 );
-			DArray_Reset( vertices, 0 );
-			for(i=0; i<m; ++i){
-				DaoxVertex *vertex = DArray_PushVertex( vertices, NULL );
-				vertex->point.x = DaoxBinaryParser_DecodeFloatLE( parser );
-				vertex->point.y = DaoxBinaryParser_DecodeFloatLE( parser );
-				vertex->point.z = DaoxBinaryParser_DecodeFloatLE( parser );
-				vertex->norm.x = vertex->norm.y = vertex->norm.z = 0.0;
-				vertex->texUV.x = vertex->texUV.y = 0.0;
-				faceCounts->items.pInt[i] = 0;
-				//printf( "%9.3f %9.3f %9.3f\n", vertex->point.x, vertex->point.y, vertex->point.z );
-			}
-			break;
-		case 0x4120 : /* Faces Description */
-			m = DaoxBinaryParser_DecodeUInt16LE( parser );
-			DArray_Reset( triangles, 0 );
-			printf( "triangles: %i %p\n", m, unit );
-			for(i=0; i<m; ++i){
-				DaoxTriangle *triangle = DArray_PushTriangle( triangles, NULL );
-				DaoxVertex *A, *B, *C;
-				DaoxVector3D AB, BC, N;
-				float norm;
-				triangle->index[0] = DaoxBinaryParser_DecodeUInt16LE( parser );
-				triangle->index[1] = DaoxBinaryParser_DecodeUInt16LE( parser );
-				triangle->index[2] = DaoxBinaryParser_DecodeUInt16LE( parser );
-				DaoxBinaryParser_DecodeUInt16LE( parser );
-				A = & vertices->data.vertices[ triangle->index[0] ];
-				B = & vertices->data.vertices[ triangle->index[1] ];
-				C = & vertices->data.vertices[ triangle->index[2] ];
-				AB = DaoxVector3D_Sub( & B->point, & A->point );
-				BC = DaoxVector3D_Sub( & C->point, & B->point );
-				N = DaoxVector3D_Cross( & AB, & BC );
-				norm = DaoxVector3D_Norm2( & N );
-				N = DaoxVector3D_Scale( & N, 1.0 / sqrt( norm ) );
-				A->norm = DaoxVector3D_Add( & A->norm, & N );
-				B->norm = DaoxVector3D_Add( & B->norm, & N );
-				C->norm = DaoxVector3D_Add( & C->norm, & N );
-				faceCounts->items.pInt[ triangle->index[0] ] += 1;
-				faceCounts->items.pInt[ triangle->index[1] ] += 1;
-				faceCounts->items.pInt[ triangle->index[2] ] += 1;
-				//printf( "%6i%6i%6i\n", triangle->index[0], triangle->index[1], triangle->index[2] );
-			}
-			for(i=0; i<vertices->size; ++i){
-				DaoxVertex *V = & vertices->data.vertices[i];
-				int count = faceCounts->items.pInt[i];
-				V->norm = DaoxVector3D_Scale( & V->norm, 1.0 / count );
-			}
-			break;
-		case 0x4130 : /* Faces Material */
-			DString_SetChars( string, DaoxBinaryParser_DecodeString( parser ) );
-			it = DMap_Find( self->materialNames, string );
-			m = DaoxBinaryParser_DecodeUInt16LE( parser );
-			k = it ? it->value.pInt : 0;
-			unit = DaoxMesh_AddUnit( mesh );
-			material = self->materials->items.pMaterial[k];
-			DaoxMeshUnit_SetMaterial( unit, material );
-			if( integers->size < vertices->size ) DList_Resize( integers, vertices->size, 0 );
-			memset( integers->items.pInt, 0, vertices->size*sizeof(daoint) );
-			for(i=0; i<m; ++i){
-				int id = DaoxBinaryParser_DecodeUInt16LE( parser );
-				DaoxTriangle *triangle = DArray_PushTriangle( unit->triangles, NULL );
-				DaoxTriangle *triangle2 = triangles->data.triangles + id;
-				for(j=0; j<3; ++j){
-					if( integers->items.pInt[ triangle2->index[j] ] == 0 ){
-						DaoxVertex *vertex = DArray_PushVertex( unit->vertices, NULL );
-						DaoxVertex *vertex2 = vertices->data.vertices + triangle2->index[j];
-						integers->items.pInt[ triangle2->index[j] ] = unit->vertices->size;
-						*vertex = *vertex2;
-					}
-					triangle->index[j] = integers->items.pInt[ triangle2->index[j] ] - 1;
-				}
-			}
-			break;
-		case 0x4140 : /* Mapping Coordinates List */
-			m = DaoxBinaryParser_DecodeUInt16LE( parser );
-			for(i=0; i<m; ++i){
-				DaoxVertex *vertex = & vertices->data.vertices[i];
-				x = DaoxBinaryParser_DecodeFloatLE( parser );
-				y = DaoxBinaryParser_DecodeFloatLE( parser );
-				if( i >= vertices->size ) continue;
-				vertex->texUV.x = x;
-				vertex->texUV.y = y;
-			}
-			break;
-		case 0x4160 : /* Local Coordinates System */
-			matrix = DaoxMatrix4D_Identity();
-			matrix.A11 = DaoxBinaryParser_DecodeFloatLE( parser );
-			matrix.A21 = DaoxBinaryParser_DecodeFloatLE( parser );
-			matrix.A31 = DaoxBinaryParser_DecodeFloatLE( parser );
-			matrix.A12 = DaoxBinaryParser_DecodeFloatLE( parser );
-			matrix.A22 = DaoxBinaryParser_DecodeFloatLE( parser );
-			matrix.A32 = DaoxBinaryParser_DecodeFloatLE( parser );
-			matrix.A13 = DaoxBinaryParser_DecodeFloatLE( parser );
-			matrix.A23 = DaoxBinaryParser_DecodeFloatLE( parser );
-			matrix.A33 = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector.x = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector.y = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector.z = DaoxBinaryParser_DecodeFloatLE( parser );
-			DaoxMatrix4D_Print( & matrix );
-			DaoxVector3D_Print( & vector );
-#warning "=========================================== transform"
-			for(i=0; i<vertices->size; ++i){
-				DaoxVertex *vertex = & vertices->data.vertices[i];
-				DaoxVector3D point = DaoxVector3D_Sub( & vertex->point, & vector );
-				vertex->point = DaoxMatrix4D_MulVector( & matrix, & point, 1.0 );
-			}
-			matrix.B1 = vector.x;
-			matrix.B2 = vector.y;
-			matrix.B3 = vector.z;
-			model->base.transform = matrix;
-			break;
-		case 0x4600 : /* Light */
-			light = DaoxLight_New();
-			DaoxScene_AddNode( self, (DaoxSceneNode*) light );
-			vector.x = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector.y = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector.z = DaoxBinaryParser_DecodeFloatLE( parser );
-			DaoxLight_Move( light, vector );
-			printf( "light: " );
-			DaoxVector3D_Print( & vector );
-			break;
-		case 0x4700 :
-			camera = DaoxCamera_New();
-			DaoxScene_AddNode( self, (DaoxSceneNode*) camera );
-			vector.x = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector.y = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector.z = DaoxBinaryParser_DecodeFloatLE( parser );
-			DaoxCamera_Move( camera, vector );
-			vector2.x = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector2.y = DaoxBinaryParser_DecodeFloatLE( parser );
-			vector2.z = DaoxBinaryParser_DecodeFloatLE( parser );
-			DaoxCamera_LookAt( camera, vector2 );
-			x = DaoxBinaryParser_DecodeFloatLE( parser ); /* rotation angle; */
-			y = DaoxBinaryParser_DecodeFloatLE( parser ); /* camera lens; */
-			camera->farPlane = 10.0 * sqrt( DaoxVector3D_Dist2( & vector, & vector2 ) );
-			printf( "camera: " );
-			DaoxVector3D_Print( & vector );
-			break;
-		case 0xAFFF : /* Material Block */
-			material = DaoxMaterial_New();
-			DList_Append( self->materials, material );
-			break;
-		case 0xA000 : /* Material name */
-			DString_SetChars( string, DaoxBinaryParser_DecodeString( parser ) );
-			MAP_Insert( self->materialNames, string, self->materials->size - 1 );
-			break;
-		case 0xA010 : /* ambient color */
-			colortype = AMBIENT;
-			break;
-		case 0xA020 : /* diffuse color */
-			colortype = DIFFUSE;
-			break;
-		case 0xA030 : /* specular color */
-			colortype = SPECULAR;
-			break;
-		case 0x0010 : /* RGB color (float format) */
-		case 0x0011 : /* RGB color (24bits) */
-			switch( parentid ){
-			case 0x4600 : color = & light->intensity; break;
-			case 0xA010 : color = & material->ambient; break;
-			case 0xA020 : color = & material->diffuse; break;
-			case 0xA030 : color = & material->specular; break;
-			default : color = & tmpColor; break;
-			}
-			color->alpha = 1.0;
-			if( chunkid == 0x0010 ){
-				color->red = DaoxBinaryParser_DecodeFloatLE( parser );
-				color->green = DaoxBinaryParser_DecodeFloatLE( parser );
-				color->blue = DaoxBinaryParser_DecodeFloatLE( parser );
-			}else{
-				color->red = parser->source[0] / 255.0;
-				color->green = parser->source[1] / 255.0;
-				color->blue = parser->source[2] / 255.0;
-				parser->source += chunklen - 6;
-			}
-			break;
-		case 0xA040 : /* shininess */
-		case 0xA041 : /* shin. strength */
-		case 0xA050 : /* transparency */
-		case 0xA052 : /* trans. falloff */
-		case 0xA053 : /* reflect blur */
-		case 0xA100 : /* material type */
-		case 0xA084 : /* self illum */
-		case 0xB000 : /* Keyframer Chunk */
-			parser->source += chunklen - 6;
-			break;
-		case 0xA200 :
-			texture = DaoxTexture_New();
-			MAP_Insert( self->textureNames, string, self->textures->size );
-			DList_Append( self->textures, texture );
-			DaoxMaterial_SetTexture( material, texture );
-			break;
-		case 0xA300 :
-			DString_SetChars( string, DaoxBinaryParser_DecodeString( parser ) );
-			DaoxTexture_LoadImage( texture, string->chars );
-			printf( "texture: %s %i %i\n", string->chars, texture->image->width, texture->image->height );
-			break;
-		case 0x0030 :
-			amount = DaoxBinaryParser_DecodeUInt16LE( parser ) / 100.0;
-			printf( "WARNING: unhandled chunk %f\n", amount );
-			//if( parentid == 0xA200 )
-			break;
-		default :
-			printf( "WARNING: unhandled chunk %x\n", chunkid );
-			parser->source += chunklen - 6;
-			break;
-		}
-	}
-	if( model ){
-		DaoxMesh_UpdateTree( mesh, 0 );
-		DaoxMesh_ResetBoundingBox( mesh );
-		DaoxModel_SetMesh( model, mesh );
-		DaoxScene_AddNode( self, (DaoxSceneNode*) model );
-	}
-	DArray_Delete( vertices );
-	DArray_Delete( triangles );
-	DList_Delete( integers );
-	DList_Delete( chunkids );
-	DList_Delete( chunkends );
-	DList_Delete( faceCounts );
-	DString_Delete( string );
-}
-void DaoxScene_Load3DS( DaoxScene *self, const char *file )
-{
-	DString *source = DString_New(1);
-	FILE *fin = fopen( file, "r" );
-	if( fin == NULL ) return; // TODO: Error;
-	DaoFile_ReadAll( fin, source, 1 );
-	DaoxScene_Parse3DS( self, source );
-	DString_Delete( source );
-}
 
 

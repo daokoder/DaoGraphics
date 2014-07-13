@@ -35,7 +35,7 @@ light2 = Graphics::Light( $spot, 0.25, 0.25, 0.25 )
 light3 = Graphics::Light( $spot, 0.25, 0.25, 0.25 )
 light1.Move( 50, 90, 150 )
 light2.Move( 101.5, 61.5, 161.5 )
-light2.Move( 0, 0, 0 )
+light2.Move( 0, 0, -50 )
 scene.AddNode( light1 );
 scene.AddNode( light2 );
 scene.AddNode( light3 );
