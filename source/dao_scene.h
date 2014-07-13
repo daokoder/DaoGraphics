@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2013, Limin Fu
+// Copyright (c) 2013-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -41,8 +41,7 @@
 
 
 
-typedef struct DaoxTexture   DaoxTexture;
-
+typedef struct DaoxTexture     DaoxTexture;
 
 typedef struct DaoxSceneNode   DaoxSceneNode;
 typedef struct DaoxCamera      DaoxCamera;
@@ -335,6 +334,7 @@ struct DaoxTerrain
 	float  depth;
 
 	DaoxImage         *heightmap;
+	DaoxTexture       *texture;
 	DaoxTerrainPatch  *patchTree;
 	DaoxTerrainPoint  *baseCenter;
 
@@ -351,6 +351,7 @@ void DaoxTerrain_Delete( DaoxTerrain *self );
 
 void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float height );
 void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap );
+void DaoxTerrain_SetTexture( DaoxTerrain *self, DaoxTexture *texture );
 void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float mdiff, DList *pts );
 void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff );
 void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );

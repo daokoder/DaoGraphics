@@ -3,7 +3,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2013, Limin Fu
+// Copyright (c) 2013-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -572,17 +572,20 @@ void DaoxRenderer_DrawTerrains( DaoxRenderer *self, DaoxViewFrustum *frustum )
 {
 	DaoGLVertex3D *glvertices;
 	DaoGLTriangle *gltriangles;
-	int i, j, vcount = 0, tcount = 0;
+	int vertexCount = 0;
+	int triangleCount = 0;
+	int i, j;
+
 	for(i=0; i<self->terrains->size; ++i){
 		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
 		DaoxTerrain_UpdateView( terrain, frustum );
-		vcount += terrain->vertices->size;
-		tcount += terrain->triangles->size;
+		vertexCount += terrain->vertices->size;
+		triangleCount += terrain->triangles->size;
 	}
-	printf( ">> %i %i\n", vcount, tcount );
-	glvertices = DaoxBuffer_MapVertices3D( & self->terrainBuffer, vcount );
-	gltriangles = DaoxBuffer_MapTriangles( & self->terrainBuffer, tcount );
-	vcount = tcount = 0;
+	printf( ">> %i %i\n", vertexCount, triangleCount );
+	glvertices = DaoxBuffer_MapVertices3D( & self->terrainBuffer, vertexCount );
+	gltriangles = DaoxBuffer_MapTriangles( & self->terrainBuffer, triangleCount );
+	vertexCount = triangleCount = 0;
 
 	glBindVertexArray( self->terrainBuffer.vertexVAO );
 	glBindBuffer( GL_ARRAY_BUFFER, self->terrainBuffer.vertexVBO );
@@ -590,44 +593,53 @@ void DaoxRenderer_DrawTerrains( DaoxRenderer *self, DaoxViewFrustum *frustum )
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->terrainBuffer.triangleVBO );
 	for(i=0; i<self->terrains->size; ++i){
 		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
+		DaoxColor dark = {0.1, 0.1, 0.1, 1.0};
+		int textureCount = 0;
 		int M = 3*terrain->triangles->size;
-		int K = tcount;
-		printf( "%i %i\n", vcount, tcount );
+		int K = triangleCount;
+		printf( "%i %i\n", vertexCount, triangleCount );
 		for(j=0; j<terrain->vertices->size; ++j){
 			DaoxTerrainPoint *point = (DaoxTerrainPoint*) terrain->vertices->items.pVoid[j];
-			DaoGLVertex3D *glvertex = glvertices + vcount + j;
+			DaoGLVertex3D *glvertex = glvertices + vertexCount + j;
 			glvertex->point.x = point->point.x;
 			glvertex->point.y = point->point.y;
 			glvertex->point.z = point->point.z;
 			glvertex->norm.x = point->norm.x;
 			glvertex->norm.y = point->norm.y;
 			glvertex->norm.z = point->norm.z;
-			glvertex->texUV.x = 0.0;
-			glvertex->texUV.y = 0.0;
+			glvertex->texUV.x = point->point.x / terrain->width + 0.5;
+			glvertex->texUV.y = point->point.y / terrain->length + 0.5;
 		}
 		for(j=0; j<terrain->triangles->size; ++j){
 			DaoxTriangle *triangle = & terrain->triangles->data.triangles[j];
-			DaoGLTriangle *gltriangle = gltriangles + tcount + j;
-			gltriangle->index[0] = triangle->index[0] + vcount;
-			gltriangle->index[1] = triangle->index[1] + vcount;
-			gltriangle->index[2] = triangle->index[2] + vcount;
+			DaoGLTriangle *gltriangle = gltriangles + triangleCount + j;
+			gltriangle->index[0] = triangle->index[0] + vertexCount;
+			gltriangle->index[1] = triangle->index[1] + vertexCount;
+			gltriangle->index[2] = triangle->index[2] + vertexCount;
 		}
-		vcount += terrain->vertices->size;
-		tcount += terrain->triangles->size;
+		vertexCount += terrain->vertices->size;
+		triangleCount += terrain->triangles->size;
 
-		DaoxMaterial *material = NULL;
-		DaoxColor ambient = material ? material->ambient : daox_red_color;
-		DaoxColor diffuse = material ? material->diffuse : daox_green_color;
-		DaoxColor specular = material ? material->specular : daox_blue_color;
-		DaoxColor emission = material ? material->emission : daox_black_color;
 		//printf( "%3i %6i %6i\n", i, data[0], data[1] );
-		glUniform4fv( self->shader.uniforms.ambientColor, 1, & ambient.red );
-		glUniform4fv( self->shader.uniforms.diffuseColor, 1, & diffuse.red );
-		glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
-		glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
-		glUniform1i(self->shader.uniforms.textureCount, 0 );
+		glUniform4fv( self->shader.uniforms.ambientColor, 1, & dark.red );
+		glUniform4fv( self->shader.uniforms.diffuseColor, 1, & dark.red );
+		glUniform4fv( self->shader.uniforms.specularColor, 1, & dark.red );
+		glUniform4fv( self->shader.uniforms.emissionColor, 1, & daox_black_color.red );
+		if( terrain->texture ){
+			DaoxTexture *texture = terrain->texture;
+			DaoxTexture_glInitTexture( texture );
+			if( texture->tid ){
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, texture->tid);
+				glUniform1i(self->shader.uniforms.textures[0], 0);
+				textureCount = 1;
+			}
+		}
+		glUniform1i(self->shader.uniforms.textureCount, textureCount );
 		glDrawRangeElements( GL_TRIANGLES, 0, M, M, GL_UNSIGNED_INT, (void*)K );
 	}
+	self->buffer.vertexOffset += vertexCount;
+	self->buffer.triangleOffset += triangleCount;
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 	glBindVertexArray(0);
@@ -777,6 +789,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.5, 0.5, 0.5, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
 	glUseProgram( self->shader.program );
 

@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2013, Limin Fu
+// Copyright (c) 2013-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -56,8 +56,27 @@ DaoTypeBase DaoxMesh_Typer =
 	(FuncPtrDel)DaoxMesh_Delete, NULL
 };
 
+
+static void TEX_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxTexture *self = DaoxTexture_New();
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static void TEX_SetImage( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxTexture *self = (DaoxTexture*) p[0];
+	DaoxImage *image = (DaoxImage*) p[1];
+	DaoxTexture_SetImage( self, image );
+}
+
 static DaoFuncItem DaoxTextureMeths[]=
 {
+	{ TEX_New,
+		"Texture()"
+	},
+	{ TEX_SetImage,
+		"SetImage( self: Texture, image: Image )"
+	},
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxTexture_Typer =
@@ -65,6 +84,7 @@ DaoTypeBase DaoxTexture_Typer =
 	"Texture", NULL, NULL, (DaoFuncItem*) DaoxTextureMeths, {0}, {0},
 	(FuncPtrDel)DaoxTexture_Delete, NULL
 };
+
 
 static void MAT_New( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -263,8 +283,17 @@ DaoTypeBase DaoxModel_Typer =
 
 
 
+static void TERRAIN_SetTexture( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxTerrain *self = (DaoxTerrain*) p[0];
+	DaoxTexture *texture = (DaoxTexture*) p[1];
+	DaoxTerrain_SetTexture( self, texture );
+}
 static DaoFuncItem DaoxTerrainMeths[]=
 {
+	{ TERRAIN_SetTexture,
+		"SetTexture( self: Terrain, texture: Texture )"
+	},
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxTerrain_Typer =

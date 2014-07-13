@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012, Limin Fu
+// Copyright (c) 2012-2014, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -865,6 +865,10 @@ void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float he
 void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap )
 {
 	GC_Assign( & self->heightmap, heightmap );
+}
+void DaoxTerrain_SetTexture( DaoxTerrain *self, DaoxTexture *texture )
+{
+	GC_Assign( & self->texture, texture );
 }
 
 float DaoxTerrain_GetPixel( DaoxTerrain *self, float x, float y )
