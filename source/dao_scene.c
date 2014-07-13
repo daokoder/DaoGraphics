@@ -1213,8 +1213,6 @@ static void DaoxTerrain_TryActivatePoint( DaoxTerrain *self, DaoxTerrainPoint *p
 static void DaoxTerrain_MakeTriangle( DaoxTerrain *self, DaoxTerrainPoint *center, DaoxTerrainPoint *first, DaoxTerrainPoint *second )
 {
 	DaoxTriangle triangle;
-	DaoxTerrain_TryActivatePoint( self, first );
-	DaoxTerrain_TryActivatePoint( self, second );
 	triangle.index[0] = center->activeIndex - 1;
 	triangle.index[1] = first->activeIndex - 1;
 	triangle.index[2] = second->activeIndex - 1;
@@ -1271,36 +1269,60 @@ static int DaoxTerrain_PatchHasFineView( DaoxTerrain *self, DaoxTerrainPatch *pa
 	viewDiff = frustum->ratio * frustum->near * viewDiff / mindist;
 	return viewDiff < 2.0;
 }
-static void DaoxTerrain_UpdatePatchView( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
+static void DaoxTerrain_ActivateVertices( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
 {
-	int i, bl;
-	if( DaoxTerrain_PatchVisible( self, patch, frustum ) < 0 ){
+	int i;
+
+	patch->visible = DaoxTerrain_PatchVisible( self, patch, frustum ) >= 0;
+	if( ! patch->visible ){
 		/* For building coarse but complete mesh: */
 		for(i=0; i<4; ++i) DaoxTerrain_TryActivatePoint( self, patch->points[i] );
+		return;
+	}
+
+	DaoxTerrain_TryActivatePoint( self, patch->center );
+	for(i=0; i<4; ++i) DaoxTerrain_TryActivatePoint( self, patch->points[i] );
+
+	patch->smooth = DaoxTerrain_PatchHasFineView( self, patch, frustum );
+	if( patch->subs[0] == NULL || patch->smooth ) return;
+
+	for(i=0; i<4; ++i) DaoxTerrain_ActivateVertices( self, patch->subs[i], frustum );
+}
+static void DaoxTerrain_GenerateTriangles( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
+{
+	int i;
+	if( ! patch->visible ){
+		/* For building coarse but complete mesh: */
 		DaoxTerrain_MakeTriangle( self, patch->points[0], patch->points[1], patch->points[2] );
 		DaoxTerrain_MakeTriangle( self, patch->points[0], patch->points[2], patch->points[3] );
 		return;
 	}
-	if( patch->subs[0] == NULL || DaoxTerrain_PatchHasFineView( self, patch, frustum ) ){
-		DaoxTerrainPoint *first;
+	if( patch->subs[0] == NULL || patch->smooth ){
+		DaoxTerrainPoint *first, *second = NULL;
 
-		DaoxTerrain_TryActivatePoint( self, patch->center );
-
-		for(first = patch->points[0]; first != patch->points[1]; first = first->west){
-			DaoxTerrain_MakeTriangle( self, patch->center, first, first->west );
+		for(first = patch->points[0]; first != patch->points[1]; first = second){
+			second = first->west;
+			while( second->activeIndex == 0 ) second = second->west;
+			DaoxTerrain_MakeTriangle( self, patch->center, first, second );
 		}
-		for(first = patch->points[1]; first != patch->points[2]; first = first->south){
-			DaoxTerrain_MakeTriangle( self, patch->center, first, first->south );
+		for(first = patch->points[1]; first != patch->points[2]; first = second){
+			second = first->south;
+			while( second->activeIndex == 0 ) second = second->south;
+			DaoxTerrain_MakeTriangle( self, patch->center, first, second );
 		}
-		for(first = patch->points[2]; first != patch->points[3]; first = first->east){
-			DaoxTerrain_MakeTriangle( self, patch->center, first, first->east );
+		for(first = patch->points[2]; first != patch->points[3]; first = second){
+			second = first->east;
+			while( second->activeIndex == 0 ) second = second->east;
+			DaoxTerrain_MakeTriangle( self, patch->center, first, second );
 		}
-		for(first = patch->points[3]; first != patch->points[0]; first = first->north){
-			DaoxTerrain_MakeTriangle( self, patch->center, first, first->north );
+		for(first = patch->points[3]; first != patch->points[0]; first = second){
+			second = first->north;
+			while( second->activeIndex == 0 ) second = second->north;
+			DaoxTerrain_MakeTriangle( self, patch->center, first, second );
 		}
 		return;
 	}
-	for(i=0; i<4; ++i) DaoxTerrain_UpdatePatchView( self, patch->subs[i], frustum );
+	for(i=0; i<4; ++i) DaoxTerrain_GenerateTriangles( self, patch->subs[i], frustum );
 }
 void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum )
 {
@@ -1317,7 +1339,8 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum )
 	self->triangles->size = 0;
 
 	if( self->patchTree == NULL ) DaoxTerrain_Rebuild( self, self->height / 16.0 );
-	DaoxTerrain_UpdatePatchView( self, self->patchTree, frustum );
+	DaoxTerrain_ActivateVertices( self, self->patchTree, frustum );
+	DaoxTerrain_GenerateTriangles( self, self->patchTree, frustum );
 
 	patch = self->patchTree;
 	baseCenter = self->baseCenter;

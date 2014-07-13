@@ -48,7 +48,8 @@
 	struct DaoxVertex       *vertices;  \
 	struct DaoxTriangle     *triangles; \
 	struct DaoxColor        *colors;    \
-	struct DaoxPathSegment  *segments;
+	struct DaoxPathSegment  *segments;  \
+	struct DaoxDrawTask     *drawtasks;
 
 
 #include <stdlib.h>

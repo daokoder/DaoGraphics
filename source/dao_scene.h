@@ -316,8 +316,10 @@ struct DaoxTerrainPoint
 */
 struct DaoxTerrainPatch
 {
-	float  minHeight;
-	float  maxHeight;
+	uchar_t  visible;
+	uchar_t  smooth;
+	float    minHeight;
+	float    maxHeight;
 
 	DaoxTerrainPoint  *center;
 	DaoxTerrainPoint  *points[4];
@@ -335,6 +337,7 @@ struct DaoxTerrain
 
 	DaoxImage         *heightmap;
 	DaoxTexture       *texture;
+
 	DaoxTerrainPatch  *patchTree;
 	DaoxTerrainPoint  *baseCenter;
 

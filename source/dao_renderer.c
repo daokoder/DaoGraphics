@@ -51,7 +51,8 @@ DaoxRenderer* DaoxRenderer_New()
 	self->targetHeight = 200;
 	self->visibleModels = DList_New(0);
 	self->visibleChunks = DList_New(0);
-	self->drawLists = DList_New(0);
+	self->drawLists = DArray_New(sizeof(DaoxDrawTask));
+	self->drawLists2 = DArray_New(sizeof(DaoxDrawTask));
 	self->terrains = DList_New( DAO_DATA_VALUE );
 	self->canvases = DList_New( DAO_DATA_VALUE );
 	self->mapMaterials = DMap_New(0,0);
@@ -108,7 +109,8 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DList_Delete( self->terrains );
 	DList_Delete( self->canvases );
-	DList_Delete( self->drawLists );
+	DArray_Delete( self->drawLists );
+	DArray_Delete( self->drawLists2 );
 	DList_Delete( self->visibleChunks );
 	DList_Delete( self->visibleModels );
 	DMap_Delete( self->mapMaterials );
@@ -304,128 +306,7 @@ void DaoxRenderer_ReduceData( DaoxRenderer *self, DaoxSceneNode *node )
 	}
 }
 
-void DaoxRenderer_ProcessMeshChunk( DaoxRenderer *self, DaoxModel *model, DaoxMeshChunk *chunk )
-{
-	DaoxMeshUnit *unit = chunk->unit;
-	DaoxMesh *mesh = unit->mesh;
-	DaoxVector3D cameraPosition = self->frustum.cameraPosition;
-	DArray *points = model->points->items.pArray[unit->index];
-	DArray *vnorms = model->vnorms->items.pArray[unit->index];
-	DArray *tnorms = model->tnorms->items.pArray[unit->index];
-	int vertexOffset = self->vertices->size;
-	int triangleOffset = self->triangles->size;
-	int i, j, id, *mapping;
-
-	mapping = self->mapping->data.ints;
-	for(i=0; i<chunk->triangles->size; ++i){
-		int triangleID = chunk->triangles->data.ints[i];
-		DaoxTriangle *trg, *triangle = unit->triangles->data.triangles + triangleID;
-		DaoxVector3D point = points->data.vectors3d[triangle->index[0]];
-		DaoxVector3D direction = point;
-
-		direction.x -= cameraPosition.x;// - point.x;
-		direction.y -= cameraPosition.y;// - point.y;
-		direction.z -= cameraPosition.z;// - point.z;
-		/* backface culling in world coordinates: */
-		if( DaoxVector3D_Dot( & direction, & tnorms->data.vectors3d[triangleID] ) > 0.0 ) continue;
-		trg = DArray_PushTriangle( self->triangles, NULL );
-		for(j=0; j<3; ++j){
-			id = triangle->index[j];
-			if( mapping[id] == 0 ){
-				DaoxVertex *vertex = DArray_PushVertex( self->vertices, NULL );
-				vertex->point = points->data.vectors3d[id];
-				vertex->norm = vnorms->data.vectors3d[id];
-				vertex->texUV = unit->vertices->data.vertices[id].texUV;
-				mapping[id] = self->vertices->size;
-			}
-			trg->index[j] = mapping[id]-1;
-		}
-	}
-}
-void DaoxRenderer_ProcessChunks( DaoxRenderer *self, DList *chunks, int M, int N )
-{
-	DaoxModel *model = chunks->items.pModel[M];
-	DaoxMeshChunk *chunk = chunks->items.pMeshChunk[M+1];
-	int i;
-
-	DArray_Reserve( self->mapping, chunk->unit->vertices->size );
-	memset( self->mapping->data.ints, 0, chunk->unit->vertices->size*sizeof(int) );
-
-	DaoxModel_TransformMesh( model );
-	for(i=M; i<N; i+=2){
-		DaoxModel *model = chunks->items.pModel[i];
-		DaoxMeshChunk *chunk = chunks->items.pMeshChunk[i+1];
-		DaoxRenderer_ProcessMeshChunk( self, model, chunk );
-	}
-}
-void DaoxRenderer_ProcessTriangles( DaoxRenderer *self )
-{
-	daoint i, j, k;
-	self->vertices->size = 0;
-	self->triangles->size = 0;
-	for(i=0; i<self->visibleChunks->size; ++i){
-		DaoxMaterial *material = NULL;
-		DList *chunks = self->visibleChunks->items.pList[i];
-		int offset = self->triangles->size;
-		if( chunks->size == 0 ) continue;
-		for(j=0; j<chunks->size; ){
-			DaoxModel *model = chunks->items.pModel[j];
-			DaoxMeshChunk *chunk = chunks->items.pMeshChunk[j+1];
-			material = chunk->unit->material;
-			for(k=j; k<chunks->size; k+=2){
-				DaoxModel *model2 = chunks->items.pModel[k];
-				if( model2 != model ) break;
-			}
-			DList_Append( self->visibleModels, model );
-			DaoxRenderer_ProcessChunks( self, chunks, j, k );
-			j = k;
-		}
-		if( self->triangles->size == offset ) continue;
-		DList_Append( self->drawLists, offset );
-		DList_Append( self->drawLists, self->triangles->size - offset );
-		DList_Append( self->drawLists, material );
-	}
-}
 void DaoxRenderer_UpdateBuffer( DaoxRenderer *self, DaoxVector3D camPos )
-{
-	int i;
-	int vertexCount = self->vertices->size;
-	int triangleCount = self->triangles->size;
-	DaoGLVertex3D *glvertices = DaoxBuffer_MapVertices3D( & self->buffer, vertexCount );
-	DaoGLTriangle *gltriangles = DaoxBuffer_MapTriangles( & self->buffer, triangleCount );
-	//printf( "DaoxRenderer_UpdateBuffer: %i %i %i\n", vertexCount, triangleCount, self->drawLists->size );
-	//printf( "buffering: %15p %15p %6i %6i\n", glvertices, gltriangles, self->vertexOffset, self->triangleOffset );
-	for(i=0; i<vertexCount; ++i){
-		DaoxVertex *vertex1 = self->vertices->data.vertices + i;
-		DaoGLVertex3D *vertex2 = glvertices + i;
-		vertex2->point.x = vertex1->point.x;
-		vertex2->point.y = vertex1->point.y;
-		vertex2->point.z = vertex1->point.z;
-		vertex2->norm.x = vertex1->norm.x;
-		vertex2->norm.y = vertex1->norm.y;
-		vertex2->norm.z = vertex1->norm.z;
-		vertex2->texUV.x = vertex1->texUV.x;
-		vertex2->texUV.y = vertex1->texUV.y;
-	}
-	for(i=0; i<triangleCount; ++i){
-		DaoxTriangle triangle = self->triangles->data.triangles[i];
-		DaoGLTriangle *triangle2 = gltriangles + i;
-		triangle2->index[0] = triangle.index[0] + self->buffer.vertexOffset;
-		triangle2->index[1] = triangle.index[1] + self->buffer.vertexOffset;
-		triangle2->index[2] = triangle.index[2] + self->buffer.vertexOffset;
-	}
-	for(i=0; i<self->drawLists->size; i+=3){
-		daoint *data = self->drawLists->items.pInt + i;
-		data[0] += self->buffer.triangleOffset;
-	}
-	self->buffer.vertexOffset += vertexCount;
-	self->buffer.triangleOffset += triangleCount;
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-void DaoxRenderer_UpdateBuffer2( DaoxRenderer *self, DaoxVector3D camPos )
 {
 	int i, j, k, glv, glt;
 	int vertexCount = self->vertexCount - self->buffer.vertexOffset;
@@ -439,6 +320,7 @@ void DaoxRenderer_UpdateBuffer2( DaoxRenderer *self, DaoxVector3D camPos )
 		DList *chunks = self->visibleChunks->items.pList[i];
 		DaoxMaterial *material;
 		DaoxMeshChunk *chunk;
+		DaoxDrawTask *drawtask;
 		int offset = glt;
 
 		if( chunks->size == 0 ) continue;
@@ -487,9 +369,11 @@ void DaoxRenderer_UpdateBuffer2( DaoxRenderer *self, DaoxVector3D camPos )
 				vertex2->texUV.y = vertex1->texUV.y;
 			}
 		}
-		DList_Append( self->drawLists, offset + self->buffer.triangleOffset );
-		DList_Append( self->drawLists, glt - offset );
-		DList_Append( self->drawLists, material );
+		drawtask = (DaoxDrawTask*) DArray_Push( self->drawLists );
+		drawtask->triangleOffset = offset + self->buffer.triangleOffset;
+		drawtask->triangleCount = glt - offset;
+		drawtask->material = material;
+		drawtask->texture = NULL;
 	}
 	self->buffer.vertexOffset += vertexCount;
 	self->buffer.triangleOffset += triangleCount;
@@ -568,17 +452,17 @@ void DaoxScene_EstimateBoundingBox( DaoxScene *self, DaoxOBBox3D *obbox )
 	DaoxOBBox3D_ComputeBoundingBox( obbox, points->data.vectors3d, points->size );
 	DArray_Delete( points );
 }
-void DaoxRenderer_DrawTerrains( DaoxRenderer *self, DaoxViewFrustum *frustum )
+void DaoxRenderer_UpdateTerrainBuffer( DaoxRenderer *self )
 {
 	DaoGLVertex3D *glvertices;
 	DaoGLTriangle *gltriangles;
+	DaoxDrawTask *drawtask;
 	int vertexCount = 0;
 	int triangleCount = 0;
 	int i, j;
 
 	for(i=0; i<self->terrains->size; ++i){
 		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
-		DaoxTerrain_UpdateView( terrain, frustum );
 		vertexCount += terrain->vertices->size;
 		triangleCount += terrain->triangles->size;
 	}
@@ -587,16 +471,13 @@ void DaoxRenderer_DrawTerrains( DaoxRenderer *self, DaoxViewFrustum *frustum )
 	gltriangles = DaoxBuffer_MapTriangles( & self->terrainBuffer, triangleCount );
 	vertexCount = triangleCount = 0;
 
-	glBindVertexArray( self->terrainBuffer.vertexVAO );
-	glBindBuffer( GL_ARRAY_BUFFER, self->terrainBuffer.vertexVBO );
-	//glEnableClientState(GL_VERTEX_ARRAY);
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->terrainBuffer.triangleVBO );
 	for(i=0; i<self->terrains->size; ++i){
 		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
 		DaoxColor dark = {0.1, 0.1, 0.1, 1.0};
 		int textureCount = 0;
 		int M = 3*terrain->triangles->size;
 		int K = triangleCount;
+		int vboffset = self->terrainBuffer.vertexOffset;
 		printf( "%i %i\n", vertexCount, triangleCount );
 		for(j=0; j<terrain->vertices->size; ++j){
 			DaoxTerrainPoint *point = (DaoxTerrainPoint*) terrain->vertices->items.pVoid[j];
@@ -613,36 +494,59 @@ void DaoxRenderer_DrawTerrains( DaoxRenderer *self, DaoxViewFrustum *frustum )
 		for(j=0; j<terrain->triangles->size; ++j){
 			DaoxTriangle *triangle = & terrain->triangles->data.triangles[j];
 			DaoGLTriangle *gltriangle = gltriangles + triangleCount + j;
-			gltriangle->index[0] = triangle->index[0] + vertexCount;
-			gltriangle->index[1] = triangle->index[1] + vertexCount;
-			gltriangle->index[2] = triangle->index[2] + vertexCount;
+			gltriangle->index[0] = triangle->index[0] + vertexCount + vboffset;
+			gltriangle->index[1] = triangle->index[1] + vertexCount + vboffset;
+			gltriangle->index[2] = triangle->index[2] + vertexCount + vboffset;
 		}
+		//printf( "%3i %6i %6i\n", i, data[0], data[1] );
+		drawtask = (DaoxDrawTask*) DArray_Push( self->drawLists2 );
+		drawtask->triangleOffset = self->terrainBuffer.triangleOffset + triangleCount;
+		drawtask->triangleCount = terrain->triangles->size;
+		drawtask->texture = terrain->texture;
+		drawtask->material = NULL;
+
 		vertexCount += terrain->vertices->size;
 		triangleCount += terrain->triangles->size;
-
-		//printf( "%3i %6i %6i\n", i, data[0], data[1] );
-		glUniform4fv( self->shader.uniforms.ambientColor, 1, & dark.red );
-		glUniform4fv( self->shader.uniforms.diffuseColor, 1, & dark.red );
-		glUniform4fv( self->shader.uniforms.specularColor, 1, & dark.red );
-		glUniform4fv( self->shader.uniforms.emissionColor, 1, & daox_black_color.red );
-		if( terrain->texture ){
-			DaoxTexture *texture = terrain->texture;
-			DaoxTexture_glInitTexture( texture );
-			if( texture->tid ){
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, texture->tid);
-				glUniform1i(self->shader.uniforms.textures[0], 0);
-				textureCount = 1;
-			}
-		}
-		glUniform1i(self->shader.uniforms.textureCount, textureCount );
-		glDrawRangeElements( GL_TRIANGLES, 0, M, M, GL_UNSIGNED_INT, (void*)K );
 	}
-	self->buffer.vertexOffset += vertexCount;
-	self->buffer.triangleOffset += triangleCount;
+	self->terrainBuffer.vertexOffset += vertexCount;
+	self->terrainBuffer.triangleOffset += triangleCount;
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
+{
+	DaoxColor dark = {0.1, 0.1, 0.1, 1.0};
+	DaoxTexture *texture = drawtask->texture;
+	DaoxMaterial *material = drawtask->material;
+	DaoxColor ambient = material ? material->ambient : dark;
+	DaoxColor diffuse = material ? material->diffuse : dark;
+	DaoxColor specular = material ? material->specular : dark;
+	DaoxColor emission = material ? material->emission : daox_black_color;
+	daoint K = 3 * drawtask->triangleOffset * sizeof(GLint);
+	daoint M = 3 * drawtask->triangleCount;
+	int textureCount = 0;
+
+	//printf( "%3i %6i %6i\n", i, data[0], data[1] );
+	glUniform4fv( self->shader.uniforms.ambientColor, 1, & ambient.red );
+	glUniform4fv( self->shader.uniforms.diffuseColor, 1, & diffuse.red );
+	glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
+	glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
+
+	if( texture == NULL && material != NULL ) texture = material->texture1;
+	if( texture ){
+		DaoxTexture_glInitTexture( texture );
+		if( texture->tid ){
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, texture->tid);
+			glUniform1i(self->shader.uniforms.textures[0], 0);
+			textureCount = 1;
+		}
+	}
+	glUniform1i(self->shader.uniforms.textureCount, textureCount );
+	glDrawRangeElements( GL_TRIANGLES, 0, M, M, GL_UNSIGNED_INT, (void*)K );
+	/* TODO: better hint for glDrawRangeElements(); */
 }
 void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam )
 {
@@ -723,17 +627,10 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 
 	DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, fm.axisOrigin );
 
-	DList_Clear( self->terrains );
-	for(i=0; i<scene->nodes->size; ++i){
-		DaoxSceneNode *node = scene->nodes->items.pSceneNode[i];
-		if( node->ctype == daox_type_terrain ){
-			DList_Append( self->terrains, (DaoxTerrain*) node );
-		}
-	}
-
 	if( DaoxViewFrustum_Difference( & fm, & self->frustum ) > EPSILON ){ // TODO: better handling;
 		DArray *triangles;
 		self->drawLists->size = 0;
+		self->drawLists2->size = 0;
 		self->triangleCount = 0;
 		self->vertexCount = self->buffer.vertexOffset;
 		self->visibleModels->size = 0;
@@ -741,14 +638,19 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		//printf( "prepare\n" );
 		DMap_Clear( self->mapMaterials );
 		DList_Clear( self->canvases );
+		DList_Clear( self->terrains );
 		for(i=0; i<scene->nodes->size; ++i){
 			DaoxSceneNode *node = scene->nodes->items.pSceneNode[i];
 			DaoxRenderer_PrepareNode( self, node );
+			if( node->ctype == daox_type_terrain ){
+				DaoxTerrain_UpdateView( (DaoxTerrain*) node, & self->frustum );
+				DList_Append( self->terrains, (DaoxTerrain*) node );
+			}
 		}
+		DaoxRenderer_UpdateTerrainBuffer( self );
 		if( self->showAxis ) DaoxRenderer_PrepareNode( self, (DaoxSceneNode*) self->worldAxis );
 		if( self->vertexCount > self->buffer.vertexOffset ){
-			//DaoxRenderer_ProcessTriangles( self );
-			DaoxRenderer_UpdateBuffer2( self, fm.cameraPosition );
+			DaoxRenderer_UpdateBuffer( self, fm.cameraPosition );
 		}
 	}
 	self->frustum = fm;
@@ -815,43 +717,25 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform3fv(self->shader.uniforms.lightSource, lightCount, & lightSource[0].x );
 	glUniform4fv(self->shader.uniforms.lightIntensity, lightCount, & lightIntensity[0].red );
 
-	DaoxRenderer_DrawTerrains( self, & self->frustum );
+
+	glBindVertexArray( self->terrainBuffer.vertexVAO );
+	glBindBuffer( GL_ARRAY_BUFFER, self->terrainBuffer.vertexVBO );
+	//glEnableClientState(GL_VERTEX_ARRAY);
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->terrainBuffer.triangleVBO );
+
+	for(i=0; i<self->drawLists2->size; ++i){
+		DaoxRenderer_DrawTask( self, self->drawLists2->data.drawtasks + i );
+	}
+	glBindVertexArray(0);
+
 
 	glBindVertexArray( self->buffer.vertexVAO );
 	glBindBuffer( GL_ARRAY_BUFFER, self->buffer.vertexVBO );
 	//glEnableClientState(GL_VERTEX_ARRAY);
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->buffer.triangleVBO );
 
-	DaoxShader * shader = & self->shader;
-	int stride = sizeof(DaoxVertex);
-	for(i=0; i<self->drawLists->size; i+=3){
-		daoint *data = self->drawLists->items.pInt + i;
-		daoint max = self->buffer.vertexOffset; // TODO: better hint;
-		daoint K = 3*data[0]*sizeof(GLint);
-		daoint M = 3*data[1];
-		int textureCount = 0;
-		DaoxMaterial *material = self->drawLists->items.pMaterial[i+2];
-		DaoxColor ambient = material ? material->ambient : daox_gray_color;
-		DaoxColor diffuse = material ? material->diffuse : daox_gray_color;
-		DaoxColor specular = material ? material->specular : daox_gray_color;
-		DaoxColor emission = material ? material->emission : daox_black_color;
-		//printf( "%3i %6i %6i\n", i, data[0], data[1] );
-		glUniform4fv( self->shader.uniforms.ambientColor, 1, & ambient.red );
-		glUniform4fv( self->shader.uniforms.diffuseColor, 1, & diffuse.red );
-		glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
-		glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
-		if( material && material->texture1 ){
-			DaoxTexture *texture = material->texture1;
-			DaoxTexture_glInitTexture( texture );
-			if( texture->tid ){
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, texture->tid);
-				glUniform1i(self->shader.uniforms.textures[0], 0);
-				textureCount = 1;
-			}
-		}
-		glUniform1i(self->shader.uniforms.textureCount, textureCount );
-		glDrawRangeElements( GL_TRIANGLES, 0, max, M, GL_UNSIGNED_INT, (void*)K );
+	for(i=0; i<self->drawLists->size; ++i){
+		DaoxRenderer_DrawTask( self, self->drawLists->data.drawtasks + i );
 	}
 	glBindVertexArray(0);
 

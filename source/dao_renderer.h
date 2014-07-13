@@ -33,9 +33,17 @@
 #include "dao_opengl.h"
 
 
+typedef struct DaoxDrawTask DaoxDrawTask; 
 typedef struct DaoxRenderer DaoxRenderer;
 
 
+struct DaoxDrawTask
+{
+	DaoxMaterial  *material;
+	DaoxTexture   *texture;
+	uint_t         triangleOffset;
+	uint_t         triangleCount;
+};
 
 
 
@@ -68,7 +76,8 @@ struct DaoxRenderer
 	DMap    *mapMaterials;
 	DList   *visibleModels;
 	DList   *visibleChunks;
-	DList   *drawLists;
+	DArray  *drawLists;
+	DArray  *drawLists2;
 
 	DList   *terrains;
 	DList   *canvases;
