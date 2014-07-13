@@ -48,6 +48,9 @@ struct DaoxRenderer
 	uint_t   vertexCount;
 	uint_t   triangleCount;
 
+	uint_t   targetWidth;
+	uint_t   targetHeight;
+
 	DaoxScene       *scene;
 	DaoxCamera      *camera;
 

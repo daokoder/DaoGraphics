@@ -137,8 +137,8 @@ struct DaoxViewFrustum
 	float  bottom;
 	float  near;
 	float  far;
+	float  ratio; /* Target/device size to near plane size; */
 
-	DaoxMatrix4D  worldToCamera;
 	DaoxVector3D  cameraPosition;   /* world coordinates; */
 	DaoxVector3D  viewDirection;    /* world coordinates; */
 	DaoxVector3D  nearViewCenter;   /* world coordinates; */
@@ -291,15 +291,17 @@ typedef struct DaoxTerrainPatch DaoxTerrainPatch;
 
 struct DaoxTerrainPoint
 {
-	uint_t      activeIndex;
-	ushort_t    divLevel;
-	ushort_t    refCount;
-	DaoxVertex  vertex;
+	uint_t             activeIndex;
+	ushort_t           divLevel;
+	ushort_t           refCount;
 
-	DaoxTerrainPoint *east;
-	DaoxTerrainPoint *west;
-	DaoxTerrainPoint *south;
-	DaoxTerrainPoint *north;
+	DaoxVector3D       point;
+	DaoxVector3D       norm;
+
+	DaoxTerrainPoint  *east;
+	DaoxTerrainPoint  *west;
+	DaoxTerrainPoint  *south;
+	DaoxTerrainPoint  *north;
 };
 
 
@@ -315,7 +317,8 @@ struct DaoxTerrainPoint
 */
 struct DaoxTerrainPatch
 {
-	float  heightDiff;
+	float  minHeight;
+	float  maxHeight;
 
 	DaoxTerrainPoint  *center;
 	DaoxTerrainPoint  *points[4];
@@ -332,6 +335,7 @@ struct DaoxTerrain
 
 	DaoxImage         *heightmap;
 	DaoxTerrainPatch  *patchTree;
+	DaoxTerrainPoint  *baseCenter;
 
 	DArray  *triangles;
 	DList   *vertices;

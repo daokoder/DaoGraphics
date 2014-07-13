@@ -135,8 +135,6 @@ void DaoxGraphics_glutDisplay(void)
 		DaoxPainter_Paint( daox_current_painter, daox_current_canvas, daox_current_canvas->viewport );
 	}
 	if( daox_current_renderer && daox_current_scene ){
-		DaoxCamera *camera = DaoxRenderer_GetCurrentCamera( daox_current_renderer );
-		camera->aspectRatio = window_width / (float) window_height;
 		DaoCstruct_CallMethod( (DaoCstruct*) daox_current_scene, "Update" );
 		DaoxRenderer_Render( daox_current_renderer, daox_current_scene, NULL );
 	}
@@ -182,9 +180,9 @@ void DaoxScene_Zoom( int zoomin )
 		float delta = dist / 4;
 		//DaoxCamera_MoveByXYZ( camera, 0, 0, zoomin ? - delta : delta );
 		if( zoomin ){
-			camera->fovAngle *= 0.75;
+			camera->fovAngle *= 0.95;
 		}else{
-			camera->fovAngle *= 1.5;
+			camera->fovAngle = 0.98 * camera->fovAngle + 0.02 * 179;
 		}
 	}
 }
@@ -391,6 +389,10 @@ static void GLUT_Render( DaoProcess *proc, DaoValue *p[], int N )
 {
 	daox_current_renderer = (DaoxRenderer*) p[0];
 	daox_current_scene = (DaoxScene*) p[1];
+
+	daox_current_renderer->targetWidth  = window_width;
+	daox_current_renderer->targetHeight = window_height;
+
 #if 0
 	if( daox_current_renderer->buffer.vertexOffset == 0 ){
 		DaoxModel *model = DaoxModel_New();

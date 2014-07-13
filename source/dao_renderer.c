@@ -44,7 +44,11 @@ DaoxRenderer* DaoxRenderer_New()
 	DaoxMaterial *omat, *xmat, *zmat, *ymat;
 	DaoxMeshUnit *origin, *xaxis, *yaxis, *zaxis;
 	DaoxRenderer *self = (DaoxRenderer*) dao_calloc( 1, sizeof(DaoxRenderer) );
+
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_renderer );
+
+	self->targetWidth  = 300;
+	self->targetHeight = 200;
 	self->visibleModels = DList_New(0);
 	self->visibleChunks = DList_New(0);
 	self->drawLists = DList_New(0);
@@ -54,6 +58,7 @@ DaoxRenderer* DaoxRenderer_New()
 	self->vertices = DArray_New( sizeof(DaoxVertex) );
 	self->triangles = DArray_New( sizeof(DaoxTriangle) );
 	self->mapping = DArray_New( sizeof(int) );
+
 	DaoxRenderer_InitShaders( self );
 	DaoxRenderer_InitBuffers( self );
 
@@ -590,16 +595,15 @@ void DaoxRenderer_DrawTerrains( DaoxRenderer *self, DaoxViewFrustum *frustum )
 		printf( "%i %i\n", vcount, tcount );
 		for(j=0; j<terrain->vertices->size; ++j){
 			DaoxTerrainPoint *point = (DaoxTerrainPoint*) terrain->vertices->items.pVoid[j];
-			DaoxVertex *vertex = & point->vertex;
 			DaoGLVertex3D *glvertex = glvertices + vcount + j;
-			glvertex->point.x = vertex->point.x;
-			glvertex->point.y = vertex->point.y;
-			glvertex->point.z = vertex->point.z;
-			glvertex->norm.x = vertex->norm.x;
-			glvertex->norm.y = vertex->norm.y;
-			glvertex->norm.z = vertex->norm.z;
-			glvertex->texUV.x = vertex->texUV.x;
-			glvertex->texUV.y = vertex->texUV.y;
+			glvertex->point.x = point->point.x;
+			glvertex->point.y = point->point.y;
+			glvertex->point.z = point->point.z;
+			glvertex->norm.x = point->norm.x;
+			glvertex->norm.y = point->norm.y;
+			glvertex->norm.z = point->norm.z;
+			glvertex->texUV.x = 0.0;
+			glvertex->texUV.y = 0.0;
 		}
 		for(j=0; j<terrain->triangles->size; ++j){
 			DaoxTriangle *triangle = & terrain->triangles->data.triangles[j];
@@ -657,6 +661,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		GC_Assign( & self->camera, cam );
 	}
 	cam = self->camera;
+	cam->aspectRatio = self->targetWidth / (float) self->targetHeight;
 
 	//printf( "DaoxRenderer_Render: %i %i %i %i\n", scene->nodes->size, self->drawLists->size, self->buffer.vertexOffset, self->buffer.triangleOffset );
 
@@ -702,6 +707,8 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	//DaoxMatrix4D_Print( & objectToWorld );
 
 	DaoxViewFrustum_Init( & fm, cam );
+	fm.ratio = self->targetWidth / (fm.right - fm.left);
+
 	DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, fm.axisOrigin );
 
 	DList_Clear( self->terrains );
@@ -795,7 +802,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform3fv(self->shader.uniforms.lightSource, lightCount, & lightSource[0].x );
 	glUniform4fv(self->shader.uniforms.lightIntensity, lightCount, & lightIntensity[0].red );
 
-	DaoxRenderer_DrawTerrains( self, & fm );
+	DaoxRenderer_DrawTerrains( self, & self->frustum );
 
 	glBindVertexArray( self->buffer.vertexVAO );
 	glBindBuffer( GL_ARRAY_BUFFER, self->buffer.vertexVBO );

@@ -311,29 +311,28 @@ static int CheckLine( DaoxVector3D point, DaoxVector3D norm, DaoxVector3D P1, Da
 static int CheckBox( DaoxVector3D point, DaoxVector3D norm, DaoxOBBox3D *box )
 {
 	DaoxVector3D dX, dY, dZ, XY, YZ, ZX, XYZ;
-	int ch, check;
+	int C1, C2, C3, C4;
 
 	dX = DaoxVector3D_Sub( & box->X, & box->O );
 	dY = DaoxVector3D_Sub( & box->Y, & box->O );
 	dZ = DaoxVector3D_Sub( & box->Z, & box->O );
 
 	XY = DaoxVector3D_Add( & box->X, & dY );
-	check = CheckLine( point, norm, box->Z, XY );
-	if( check == 0 ) return 0;
+	C1 = CheckLine( point, norm, box->Z, XY );
+	if( C1 == 0 ) return 0;
 
 	YZ = DaoxVector3D_Add( & box->Y, & dZ );
-	ch = CheckLine( point, norm, box->X, YZ );
-	if( (check * ch) <= 0 ) return 0;
+	C2 = CheckLine( point, norm, box->X, YZ );
+	if( C2 == 0 ) return 0;
 
 	ZX = DaoxVector3D_Add( & box->Z, & dX );
-	ch = CheckLine( point, norm, box->Y, ZX );
-	if( (check * ch) <= 0 ) return 0;
+	C3 = CheckLine( point, norm, box->Y, ZX );
+	if( C3 == 0 ) return 0;
 
 	XYZ = DaoxVector3D_Add( & ZX, & dY );
-	ch = CheckLine( point, norm, box->O, XYZ );
-	if( (check * ch) <= 0 ) return 0;
+	C4 = CheckLine( point, norm, box->O, XYZ );
 
-	return check;
+	return C4;
 }
 int  DaoxViewFrustum_SphereCheck( DaoxViewFrustum *self, DaoxOBBox3D *box )
 {
@@ -362,7 +361,7 @@ int  DaoxViewFrustum_Visible( DaoxViewFrustum *self, DaoxOBBox3D *box )
 	if( (C4 = CheckBox( self->cameraPosition, self->rightPlaneNorm, box )) > 0 ) return -1;
 	if( (C5 = CheckBox( self->cameraPosition, self->topPlaneNorm, box )) > 0 ) return -1;
 	if( (C6 = CheckBox( self->cameraPosition, self->bottomPlaneNorm, box )) > 0 ) return -1;
-	if( C1 > 0 && C2 < 0 && C3 < 0 && C4 < 0 && C5 < 0 && C6 < 0 ) return 1;
+	if( C1 >= 0 && C2 <= 0 && C3 <= 0 && C4 <= 0 && C5 <= 0 && C6 <= 0 ) return 1;
 	return 0;
 }
 
@@ -803,17 +802,8 @@ void DaoxTerrainPatch_Delete( DaoxTerrainPatch *self )
 }
 double DaoxTerrainPatch_Size( DaoxTerrainPatch *self )
 {
-	DaoxTerrainPoint **points = self->points;
-	if( points[0] == NULL || points[1] == NULL ) return 0.0;
-	return DaoxVector3D_Dist( & points[0]->vertex.point, & points[1]->vertex.point );
-}
-int DaoxTerrainPatch_IsVisible( DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
-{
-	return 1;
-}
-int DaoxTerrainPatch_HasFineView( DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
-{
-	return 0;
+	if( self->points[0] == NULL || self->points[1] == NULL ) return 0.0;
+	return DaoxVector3D_Dist( & self->points[0]->point, & self->points[1]->point );
 }
 
 
@@ -827,6 +817,7 @@ DaoxTerrain* DaoxTerrain_New()
 	self->vertices = DList_New(0);
 	self->pointCache = DList_New(0);
 	self->patchCache = DList_New(0);
+	self->width = self->length = self->height = 1.0;
 	return self;
 }
 void DaoxTerrain_CachePatch( DaoxTerrain *self, DaoxTerrainPatch *patch )
@@ -875,7 +866,7 @@ void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap )
 	GC_Assign( & self->heightmap, heightmap );
 }
 
-float DaoxTerrain_GetHeight( DaoxTerrain *self, float x, float y )
+float DaoxTerrain_GetPixel( DaoxTerrain *self, float x, float y )
 {
 	uchar_t *imgdata = self->heightmap->imageData;
 	float hmx = ((x + 0.5*self->width) * (self->heightmap->width-1)) / self->width;
@@ -892,6 +883,11 @@ float DaoxTerrain_GetHeight( DaoxTerrain *self, float x, float y )
 	float beta = hmy - hmy1, beta2 = 1.0 - beta;
 	float pix = alpha2 * beta2 * pix0 + alpha * beta * pix2;
 	pix += alpha * beta2 * pix1 + alpha2 * beta * pix3;
+	return pix;
+}
+float DaoxTerrain_GetHeight( DaoxTerrain *self, float x, float y )
+{
+	float pix = DaoxTerrain_GetPixel( self, x, y );
 	return (self->height * pix) / 255.0;
 }
 static DaoxTerrainPoint* DaoxTerrain_MakePoint( DaoxTerrain *self, float x, float y )
@@ -899,38 +895,37 @@ static DaoxTerrainPoint* DaoxTerrain_MakePoint( DaoxTerrain *self, float x, floa
 	DaoxTerrainPoint *point = NULL;
 
 	if( self->pointCache->size ){
-		point = (DaoxTerrainPoint*) DList_PopBack( self->patchCache );
+		point = (DaoxTerrainPoint*) DList_PopBack( self->pointCache );
 	}else{
 		point = DaoxTerrainPoint_New();
 	}
 	point->activeIndex = 0;
 	point->divLevel = 0;
 	point->refCount = 0;
-	point->vertex.point.x = x;
-	point->vertex.point.y = y;
-	point->vertex.point.z = DaoxTerrain_GetHeight( self, x, y );
-	point->vertex.norm.x = point->vertex.norm.y = point->vertex.norm.z = 0.0;
-	point->vertex.texUV.x = (x + self->width) / self->width;
-	point->vertex.texUV.y = (y + self->length) / self->length;
+	point->point.x = x;
+	point->point.y = y;
+	point->point.z = DaoxTerrain_GetHeight( self, x, y );
+	point->norm.x = point->norm.y = point->norm.z = 0.0;
 	point->east = point->west = NULL;
 	point->south = point->north = NULL;
 	return point;
 }
 static DaoxTerrainPatch* DaoxTerrain_MakePatch( DaoxTerrain *self, DaoxTerrainPoint *points[4], DList *pointList, int level )
 {
-	int i, j, ihmx, ihmy, min = 255, max = 0;
+	int i, j, ihmx, ihmy;
 	int mapWidth = self->heightmap->width;
 	int mapHeight = self->heightmap->height;
 	int pixelBytes = 1 + self->heightmap->depth;
-	float left = points[2]->vertex.point.x;
-	float right = points[0]->vertex.point.x;
-	float top = points[0]->vertex.point.y;
-	float bottom = points[2]->vertex.point.y;
+	float left = points[2]->point.x;
+	float right = points[0]->point.x;
+	float top = points[0]->point.y;
+	float bottom = points[2]->point.y;
 	float xcenter = 0.5*(left + right);
 	float ycenter = 0.5*(top + bottom);
+	float min = 0.0, max = 0.0;
 	float hmx1, hmx2, hmy1, hmy2;
+	float H0, H1, H2, H3;
 	DaoxTerrainPatch *patch = NULL;
-	DaoxVector3D V02, V13;
 
 	if( self->patchCache->size ){
 		patch = (DaoxTerrainPatch*) DList_PopBack( self->patchCache );
@@ -946,35 +941,47 @@ static DaoxTerrainPatch* DaoxTerrain_MakePatch( DaoxTerrain *self, DaoxTerrainPo
 		patch->points[i] = points[i];
 		points[i]->refCount += 1;
 	}
-	V02 = DaoxVector3D_Sub( & points[0]->vertex.point, & points[2]->vertex.point );
-	V13 = DaoxVector3D_Sub( & points[1]->vertex.point, & points[3]->vertex.point );
 
-	hmx1 = ((points[2]->vertex.point.x + 0.5*self->width) * (mapWidth-1)) / self->width;
-	hmx2 = ((points[3]->vertex.point.x + 0.5*self->width) * (mapWidth-1)) / self->width;
-	hmy1 = ((points[2]->vertex.point.y + 0.5*self->length) * (mapHeight-1)) / self->length;
-	hmy2 = ((points[1]->vertex.point.y + 0.5*self->length) * (mapHeight-1)) / self->length;
+	H0 = DaoxTerrain_GetPixel( self, points[0]->point.x, points[0]->point.y );
+	H1 = DaoxTerrain_GetPixel( self, points[1]->point.x, points[1]->point.y );
+	H2 = DaoxTerrain_GetPixel( self, points[2]->point.x, points[2]->point.y );
+	H3 = DaoxTerrain_GetPixel( self, points[3]->point.x, points[3]->point.y );
+
+	hmx1 = ((points[2]->point.x + 0.5*self->width) * (mapWidth-1)) / self->width;
+	hmx2 = ((points[3]->point.x + 0.5*self->width) * (mapWidth-1)) / self->width;
+	hmy1 = ((points[2]->point.y + 0.5*self->length) * (mapHeight-1)) / self->length;
+	hmy2 = ((points[1]->point.y + 0.5*self->length) * (mapHeight-1)) / self->length;
 	ihmx = (int) hmx1;
 	ihmy = (int) hmy1;
 	for(j=ihmy + (hmy1>ihmy); j<=hmy2; ++j){
 		uchar_t *imgdata = self->heightmap->imageData + j * self->heightmap->widthStep;
+		float beta = (j - hmy1) / (hmy2 - hmy1 + EPSILON);
+		float beta2 = 1.0 - beta;
 		for(i=ihmx + (hmx1>ihmx); i<=hmx2; ++i){
-			int pixel = imgdata[ i * pixelBytes ];
+			float pixel = imgdata[ i * pixelBytes ];
+			float alpha = (i - hmx1) / (hmx2 - hmx1 + EPSILON);
+			float alpha2 = 1.0 - alpha;
+			float expected;
+			expected  = alpha2 * beta2 * H0 + alpha * beta * H2;
+			expected += alpha * beta2 * H1 + alpha2 * beta * H3;
+			pixel -= expected;
 			if( pixel < min ) min = pixel;
 			if( pixel > max ) max = pixel;
 		}
 	}
-	patch->heightDiff = (self->height * (max - min)) / 255.0;
+	patch->minHeight = (self->height * min) / 255.0;
+	patch->maxHeight = (self->height * max) / 255.0;
 	return patch;
 }
 void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float maxHeightDiff, DList *pointList )
 {
 	int i, j, level = patch->center->divLevel;
-	float left = patch->points[2]->vertex.point.x;
-	float right = patch->points[0]->vertex.point.x;
-	float top = patch->points[0]->vertex.point.y;
-	float bottom = patch->points[2]->vertex.point.y;
-	float xcenter = patch->center->vertex.point.x;
-	float ycenter = patch->center->vertex.point.y;
+	float left = patch->points[2]->point.x;
+	float right = patch->points[0]->point.x;
+	float top = patch->points[0]->point.y;
+	float bottom = patch->points[2]->point.y;
+	float xcenter = patch->center->point.x;
+	float ycenter = patch->center->point.y;
 	DaoxTerrainPoint *mid01, *mid12, *mid23, *mid30, *points[4];
 	DaoxTerrainPoint *center = patch->center;
 
@@ -1062,20 +1069,21 @@ void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float maxHe
 	for(i=0; i<4; ++i){
 		DaoxTerrainPatch *sub = patch->subs[i];
 		double width = DaoxTerrainPatch_Size( sub );
-		if( sub->heightDiff > maxHeightDiff || sub->heightDiff > 0.5 * width ){
+		double diff = sub->maxHeight - sub->minHeight;
+		if( diff > maxHeightDiff || diff > (width+1.0) ){
 			DaoxTerrain_Refine( self, sub, maxHeightDiff, pointList );
 		}
 	}
 }
 static void DaoxTerrain_UpdateNormals( DaoxTerrain *self, DaoxTerrainPoint *center, DaoxTerrainPoint *first, DaoxTerrainPoint *second )
 {
-	DaoxVector3D A = DaoxVector3D_Sub( & first->vertex.point, & center->vertex.point );
-	DaoxVector3D B = DaoxVector3D_Sub( & second->vertex.point, & first->vertex.point );
+	DaoxVector3D A = DaoxVector3D_Sub( & first->point, & center->point );
+	DaoxVector3D B = DaoxVector3D_Sub( & second->point, & first->point );
 	DaoxVector3D N = DaoxVector3D_Cross( & A, & B );
 	N = DaoxVector3D_Normalize( & N );
-	center->vertex.norm = DaoxVector3D_Add( & center->vertex.norm, & N );
-	first->vertex.norm = DaoxVector3D_Add( & first->vertex.norm, & N );
-	second->vertex.norm = DaoxVector3D_Add( & second->vertex.norm, & N );
+	center->norm = DaoxVector3D_Add( & center->norm, & N );
+	first->norm = DaoxVector3D_Add( & first->norm, & N );
+	second->norm = DaoxVector3D_Add( & second->norm, & N );
 }
 static void DaoxTerrain_ComputeNormals( DaoxTerrain *self, DaoxTerrainPatch *patch )
 {
@@ -1114,6 +1122,8 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff )
 	DList *pointList;
 
 	if( self->patchTree ) DaoxTerrain_CachePatch( self, self->patchTree );
+	if( self->baseCenter ) DList_Append( self->pointCache, self->baseCenter );
+	printf( "Patch Cache: %i\n", self->patchCache->size );
 	
 	self->patchTree = NULL;
 	if( self->heightmap == NULL ) return;
@@ -1139,13 +1149,13 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff )
 	self->patchTree = DaoxTerrain_MakePatch( self, points, pointList, 0 );
 
 	for(i=0; i<4; ++i) DList_Append( pointList, points[i] );
-	if( self->patchTree->heightDiff > maxHeightDiff ){
+	if( (self->patchTree->maxHeight - self->patchTree->minHeight) > maxHeightDiff ){
 		DaoxTerrain_Refine( self, self->patchTree, maxHeightDiff, pointList );
 	}
 	DaoxTerrain_ComputeNormals( self, self->patchTree );
 	for(i=0; i<pointList->size; ++i){
 		DaoxTerrainPoint *point = (DaoxTerrainPoint*) pointList->items.pVoid[i];
-		point->vertex.norm = DaoxVector3D_Normalize( & point->vertex.norm );
+		point->norm = DaoxVector3D_Normalize( & point->norm );
 	}
 	DList_Delete( pointList );
 }
@@ -1166,11 +1176,54 @@ static void DaoxTerrain_MakeTriangle( DaoxTerrain *self, DaoxTerrainPoint *cente
 	triangle.index[2] = second->activeIndex - 1;
 	DArray_PushTriangle( self->triangles, & triangle );
 }
+static int DaoxTerrain_PatchVisible( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
+{
+	DaoxOBBox3D obbox;
+	DaoxMatrix4D terrainToWorld = DaoxSceneNode_GetWorldTransform( & self->base );
+	float margin = 1.0; // XXX:
+
+	if( frustum == NULL ) return 1;
+	if( DaoxTerrainPatch_Size( patch ) < 0.01*(self->width + self->length) ) return 1;
+
+	obbox.C = patch->center->point;
+	obbox.O = patch->points[2]->point;
+	obbox.X = patch->points[3]->point;
+	obbox.Y = patch->points[1]->point;
+	obbox.Z = patch->points[2]->point;
+	obbox.O.z += patch->minHeight - margin;
+	obbox.X.z += patch->minHeight - margin;
+	obbox.Y.z += patch->minHeight - margin;
+	obbox.Z.z += patch->maxHeight + margin;
+	obbox.C.z += 0.5*(patch->minHeight + patch->maxHeight);
+	obbox.R = DaoxVector3D_Dist( & obbox.O, & obbox.C );
+	obbox = DaoxOBBox3D_Transform( & obbox, & terrainToWorld );
+	return DaoxViewFrustum_Visible( frustum, & obbox );
+}
+static int DaoxTerrain_PatchHasFineView( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
+{
+	DaoxMatrix4D toWorld = DaoxSceneNode_GetWorldTransform( & self->base );
+	DaoxVector3D P0 = DaoxMatrix4D_MulVector( & toWorld, & patch->points[0]->point, 1.0 );
+	float mindist, viewDiff;
+	int i;
+
+	if( frustum == NULL ) return 0;
+	mindist = DaoxVector3D_Dist( & P0, & frustum->cameraPosition );
+	for(i=1; i<3; ++i){
+		DaoxVector3D P = DaoxMatrix4D_MulVector( & toWorld, & patch->points[i]->point, 1.0 );
+		float dist = DaoxVector3D_Dist( & P, & frustum->cameraPosition );
+		if( dist < mindist ) mindist = dist;
+	}
+	if( mindist <= frustum->near ) return 0;
+
+	viewDiff = patch->maxHeight - patch->minHeight;
+	viewDiff = frustum->ratio * frustum->near * viewDiff / mindist;
+	return viewDiff < 2.0;
+}
 static void DaoxTerrain_UpdatePatchView( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
 {
 	int i, bl;
-	if( DaoxTerrainPatch_IsVisible( patch, frustum ) == 0 ) return;
-	if( patch->subs[0] == NULL || DaoxTerrainPatch_HasFineView( patch, frustum ) ){
+	if( DaoxTerrain_PatchVisible( self, patch, frustum ) < 0 ) return;
+	if( patch->subs[0] == NULL || DaoxTerrain_PatchHasFineView( self, patch, frustum ) ){
 		DaoxTerrainPoint *first;
 
 		DaoxTerrain_TryActivatePoint( self, patch->center );

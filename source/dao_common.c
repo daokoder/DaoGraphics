@@ -1093,6 +1093,9 @@ void DaoxOBBox3D_Print( DaoxOBBox3D *self )
 {
 	DaoxVector3D_Print( & self->O );
 	DaoxVector3D_Print( & self->C );
+	DaoxVector3D_Print( & self->X );
+	DaoxVector3D_Print( & self->Y );
+	DaoxVector3D_Print( & self->Z );
 }
 
 
