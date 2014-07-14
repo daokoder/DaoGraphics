@@ -583,6 +583,22 @@ DaoxVector3D  DaoxMatrix4D_MulVector( DaoxMatrix4D *self, DaoxVector3D *vec, flo
 	res.z = self->A31 * vec->x + self->A32 * vec->y + self->A33 * vec->z + w * self->B3;
 	return res;
 }
+DaoxVector3D  DaoxMatrix4D_Transform( DaoxMatrix4D *self, DaoxVector3D *vec )
+{
+	DaoxVector3D res;
+	res.x = self->A11 * vec->x + self->A12 * vec->y + self->A13 * vec->z + self->B1;
+	res.y = self->A21 * vec->x + self->A22 * vec->y + self->A23 * vec->z + self->B2;
+	res.z = self->A31 * vec->x + self->A32 * vec->y + self->A33 * vec->z + self->B3;
+	return res;
+}
+DaoxVector3D  DaoxMatrix4D_Rotate( DaoxMatrix4D *self, DaoxVector3D *vec )
+{
+	DaoxVector3D res;
+	res.x = self->A11 * vec->x + self->A12 * vec->y + self->A13 * vec->z;
+	res.y = self->A21 * vec->x + self->A22 * vec->y + self->A23 * vec->z;
+	res.z = self->A31 * vec->x + self->A32 * vec->y + self->A33 * vec->z;
+	return res;
+}
 DaoxMatrix4D  DaoxMatrix4D_MulMatrix( DaoxMatrix4D *self, DaoxMatrix4D *mat )
 {
 	DaoxMatrix4D res;

@@ -103,11 +103,11 @@ static DaoxMeshUnit* DaoxObjParser_ConstructMeshUnit( DaoxObjParser *self, DaoxM
 			}
 
 			memset( & vertex, 0, sizeof(DaoxVertex) );
-			vertex.point = self->vlist->data.vectors3d[ quadints[0]-1 ];
+			vertex.pos = self->vlist->data.vectors3d[ quadints[0]-1 ];
 			if( quadints[1] ){
 				vector = self->vtlist->data.vectors3d[ quadints[1]-1 ];
-				vertex.texUV.x = vector.x;
-				vertex.texUV.y = vector.y;
+				vertex.tex.x = vector.x;
+				vertex.tex.y = vector.y;
 			}
 			if( quadints[2] ){
 				vector = self->vnlist->data.vectors3d[ quadints[2]-1 ];
@@ -132,9 +132,9 @@ static DaoxMeshUnit* DaoxObjParser_ConstructMeshUnit( DaoxObjParser *self, DaoxM
 			hasnorms[2] = self->integers->data.ints[j+1];
 			if( hasnorms[0] || hasnorms[1] || hasnorms[2] ) continue;
 
-			A = unit->vertices->data.vertices[ triangle->index[0] ].point;
-			B = unit->vertices->data.vertices[ triangle->index[1] ].point;
-			C = unit->vertices->data.vertices[ triangle->index[2] ].point;
+			A = unit->vertices->data.vertices[ triangle->index[0] ].pos;
+			B = unit->vertices->data.vertices[ triangle->index[1] ].pos;
+			C = unit->vertices->data.vertices[ triangle->index[2] ].pos;
 			facenorm = DaoxTriangle_Normal( & A, & B, & C );
 			for(k=0; k<3; ++k){
 				DaoxVector3D *norm = &unit->vertices->data.vertices[triangle->index[k]].norm;
@@ -210,7 +210,13 @@ int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *
 			color->red = numbers[0];
 			color->green = numbers[1];
 			color->blue = numbers[2];
-		}else if( DaoxToken_CheckKeyword( token, "map_Kd" ) ){
+		}else if( DaoxToken_CheckKeywords( token, "^ (map_Kd|map_bump) $" ) ){
+			int which = 0;
+			if( strcmp( token->string.chars, "map_Kd" ) == 0 ){
+				which = 1;
+			}else{
+				which = 2;
+			}
 			DString_Reset( string, 0 );
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
@@ -218,8 +224,8 @@ int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *
 			Dao_MakePath( path, string );
 			DString_Change( string, "%\\", "/", 0 );
 			texture = DaoxTexture_New();
-			DaoxMaterial_SetTexture( material, texture );
 			DaoxTexture_LoadImage( texture, string->chars );
+			DaoxMaterial_SetTexture( material, texture, which );
 			printf( "texture: %s %i\n", string->chars, texture->image->imageSize );
 		}else{
 			i += 1;

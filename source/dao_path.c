@@ -1183,9 +1183,9 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		P0 = (DaoxTexturedPoint*) DArray_Push( self->patches );
 		P1 = (DaoxTexturedPoint*) DArray_Push( self->patches );
 		P2 = (DaoxTexturedPoint*) DArray_Push( self->patches );
-		P0->point = segment->P1;
-		P1->point = segment->P2;
-		P2->point = segment->C1;
+		P0->pos = segment->P1;
+		P1->pos = segment->P2;
+		P2->pos = segment->C1;
 		P0->klm.x = P0->klm.y = P0->klm.z = 0.0;
 		P1->klm.x = P1->klm.y = P1->klm.z = 1.0;
 		P2->klm.x = P2->klm.z = 0.5;  P2->klm.y = 0.0;
@@ -1264,10 +1264,10 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	P4 = (DaoxTexturedPoint*) DArray_Push( self->patches );
 	P5 = (DaoxTexturedPoint*) DArray_Push( self->patches );
 	P1 = (DaoxTexturedPoint*) DArray_Push( self->patches );
-	P0->point = segment->P1;
-	P1->point = segment->C1;
-	P2->point = segment->C2;
-	P3->point = segment->P2;
+	P0->pos = segment->P1;
+	P1->pos = segment->C1;
+	P2->pos = segment->C2;
+	P3->pos = segment->P2;
 	P0->offset = start;
 	P1->offset = (1.0 - at1) * start + at1 * end;
 	P2->offset = (1.0 - at2) * start + at2 * end;
@@ -1801,7 +1801,7 @@ void DaoxPathMesh_AddJunction( DaoxPathMesh *self, DaoxPathSegment *seg, float w
 	P3 = (DaoxTexturedPoint*) DArray_Push( self->patches );
 	P1->klm = P2->klm = P3->klm = zero3;
 	P1->offset = P2->offset = P3->offset = offset;
-	P1->point = seg->P2;
+	P1->pos = seg->P2;
 
 	if( junction == DAOX_JUNCTION_SHARP ){
 		P4 = (DaoxTexturedPoint*) DArray_Push( self->patches );
@@ -1814,26 +1814,26 @@ void DaoxPathMesh_AddJunction( DaoxPathMesh *self, DaoxPathSegment *seg, float w
 	if( S <= 1.0 && T >= 0.0 ){
 		float dx = R2.start.x - R1.end.x;
 		float dy = R2.start.y - R1.end.y;
-		P2->point = R1.end;
-		P3->point = R2.start;
+		P2->pos = R1.end;
+		P3->pos = R2.start;
 		round.P1 = R1.end;
 		if( junction == DAOX_JUNCTION_SHARP ){
-			P4->point = DaoxLine_Intersect2( & R1, & R2 );
-			P5->point = P3->point;
-			P6->point = P2->point;
+			P4->pos = DaoxLine_Intersect2( & R1, & R2 );
+			P5->pos = P3->pos;
+			P6->pos = P2->pos;
 		}else if( junction == DAOX_JUNCTION_ROUND ){
 			DaoxPathSegment_MakeArc( & round, dx, dy, w2, angle );
 		}
 	}else{
 		float dx = L1.end.x - L2.start.x;
 		float dy = L1.end.y - L2.start.y;
-		P2->point = L2.start;
-		P3->point = L1.end;
+		P2->pos = L2.start;
+		P3->pos = L1.end;
 		round.P1 = L2.start;
 		if( junction == DAOX_JUNCTION_SHARP ){
-			P4->point = DaoxLine_Intersect2( & L1, & L2 );
-			P5->point = P3->point;
-			P6->point = P2->point;
+			P4->pos = DaoxLine_Intersect2( & L1, & L2 );
+			P5->pos = P3->pos;
+			P6->pos = P2->pos;
 		}else if( junction == DAOX_JUNCTION_ROUND ){
 			DaoxPathSegment_MakeArc( & round, dx, dy, w2, angle );
 		}
@@ -1884,12 +1884,12 @@ void DaoxPathMesh_AddCap( DaoxPathMesh *self, DaoxPathComponent *com, float widt
 		P4->klm = P5->klm = P6->klm = zero3;
 		P1->offset = P2->offset = P3->offset = offset;
 		P4->offset = P5->offset = P6->offset = offset2;
-		P1->point = H1;  P2->point = H2;
-		P3->point.x = 0.5*(head.start.x + head.end.x);
-		P3->point.y = 0.5*(head.start.y + head.end.y);
-		P4->point = T1;  P5->point = T2;
-		P6->point.x = 0.5*(tail.start.x + tail.end.x);
-		P6->point.y = 0.5*(tail.start.y + tail.end.y);
+		P1->pos = H1;  P2->pos = H2;
+		P3->pos.x = 0.5*(head.start.x + head.end.x);
+		P3->pos.y = 0.5*(head.start.y + head.end.y);
+		P4->pos = T1;  P5->pos = T2;
+		P6->pos.x = 0.5*(tail.start.x + tail.end.x);
+		P6->pos.y = 0.5*(tail.start.y + tail.end.y);
 	}else if( cap == DAOX_LINECAP_ROUND ){
 		DaoxPathSegment round = {0};
 		round.convexness = 1;

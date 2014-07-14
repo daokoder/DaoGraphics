@@ -73,20 +73,20 @@ enum DaoxSamplerID
 
 struct DaoGLVertex2D
 {
-	struct { GLfloat  x, y; }        point;
+	struct { GLfloat  x, y; }        pos;
 	struct { GLfloat  k, l, m, o; }  texKLMO; /* texture coordinates or KLM for bezier curve; */
 };
 
 struct DaoGLVertex3D
 {
-	struct { GLfloat  x, y, z; }  point;
+	struct { GLfloat  x, y, z; }  pos;
 	struct { GLfloat  x, y, z; }  norm;
-	struct { GLfloat  x, y; }     texUV;
+	struct { GLfloat  x, y; }     tex;
 };
 
 struct DaoGLVertex3DVG
 {
-	struct { GLfloat  x, y, z; }     point;
+	struct { GLfloat  x, y, z; }     pos;
 	struct { GLfloat  x, y, z; }     norm;
 	struct { GLfloat  k, l, m, o; }  texKLMO;
 };
@@ -121,8 +121,10 @@ struct DaoxShader
 		uint_t  emissionColor;
 		uint_t  fade_factor;
 		uint_t  material;
-		uint_t  textureCount;
-		uint_t  textures[2];
+		uint_t  hasColorTexture;
+		uint_t  hasBumpTexture;
+		uint_t  colorTexture;
+		uint_t  bumpTexture;
 		uint_t  alphaBlending;
 		uint_t  pathLength;
 		uint_t  brushColor;

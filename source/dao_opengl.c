@@ -42,7 +42,8 @@
 
 static const char *const daox_vector_graphics_shader_150 =
 "//#version 150\n\
-uniform int   textureCount; \n\
+uniform int   hasColorTexture; \n\
+uniform int   hasBumpTexture; \n\
 uniform float alphaBlending; \n\
 uniform vec4  brushColor; \n\
 uniform float pathLength; \n\
@@ -54,7 +55,8 @@ uniform vec2  gradientPoint2;    // end for linear; focal for radial; \n\
 uniform float gradientRadius;    // radius of radial gradient; \n\
 uniform sampler1D dashSampler;   // dash,gap,dash,gap,... \n\
 uniform sampler1D gradientSampler; // (s,0,0,0),(s,0,0,0),(r,g,b,a),(r,g,b,a); \n\
-uniform sampler2D textures[2]; \n\
+uniform sampler2D colorTexture; \n\
+uniform sampler2D bumpTexture; \n\
 \n\
 \n\
 vec4 InterpolateColor( vec4 C1, vec4 C2, float start, float mid, float end ) \n\
@@ -236,7 +238,7 @@ vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, vec2 texUV, floa
 	//} \n\
 	if( dashCount > 0 ) alphaBlending2 *= HandleDash( pathOffset ); \n\
 	if( gradientType > 0 ) fragColor = ComputeGradient( vertexPosition, pathOffset ); \n\
-	if( textureCount > 0 ) fragColor = texture( textures[0], texUV ); \n\
+	if( hasColorTexture > 0 ) fragColor = texture( colorTexture, texUV ); \n\
 	float klm = abs( bezierKLM[0] ) + abs( bezierKLM[1] ) + abs( bezierKLM[2] ); \n\
 	if( klm > 1E-16 ) fragColor = ComputeCubicBezier( bezierKLM, fragColor ); \n\
 	//fragColor = ComputeQuadraticBezier( vec2( texcoord ), fragColor ); \n\
@@ -292,7 +294,8 @@ static const char *const daox_vertex_shader3d_150 =
 "//#version 150\n\
 uniform int  vectorGraphics;\n\
 uniform int  lightCount;\n\
-uniform int  textureCount;\n\
+uniform int  hasColorTexture;\n\
+uniform int  hasBumpTexture;\n\
 uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
 uniform vec4 ambientColor;\n\
@@ -351,7 +354,7 @@ void main(void)\n\
 	worldNormal = normal;\n\
 	relativeCameraPosition = normalize( cameraPosition - position );\n\
 	vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
-	if( textureCount > 0 || vectorGraphics > 0 ) texColor = vec4( 1.0, 1.0, 1.0, 1.0 );\n\
+	if( hasColorTexture > 0 || vectorGraphics > 0 ) texColor = vec4( 1.0, 1.0, 1.0, 1.0 );\n\
 	vertexColor = ComputeAllLights( vertexColor, texColor );\n\
 	if( lightCount == 0 ) vertexColor = texColor;\n\
 	//if( true ) vertexColor = texColor;\n\
@@ -380,8 +383,8 @@ out vec4 fragColor;\n\
 void main(void)\n\
 {\n\
 	fragColor = vertexColor;\n\
-	if( textureCount > 0 ){\n\
-		vec4 texColor = texture( textures[0], texCoord2 );\n\
+	if( hasColorTexture > 0 ){\n\
+		vec4 texColor = texture( colorTexture, texCoord2 );\n\
 		vec4 fragRGB = texColor * vertexColor;\n\
 		fragColor = vec4( fragRGB[0], fragRGB[1], fragRGB[2], vertexColor[3] );\n\
 		if( lightCount == 0 ) fragColor = texColor;\n\
@@ -494,9 +497,10 @@ void DaoxShader_Finalize2D( DaoxShader *self )
 	self->uniforms.modelMatrix = glGetUniformLocation(self->program, "modelMatrix");
 	self->uniforms.viewMatrix = glGetUniformLocation(self->program, "viewMatrix");
 	self->uniforms.projMatrix = glGetUniformLocation(self->program, "projMatrix");
-	self->uniforms.textureCount = glGetUniformLocation(self->program, "textureCount");
-	self->uniforms.textures[0] = glGetUniformLocation(self->program, "textures[0]");
-	self->uniforms.textures[1] = glGetUniformLocation(self->program, "textures[1]");
+	self->uniforms.hasColorTexture = glGetUniformLocation(self->program, "hasColorTexture");
+	self->uniforms.hasBumpTexture = glGetUniformLocation(self->program, "hasBumpTexture");
+	self->uniforms.colorTexture = glGetUniformLocation(self->program, "colorTexture");
+	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.texKLMO = glGetAttribLocation(self->program, "texKLMO");
 	printf( "DaoxShader_Finalize: %i\n", self->attributes.position );
@@ -518,9 +522,10 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.diffuseColor = glGetUniformLocation(self->program, "diffuseColor");
 	self->uniforms.specularColor = glGetUniformLocation(self->program, "specularColor");
 	self->uniforms.emissionColor = glGetUniformLocation(self->program, "emissionColor");
-	self->uniforms.textureCount = glGetUniformLocation(self->program, "textureCount");
-	self->uniforms.textures[0] = glGetUniformLocation(self->program, "textures[0]");
-	self->uniforms.textures[1] = glGetUniformLocation(self->program, "textures[1]");
+	self->uniforms.hasColorTexture = glGetUniformLocation(self->program, "hasColorTexture");
+	self->uniforms.hasBumpTexture = glGetUniformLocation(self->program, "hasBumpTexture");
+	self->uniforms.colorTexture = glGetUniformLocation(self->program, "colorTexture");
+	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
 	//self->uniforms.material = glGetUniformBlockIndex(self->program, "material");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.normal = glGetAttribLocation(self->program, "normal");
@@ -711,8 +716,8 @@ void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int texuv, int texm
 	self->traits[3].count = 2;
 	self->traits[0].offset = NULL;
 	self->traits[1].offset = (void*) & vertex->norm;
-	self->traits[2].offset = (void*) & vertex->texUV;
-	self->traits[3].offset = (void*) & vertex->texUV;
+	self->traits[2].offset = (void*) & vertex->tex;
+	self->traits[3].offset = (void*) & vertex->tex;
 
 	DaoxBuffer_InitBuffers( self );
 }

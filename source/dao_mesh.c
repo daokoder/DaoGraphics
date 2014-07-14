@@ -58,9 +58,9 @@ void DaoxMeshChunk_ResetNormalInfo( DaoxMeshChunk *self )
 	for(i=0; i<self->triangles->size; ++i){
 		DaoxTriangle triangle = triangles[ self->triangles->data.ints[i] ];
 		for(j=0; j<3; ++j){
-			DaoxVector3D A = vertices[ triangle.index[0] ].point;
-			DaoxVector3D B = vertices[ triangle.index[1] ].point;
-			DaoxVector3D C = vertices[ triangle.index[2] ].point;
+			DaoxVector3D A = vertices[ triangle.index[0] ].pos;
+			DaoxVector3D B = vertices[ triangle.index[1] ].pos;
+			DaoxVector3D C = vertices[ triangle.index[2] ].pos;
 			DaoxVector3D N = DaoxTriangle_Normal( & A, & B, & C );
 			self->normal = DaoxVector3D_Add( & self->normal, & N );
 		}
@@ -69,9 +69,9 @@ void DaoxMeshChunk_ResetNormalInfo( DaoxMeshChunk *self )
 	for(i=0; i<self->triangles->size; ++i){
 		DaoxTriangle triangle = triangles[ self->triangles->data.ints[i] ];
 		for(j=0; j<3; ++j){
-			DaoxVector3D A = vertices[ triangle.index[0] ].point;
-			DaoxVector3D B = vertices[ triangle.index[1] ].point;
-			DaoxVector3D C = vertices[ triangle.index[2] ].point;
+			DaoxVector3D A = vertices[ triangle.index[0] ].pos;
+			DaoxVector3D B = vertices[ triangle.index[1] ].pos;
+			DaoxVector3D C = vertices[ triangle.index[2] ].pos;
 			DaoxVector3D N = DaoxTriangle_Normal( & A, & B, & C );
 			float angle = DaoxVector3D_Angle( & self->normal, & N );
 			if( angle > self->angle ) self->angle = angle;
@@ -89,8 +89,8 @@ void DaoxMeshChunk_ResetBoundingBox( DaoxMeshChunk *self, DArray *buffer )
 	for(i=0; i<self->triangles->size; ++i){
 		DaoxTriangle triangle = triangles[ self->triangles->data.ints[i] ];
 		for(j=0; j<3; ++j){
-			DaoxVector3D *point = (DaoxVector3D*) DArray_Push( buffer );
-			*point = vertices[triangle.index[j]].point;
+			DaoxVector3D *pos = (DaoxVector3D*) DArray_Push( buffer );
+			*pos = vertices[triangle.index[j]].pos;
 		}
 	}
 	DaoxOBBox3D_ComputeBoundingBox( & self->obbox, buffer->data.vectors3d, buffer->size );
@@ -125,10 +125,10 @@ void DaoxMeshUnit_MoveBy( DaoxMeshUnit *self, float dx, float dy, float dz )
 	int i;
 
 	for(i=0; i<self->vertices->size; ++i){
-		DaoxVector3D *norm = & self->vertices->data.vertices[i].point;
-		norm->x += dx;
-		norm->y += dy;
-		norm->z += dz;
+		DaoxVector3D *pos = & self->vertices->data.vertices[i].pos;
+		pos->x += dx;
+		pos->y += dy;
+		pos->z += dz;
 	}
 }
 void DaoxMeshUnit_ScaleBy( DaoxMeshUnit *self, float fx, float fy, float fz )
@@ -136,10 +136,10 @@ void DaoxMeshUnit_ScaleBy( DaoxMeshUnit *self, float fx, float fy, float fz )
 	int i;
 
 	for(i=0; i<self->vertices->size; ++i){
-		DaoxVector3D *norm = & self->vertices->data.vertices[i].point;
-		norm->x *= fx;
-		norm->y *= fy;
-		norm->z *= fz;
+		DaoxVector3D *pos = & self->vertices->data.vertices[i].pos;
+		pos->x *= fx;
+		pos->y *= fy;
+		pos->z *= fz;
 	}
 }
 void DaoxMeshUnit_UpdateNorms( DaoxMeshUnit *self )
@@ -152,9 +152,9 @@ void DaoxMeshUnit_UpdateNorms( DaoxMeshUnit *self )
 	}
 	for(i=0; i<self->triangles->size; ++i){
 		DaoxTriangle triangle = self->triangles->data.triangles[i];
-		DaoxVector3D A = self->vertices->data.vertices[ triangle.index[0] ].point;
-		DaoxVector3D B = self->vertices->data.vertices[ triangle.index[1] ].point;
-		DaoxVector3D C = self->vertices->data.vertices[ triangle.index[2] ].point;
+		DaoxVector3D A = self->vertices->data.vertices[ triangle.index[0] ].pos;
+		DaoxVector3D B = self->vertices->data.vertices[ triangle.index[1] ].pos;
+		DaoxVector3D C = self->vertices->data.vertices[ triangle.index[2] ].pos;
 		DaoxVector3D AB = DaoxVector3D_Sub( & B, & A );
 		DaoxVector3D BC = DaoxVector3D_Sub( & C, & B );
 		DaoxVector3D facenorm = DaoxVector3D_Cross( & AB, & BC );
@@ -281,9 +281,9 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 		}
 		for(j=0; j<node->triangles->size; ++j){
 			DaoxTriangle triangle = triangles[ node->triangles->data.ints[j] ];
-			DaoxVector3D A = vertices[ triangle.index[0] ].point;
-			DaoxVector3D B = vertices[ triangle.index[1] ].point;
-			DaoxVector3D C = vertices[ triangle.index[2] ].point;
+			DaoxVector3D A = vertices[ triangle.index[0] ].pos;
+			DaoxVector3D B = vertices[ triangle.index[1] ].pos;
+			DaoxVector3D C = vertices[ triangle.index[2] ].pos;
 			sorting[j].index = node->triangles->data.ints[j];
 			if( divtype == 0 ){
 				DaoxVector3D AB = DaoxVector3D_Add( & A, & B );
@@ -372,7 +372,7 @@ void DaoxMesh_ResetBoundingBox( DaoxMesh *self )
 	for(i=0; i<self->units->size; ++i){
 		DaoxMeshUnit *unit = (DaoxMeshUnit*) self->units->items.pVoid[i];
 		for(j=0; j<unit->vertices->size; ++j){
-			DaoxVector3D point = unit->vertices->data.vertices[j].point;
+			DaoxVector3D point = unit->vertices->data.vertices[j].pos;
 			DArray_PushVector3D( points, & point );
 		}
 	}
@@ -393,17 +393,17 @@ static void DaoxMesh_MakeTriangle( DaoxMesh *self, int c, float x, float y, floa
 	DArray_Resize( unit->triangles, 1 );
 	vertices = unit->vertices->data.vertices;
 	triangles = unit->triangles->data.triangles;
-	vertices[0].point.x = x;
-	vertices[0].point.y = y;
-	vertices[1].point.x = x + dx;
-	vertices[1].point.y = y;
-	vertices[2].point.x = x;
-	vertices[2].point.y = y + dy;
+	vertices[0].pos.x = x;
+	vertices[0].pos.y = y;
+	vertices[1].pos.x = x + dx;
+	vertices[1].pos.y = y;
+	vertices[2].pos.x = x;
+	vertices[2].pos.y = y + dy;
 	triangles[0].index[0] = 0;
 	triangles[0].index[1] = 1;
 	triangles[0].index[2] = 2;
 	for(i=0; i<3; ++i){
-		vertices[i].point.z = z;
+		vertices[i].pos.z = z;
 		vertices[i].norm = norm;
 	}
 	switch( c ){
@@ -457,9 +457,9 @@ DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self )
 	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
 	for(i=0; i<8; ++i){
 		DaoxVertex *vertex = DArray_PushVertex( unit->vertices, NULL );
-		vertex->point.x = box_vertices[i][0];
-		vertex->point.y = box_vertices[i][1];
-		vertex->point.z = box_vertices[i][2];
+		vertex->pos.x = box_vertices[i][0];
+		vertex->pos.y = box_vertices[i][1];
+		vertex->pos.z = box_vertices[i][2];
 		vertex->norm.x = 1.0;
 		vertex->norm.y = 0.0;
 		vertex->norm.z = 0.0;

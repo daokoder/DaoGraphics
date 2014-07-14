@@ -121,7 +121,7 @@ DaoxMaterial* DaoxMaterial_New();
 void DaoxMaterial_Delete( DaoxMaterial *self );
 
 void DaoxMaterial_CopyFrom( DaoxMaterial *self, DaoxMaterial *other );
-void DaoxMaterial_SetTexture( DaoxMaterial *self, DaoxTexture *texture );
+void DaoxMaterial_SetTexture( DaoxMaterial *self, DaoxTexture *texture, int which );
 
 
 
@@ -270,10 +270,10 @@ struct DaoxModel
 	// The memory of these arrays is freed after the model has been invisible
 	// for sufficiently long time.
 	*/
-	DArray  *offsets; /* offsets in the vertex buffer object; */
-	DList   *points;  /* vertex positions, global coordinates; */
-	DList   *vnorms;  /* vertex normals, global coordinates; */
-	DList   *tnorms;  /* triangle normals, global coordinates; */
+	DArray  *offsets;    /* offsets in the vertex buffer object; */
+	DList   *positions;  /* vertex positions, global coordinates; */
+	DList   *normals;    /* vertex normals, global coordinates; */
+	DList   *tangents;   /* vertex tangents, global coordinates; */
 	uint_t   viewFrame;
 };
 extern DaoType *daox_type_model;
@@ -294,7 +294,7 @@ struct DaoxTerrainPoint
 	ushort_t           divLevel;
 	ushort_t           refCount;
 
-	DaoxVector3D       point;
+	DaoxVector3D       pos;
 	DaoxVector3D       norm;
 
 	DaoxTerrainPoint  *east;

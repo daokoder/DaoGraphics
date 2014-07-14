@@ -220,6 +220,8 @@ DaoxMatrix4D  DaoxMatrix4D_AxisRotation( DaoxVector3D axis, float alpha );
 DaoxMatrix4D  DaoxMatrix4D_EulerRotation( float alpha, float beta, float gamma );
 
 DaoxVector3D  DaoxMatrix4D_MulVector( DaoxMatrix4D *self, DaoxVector3D *vector, float w );
+DaoxVector3D  DaoxMatrix4D_Transform( DaoxMatrix4D *self, DaoxVector3D *vec );
+DaoxVector3D  DaoxMatrix4D_Rotate( DaoxMatrix4D *self, DaoxVector3D *vec );
 DaoxMatrix4D  DaoxMatrix4D_MulMatrix( DaoxMatrix4D *self, DaoxMatrix4D *other );
 DaoxMatrix4D  DaoxMatrix4D_Inverse( DaoxMatrix4D *self );
 DaoxMatrix4D  DaoxMatrix4D_RotationOnly( DaoxMatrix4D *self );
@@ -233,9 +235,10 @@ void DaoxMatrix4D_Print( DaoxMatrix4D *self );
 
 struct DaoxVertex
 {
-	DaoxVector3D  point;
+	DaoxVector3D  pos;
 	DaoxVector3D  norm;
-	DaoxVector2D  texUV;
+	DaoxVector3D  tan;
+	DaoxVector2D  tex;
 };
 
 

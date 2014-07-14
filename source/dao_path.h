@@ -74,7 +74,7 @@ enum DaoxLineCaps
 */
 struct DaoxTexturedPoint
 {
-	DaoxVector2D  point;
+	DaoxVector2D  pos;
 	DaoxVector3D  klm;
 	float         offset;
 };

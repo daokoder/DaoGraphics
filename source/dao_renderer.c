@@ -297,12 +297,12 @@ void DaoxRenderer_ReduceData( DaoxRenderer *self, DaoxSceneNode *node )
 	if( abs( self->frameIndex - model->viewFrame ) < 1000 ) return;
 	if( model->offsets->size == 0 ) return;
 	model->offsets->size = 0;
-	for(i=0; i<model->points->size; ++i){
-		DArray_Clear( model->points->items.pArray[i] );
-		DArray_Clear( model->vnorms->items.pArray[i] );
+	for(i=0; i<model->positions->size; ++i){
+		DArray_Clear( model->positions->items.pArray[i] );
+		DArray_Clear( model->normals->items.pArray[i] );
 	}
-	for(i=0; i<model->tnorms->size; ++i){
-		DArray_Clear( model->tnorms->items.pArray[i] );
+	for(i=0; i<model->tangents->size; ++i){
+		DArray_Clear( model->tangents->items.pArray[i] );
 	}
 }
 
@@ -330,7 +330,7 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self, DaoxVector3D camPos )
 			DaoxModel *model = chunks->items.pModel[j];
 			DaoxMeshChunk *chunk = chunks->items.pMeshChunk[j+1];
 			DaoxMeshUnit *unit = chunk->unit;
-			DArray *points, *vnorms, *tnorms;
+			DArray *positions, *normals, *tangents;
 			int *offsets = model->offsets->data.ints;
 			int offset2 = glv;
 
@@ -349,24 +349,24 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self, DaoxVector3D camPos )
 			if( offsets[unit->index] ) continue;
 			DList_Append( self->visibleModels, model );
 			DaoxModel_TransformMesh( model );
-			points = model->points->items.pArray[unit->index];
-			vnorms = model->vnorms->items.pArray[unit->index];
-			tnorms = model->tnorms->items.pArray[unit->index];
+			positions = model->positions->items.pArray[unit->index];
+			normals = model->normals->items.pArray[unit->index];
+			tangents = model->tangents->items.pArray[unit->index];
 
 			offsets[unit->index] = glv + 1;
-			for(k=0; k<points->size; ++k,++glv){
+			for(k=0; k<positions->size; ++k,++glv){
 				DaoxVertex *vertex1 = unit->vertices->data.vertices + k;
 				DaoGLVertex3D *vertex2 = glvertices + glv;
-				DaoxVector3D point = points->data.vectors3d[k];
-				DaoxVector3D norm = vnorms->data.vectors3d[k];
-				vertex2->point.x = point.x;
-				vertex2->point.y = point.y;
-				vertex2->point.z = point.z;
+				DaoxVector3D point = positions->data.vectors3d[k];
+				DaoxVector3D norm = normals->data.vectors3d[k];
+				vertex2->pos.x = point.x;
+				vertex2->pos.y = point.y;
+				vertex2->pos.z = point.z;
 				vertex2->norm.x = norm.x;
 				vertex2->norm.y = norm.y;
 				vertex2->norm.z = norm.z;
-				vertex2->texUV.x = vertex1->texUV.x;
-				vertex2->texUV.y = vertex1->texUV.y;
+				vertex2->tex.x = vertex1->tex.x;
+				vertex2->tex.y = vertex1->tex.y;
 			}
 		}
 		drawtask = (DaoxDrawTask*) DArray_Push( self->drawLists );
@@ -474,7 +474,6 @@ void DaoxRenderer_UpdateTerrainBuffer( DaoxRenderer *self )
 	for(i=0; i<self->terrains->size; ++i){
 		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
 		DaoxColor dark = {0.1, 0.1, 0.1, 1.0};
-		int textureCount = 0;
 		int M = 3*terrain->triangles->size;
 		int K = triangleCount;
 		int vboffset = self->terrainBuffer.vertexOffset;
@@ -482,14 +481,14 @@ void DaoxRenderer_UpdateTerrainBuffer( DaoxRenderer *self )
 		for(j=0; j<terrain->vertices->size; ++j){
 			DaoxTerrainPoint *point = (DaoxTerrainPoint*) terrain->vertices->items.pVoid[j];
 			DaoGLVertex3D *glvertex = glvertices + vertexCount + j;
-			glvertex->point.x = point->point.x;
-			glvertex->point.y = point->point.y;
-			glvertex->point.z = point->point.z;
+			glvertex->pos.x = point->pos.x;
+			glvertex->pos.y = point->pos.y;
+			glvertex->pos.z = point->pos.z;
 			glvertex->norm.x = point->norm.x;
 			glvertex->norm.y = point->norm.y;
 			glvertex->norm.z = point->norm.z;
-			glvertex->texUV.x = point->point.x / terrain->width + 0.5;
-			glvertex->texUV.y = point->point.y / terrain->length + 0.5;
+			glvertex->tex.x = point->pos.x / terrain->width + 0.5;
+			glvertex->tex.y = point->pos.y / terrain->length + 0.5;
 		}
 		for(j=0; j<terrain->triangles->size; ++j){
 			DaoxTriangle *triangle = & terrain->triangles->data.triangles[j];
@@ -518,7 +517,8 @@ void DaoxRenderer_UpdateTerrainBuffer( DaoxRenderer *self )
 void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 {
 	DaoxColor dark = {0.1, 0.1, 0.1, 1.0};
-	DaoxTexture *texture = drawtask->texture;
+	DaoxTexture *colorTexture = drawtask->texture;
+	DaoxTexture *bumpTexture = NULL;
 	DaoxMaterial *material = drawtask->material;
 	DaoxColor ambient = material ? material->ambient : dark;
 	DaoxColor diffuse = material ? material->diffuse : dark;
@@ -526,7 +526,8 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	DaoxColor emission = material ? material->emission : daox_black_color;
 	daoint K = 3 * drawtask->triangleOffset * sizeof(GLint);
 	daoint M = 3 * drawtask->triangleCount;
-	int textureCount = 0;
+	int hasColorTexture = 0;
+	int hasBumpTexture = 0;
 
 	//printf( "%3i %6i %6i\n", i, data[0], data[1] );
 	glUniform4fv( self->shader.uniforms.ambientColor, 1, & ambient.red );
@@ -534,17 +535,28 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
 	glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
 
-	if( texture == NULL && material != NULL ) texture = material->texture1;
-	if( texture ){
-		DaoxTexture_glInitTexture( texture );
-		if( texture->tid ){
+	if( colorTexture == NULL && material != NULL ) colorTexture = material->texture1;
+	if( colorTexture ){
+		DaoxTexture_glInitTexture( colorTexture );
+		if( colorTexture->tid ){
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, texture->tid);
-			glUniform1i(self->shader.uniforms.textures[0], 0);
-			textureCount = 1;
+			glBindTexture(GL_TEXTURE_2D, colorTexture->tid);
+			glUniform1i(self->shader.uniforms.colorTexture, 0);
+			hasColorTexture = 1;
 		}
 	}
-	glUniform1i(self->shader.uniforms.textureCount, textureCount );
+	if( bumpTexture == NULL && material != NULL ) bumpTexture = material->texture2;
+	if( bumpTexture ){
+		DaoxTexture_glInitTexture( bumpTexture );
+		if( bumpTexture->tid ){
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, bumpTexture->tid);
+			glUniform1i(self->shader.uniforms.bumpTexture, 0);
+			hasBumpTexture = 1;
+		}
+	}
+	glUniform1i(self->shader.uniforms.hasColorTexture, hasColorTexture );
+	glUniform1i(self->shader.uniforms.hasBumpTexture, hasBumpTexture );
 	glDrawRangeElements( GL_TRIANGLES, 0, M, M, GL_UNSIGNED_INT, (void*)K );
 	/* TODO: better hint for glDrawRangeElements(); */
 }
@@ -696,7 +708,8 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUseProgram( self->shader.program );
 
 	glUniform1i(self->shader.uniforms.vectorGraphics, 0 );
-	glUniform1i(self->shader.uniforms.textureCount, 0 );
+	glUniform1i(self->shader.uniforms.hasColorTexture, 0 );
+	glUniform1i(self->shader.uniforms.hasBumpTexture, 0 );
 	glUniform1i(self->shader.uniforms.dashCount, 0 );
 	glUniform1i(self->shader.uniforms.gradientType, 0 );
 	glUniform1i(self->shader.uniforms.gradientStops, 0 );

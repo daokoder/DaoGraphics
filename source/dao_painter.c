@@ -68,8 +68,8 @@ void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DArray *points, float s
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex2D *glvertex = glvertices + i;
 		DaoxVector3D point = points->data.vectors3d[i];
-		glvertex->point.x = point.x * scale;
-		glvertex->point.y = point.y * scale;
+		glvertex->pos.x = point.x * scale;
+		glvertex->pos.y = point.y * scale;
 		glvertex->texKLMO.k = 0;
 		glvertex->texKLMO.l = 0;
 		glvertex->texKLMO.m = 0;
@@ -84,8 +84,8 @@ void DaoxVG_BufferPatches2D( DaoGLVertex2D *glvertices, DArray *points, float sc
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex2D *glvertex = glvertices + i;
 		DaoxTexturedPoint point = points2[i];
-		glvertex->point.x = point.point.x * scale;
-		glvertex->point.y = point.point.y * scale;
+		glvertex->pos.x = point.pos.x * scale;
+		glvertex->pos.y = point.pos.y * scale;
 		glvertex->texKLMO.k = point.klm.x;
 		glvertex->texKLMO.l = point.klm.y;
 		glvertex->texKLMO.m = point.klm.z;
@@ -99,9 +99,9 @@ void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DArray *points, float
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex3DVG *glvertex = glvertices + i;
 		DaoxVector3D point = points->data.vectors3d[i];
-		glvertex->point.x = point.x * scale;
-		glvertex->point.y = point.y * scale;
-		glvertex->point.z = 0;
+		glvertex->pos.x = point.x * scale;
+		glvertex->pos.y = point.y * scale;
+		glvertex->pos.z = 0;
 		glvertex->norm.x = 0;
 		glvertex->norm.y = 0;
 		glvertex->norm.z = 1;
@@ -119,9 +119,9 @@ void DaoxVG_BufferPatches3D( DaoGLVertex3DVG *glvertices, DArray *points, float 
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex3DVG *glvertex = glvertices + i;
 		DaoxTexturedPoint point = points2[i];
-		glvertex->point.x = point.point.x * scale;
-		glvertex->point.y = point.point.y * scale;
-		glvertex->point.z = 0;
+		glvertex->pos.x = point.pos.x * scale;
+		glvertex->pos.y = point.pos.y * scale;
+		glvertex->pos.z = 0;
 		glvertex->norm.x = 0;
 		glvertex->norm.y = 0;
 		glvertex->norm.z = 1;
@@ -217,7 +217,7 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 
 	//printf( "DaoxVG_PaintItemData: %i %i\n", vertexCount, triangleCount );
 
-	glUniform1i(shader->uniforms.textureCount, 0 );
+	glUniform1i(shader->uniforms.hasColorTexture, 0 );
 	glUniform4fv( shader->uniforms.brushColor, 1, & item->state->strokeColor.red );
 	if( item->path ) glUniform1f(shader->uniforms.pathLength, item->path->length );
 
@@ -287,21 +287,21 @@ void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasNode *item )
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, item->data.texture->tid);
-	glUniform1i( self->shader.uniforms.textureCount, 1 );
-	glUniform1i( self->shader.uniforms.textures[0], 0 );
+	glUniform1i( self->shader.uniforms.hasColorTexture, 1 );
+	glUniform1i( self->shader.uniforms.colorTexture, 0 );
 	glUniform1f( self->shader.uniforms.alphaBlending, 1.0 );
 	glUniform1i( self->shader.uniforms.dashCount, 0 );
 
 	if( self->buffer.vertexSize == sizeof(DaoGLVertex2D) ){
 		DaoGLVertex2D *vertices = DaoxBuffer_MapVertices2D( & self->buffer, 4 );
-		vertices[0].point.x = 0;
-		vertices[0].point.y = 0;
-		vertices[1].point.x = w;
-		vertices[1].point.y = 0;
-		vertices[2].point.x = w;
-		vertices[2].point.y = h;
-		vertices[3].point.x = 0;
-		vertices[3].point.y = h;
+		vertices[0].pos.x = 0;
+		vertices[0].pos.y = 0;
+		vertices[1].pos.x = w;
+		vertices[1].pos.y = 0;
+		vertices[2].pos.x = w;
+		vertices[2].pos.y = h;
+		vertices[3].pos.x = 0;
+		vertices[3].pos.y = h;
 		vertices[0].texKLMO.k = 0;
 		vertices[0].texKLMO.l = 0;
 		vertices[1].texKLMO.k = 1;
@@ -316,21 +316,21 @@ void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasNode *item )
 		}
 	}else if( self->buffer.vertexSize == sizeof(DaoGLVertex3DVG) ){
 		DaoGLVertex3D *vertices = DaoxBuffer_MapVertices3D( & self->buffer, 4 );
-		vertices[0].point.x = 0;
-		vertices[0].point.y = 0;
-		vertices[1].point.x = w;
-		vertices[1].point.y = 0;
-		vertices[2].point.x = w;
-		vertices[2].point.y = h;
-		vertices[3].point.x = 0;
-		vertices[3].point.y = h;
+		vertices[0].pos.x = 0;
+		vertices[0].pos.y = 0;
+		vertices[1].pos.x = w;
+		vertices[1].pos.y = 0;
+		vertices[2].pos.x = w;
+		vertices[2].pos.y = h;
+		vertices[3].pos.x = 0;
+		vertices[3].pos.y = h;
 		for(i=0; i<4; ++i){
-			vertices[i].point.z = 0;
+			vertices[i].pos.z = 0;
 			vertices[i].norm.x = 0;
 			vertices[i].norm.y = 0;
 			vertices[i].norm.z = 1;
-			vertices[i].texUV.x = 0;
-			vertices[i].texUV.y = 1;
+			vertices[i].tex.x = 0;
+			vertices[i].tex.y = 1;
 		}
 	}
 	triangles = DaoxBuffer_MapTriangles( & self->buffer, 2 );
@@ -453,7 +453,7 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	glUseProgram( self->shader.program );
 	glUniformMatrix4fv( self->shader.uniforms.projMatrix, 1, 0, matrix2 );
 	glUniformMatrix4fv( self->shader.uniforms.viewMatrix, 1, 0, matrix3 );
-	glUniform1i(self->shader.uniforms.textureCount, 0 );
+	glUniform1i(self->shader.uniforms.hasColorTexture, 0 );
 	glUniform1i(self->shader.uniforms.dashCount, 0 );
 	glUniform1i(self->shader.uniforms.gradientType, 2 );
 	glUniform1i(self->shader.uniforms.gradientStops, 2 );
