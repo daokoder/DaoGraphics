@@ -1079,6 +1079,45 @@ void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float maxHe
 		}
 	}
 }
+static void DaoxTerrain_UpdatePointNeighbors( DaoxTerrain *self, DaoxTerrainPatch *patch )
+{
+	int i, j, level = patch->center->divLevel;
+	DaoxTerrainPoint *mid01, *mid12, *mid23, *mid30;
+	DaoxTerrainPoint *center = patch->center;
+
+	if( patch->subs[0] ){
+		for(i=0; i<4; ++i) DaoxTerrain_UpdatePointNeighbors( self, patch->subs[i] );
+		return;
+	}
+
+	mid01 = patch->points[0];
+	while( mid01 != patch->points[1] && mid01->divLevel != level ) mid01 = mid01->west;
+	if( mid01 != patch->points[1] ){
+		center->north = mid01;
+		mid01->south = center;
+	}
+
+	mid12 = patch->points[1];
+	while( mid12 != patch->points[2] && mid12->divLevel != level ) mid12 = mid12->south;
+	if( mid12 != patch->points[2] ){
+		center->west = mid12;
+		mid12->east = center;
+	}
+
+	mid23 = patch->points[2];
+	while( mid23 != patch->points[3] && mid23->divLevel != level ) mid23 = mid23->east;
+	if( mid23 != patch->points[3] ){
+		center->south = mid23;
+		mid23->north = center;
+	}
+
+	mid30 = patch->points[3];
+	while( mid30 != patch->points[0] && mid30->divLevel != level ) mid30 = mid30->north;
+	if( mid30 != patch->points[0] ){
+		center->east = mid30;
+		mid30->west = center;
+	}
+}
 static void DaoxTerrain_UpdateNormals( DaoxTerrain *self, DaoxTerrainPoint *center, DaoxTerrainPoint *first, DaoxTerrainPoint *second )
 {
 	DaoxVector3D A = DaoxVector3D_Sub( & first->point, & center->point );
@@ -1168,6 +1207,7 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff )
 	if( (self->patchTree->maxHeight - self->patchTree->minHeight) > maxHeightDiff ){
 		DaoxTerrain_Refine( self, self->patchTree, maxHeightDiff, pointList );
 	}
+	DaoxTerrain_UpdatePointNeighbors( self, self->patchTree );
 
 	printf( "tree: %p\n", self->patchTree );
 	/* Making base points: */
@@ -1291,6 +1331,7 @@ static void DaoxTerrain_ActivateVertices( DaoxTerrain *self, DaoxTerrainPatch *p
 static void DaoxTerrain_GenerateTriangles( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
 {
 	int i;
+
 	if( ! patch->visible ){
 		/* For building coarse but complete mesh: */
 		DaoxTerrain_MakeTriangle( self, patch->points[0], patch->points[1], patch->points[2] );
@@ -1299,6 +1340,16 @@ static void DaoxTerrain_GenerateTriangles( DaoxTerrain *self, DaoxTerrainPatch *
 	}
 	if( patch->subs[0] == NULL || patch->smooth ){
 		DaoxTerrainPoint *first, *second = NULL;
+		int active1 = patch->center->east && patch->center->east->activeIndex > 0;
+		int active2 = patch->center->west && patch->center->west->activeIndex > 0;
+		int active3 = patch->center->south && patch->center->south->activeIndex > 0;
+		int active4 = patch->center->north && patch->center->north->activeIndex > 0;
+
+		if( active1 == 0 && active2 == 0 && active3 == 0 && active4 == 0 ){
+			DaoxTerrain_MakeTriangle( self, patch->points[0], patch->points[1], patch->points[2] );
+			DaoxTerrain_MakeTriangle( self, patch->points[0], patch->points[2], patch->points[3] );
+			return;
+		}
 
 		for(first = patch->points[0]; first != patch->points[1]; first = second){
 			second = first->west;
