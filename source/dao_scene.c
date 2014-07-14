@@ -409,14 +409,6 @@ void DaoxSceneNode_Delete( DaoxSceneNode *self )
 }
 void DaoxSceneNode_ApplyTransform( DaoxSceneNode *self, DaoxMatrix4D mat )
 {
-	if( self->ctype == daox_type_model ){
-		DaoxModel *model = (DaoxModel*) self;
-		daoint i;
-		for(i=0; i<model->positions->size; ++i){
-			DArray *positions = model->positions->items.pArray[i];
-			DArray_Reset( positions, 0 );
-		}
-	}
 	self->transform = DaoxMatrix4D_MulMatrix( & mat, & self->transform );
 }
 void DaoxSceneNode_MoveByXYZ( DaoxSceneNode *self, float dx, float dy, float dz )
@@ -718,10 +710,6 @@ DaoxModel* DaoxModel_New()
 {
 	DaoxModel *self = (DaoxModel*) dao_calloc( 1, sizeof(DaoxModel) );
 	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_model );
-	self->positions = DList_New(0);
-	self->normals = DList_New(0);
-	self->tangents = DList_New(0);
-	self->offsets = DArray_New( sizeof(int) );
 	return self;
 }
 static void DList_DeleteVector3DLists( DList *self )
@@ -732,10 +720,6 @@ static void DList_DeleteVector3DLists( DList *self )
 }
 void DaoxModel_Delete( DaoxModel *self )
 {
-	DArray_Delete( self->offsets );
-	DList_DeleteVector3DLists( self->positions );
-	DList_DeleteVector3DLists( self->normals );
-	DList_DeleteVector3DLists( self->tangents );
 	DaoxSceneNode_Free( (DaoxSceneNode*) self );
 	dao_free( self );
 }
@@ -743,42 +727,6 @@ void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh )
 {
 	GC_Assign( & self->mesh, mesh );
 	self->base.obbox = mesh->obbox;
-}
-void DaoxModel_TransformMesh( DaoxModel *self )
-{
-	DaoxMatrix4D matrix = DaoxSceneNode_GetWorldTransform( & self->base );
-	daoint i, j;
-
-	if( self->mesh == NULL ) return;
-	while( self->positions->size < self->mesh->units->size ){
-		DList_Append( self->positions, DArray_New( sizeof(DaoxVector3D) ) );
-		DList_Append( self->normals, DArray_New( sizeof(DaoxVector3D) ) );
-		DList_Append( self->tangents, DArray_New( sizeof(DaoxVector3D) ) );
-	}
-	for(i=0; i<self->mesh->units->size; ++i){
-		DaoxMeshUnit *unit = self->mesh->units->items.pMeshUnit[i];
-		DArray *positions = self->positions->items.pArray[i];
-		DArray *normals = self->normals->items.pArray[i];
-		DArray *tangents = self->tangents->items.pArray[i];
-		if( positions->size == unit->vertices->size
-				&& normals->size == unit->vertices->size
-				&& tangents->size == unit->triangles->size ) continue;
-		DArray_Reset( positions, unit->vertices->size );
-		DArray_Reset( normals, unit->vertices->size );
-		DArray_Reset( tangents, unit->triangles->size );
-		for(j=0; j<unit->vertices->size; ++j){
-			DaoxVertex *vertex = & unit->vertices->data.vertices[j];
-			positions->data.vectors3d[j] = DaoxMatrix4D_Transform( & matrix, & vertex->pos );
-			normals->data.vectors3d[j] = DaoxMatrix4D_Rotate( & matrix, & vertex->norm );
-		}
-		for(j=0; j<unit->triangles->size; ++j){
-			DaoxTriangle *triangle = & unit->triangles->data.triangles[j];
-			DaoxVector3D *A = positions->data.vectors3d + triangle->index[0];
-			DaoxVector3D *B = positions->data.vectors3d + triangle->index[1];
-			DaoxVector3D *C = positions->data.vectors3d + triangle->index[2];
-			tangents->data.vectors3d[j] = DaoxTriangle_Normal( A, B, C );
-		}
-	}
 }
 
 

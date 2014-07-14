@@ -15,7 +15,7 @@ camera = Graphics::Camera()
 
 if(1){
 	# Public domain heightmap, downloaded from wikipedia.org:
-	heightmap.Load( '../media/heightmap257.png' )
+	heightmap.Load( '../media/heightmap.png' )
 	terrain = scene.AddTerrain( heightmap, 100, 100, 10 )
 	camera.Move( 0, 62, 62 )
 	camera.LookAt( 0, 20, 0 );

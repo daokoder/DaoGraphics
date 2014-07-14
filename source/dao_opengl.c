@@ -305,6 +305,7 @@ uniform vec4 emissionColor;\n\
 uniform vec3 cameraPosition;\n\
 uniform mat4 projMatrix;\n\
 uniform mat4 viewMatrix;\n\
+uniform mat4 modelMatrix;\n\
 \n\
 in vec3 position;\n\
 in vec3 normal;\n\
@@ -317,6 +318,7 @@ out vec4  vertexColor;\n\
 out vec3  bezierKLM; \n\
 out float pathOffset; \n\
 \n\
+out vec3 worldPosition; \n\
 out vec3 worldNormal; // normal in world coordinates; \n\
 out vec3 relativeCameraPosition;\n\
 out vec3 relativeLightSource[32];\n\
@@ -337,7 +339,7 @@ vec4 ComputeLight( vec3 lightSource, vec4 lightIntensity, vec4 texColor )\n\
 vec4 ComputeAllLights( vec4 vertexColor, vec4 texColor )\n\
 {\n\
 	for(int i=0; i<lightCount; ++i){\n\
-		vec3 relativeLightSource2 = lightSource[i] - position;\n\
+		vec3 relativeLightSource2 = lightSource[i] - worldPosition;\n\
 		relativeLightSource2 = normalize( relativeLightSource2 );\n\
 		vertexColor += ComputeLight( relativeLightSource2, lightIntensity[i], texColor );\n\
 		relativeLightSource[i] = relativeLightSource2;\n\
@@ -348,17 +350,18 @@ vec4 ComputeAllLights( vec4 vertexColor, vec4 texColor )\n\
 void main(void)\n\
 {\n\
 	vec4 texColor = diffuseColor;\n\
+	worldPosition = vec3( modelMatrix * vec4( position, 1.0 ) );\n\
+	worldNormal = vec3( modelMatrix * vec4( normal, 1.0 ) );\n\
 	vertexPosition = vec2( position ); \n\
 	bezierKLM = vec3( texCoord, texMO[0] ); \n\
 	pathOffset = texMO[1]; \n\
-	worldNormal = normal;\n\
-	relativeCameraPosition = normalize( cameraPosition - position );\n\
+	relativeCameraPosition = normalize( cameraPosition - worldPosition );\n\
 	vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
 	if( hasColorTexture > 0 || vectorGraphics > 0 ) texColor = vec4( 1.0, 1.0, 1.0, 1.0 );\n\
 	vertexColor = ComputeAllLights( vertexColor, texColor );\n\
 	if( lightCount == 0 ) vertexColor = texColor;\n\
 	//if( true ) vertexColor = texColor;\n\
-	gl_Position = projMatrix * viewMatrix * vec4( position, 1.0 );\n\
+	gl_Position = projMatrix * viewMatrix * vec4( worldPosition, 1.0 );\n\
 	texCoord2 = texCoord;\n\
 }\n";
 
@@ -514,6 +517,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.vectorGraphics = glGetUniformLocation(self->program, "vectorGraphics");
 	self->uniforms.projMatrix = glGetUniformLocation(self->program, "projMatrix");
 	self->uniforms.viewMatrix = glGetUniformLocation(self->program, "viewMatrix");
+	self->uniforms.modelMatrix = glGetUniformLocation(self->program, "modelMatrix");
 	self->uniforms.cameraPosition = glGetUniformLocation(self->program, "cameraPosition");
 	self->uniforms.lightCount = glGetUniformLocation(self->program, "lightCount");
 	self->uniforms.lightSource = glGetUniformLocation(self->program, "lightSource");

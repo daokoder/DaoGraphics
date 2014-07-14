@@ -39,10 +39,15 @@ typedef struct DaoxRenderer DaoxRenderer;
 
 struct DaoxDrawTask
 {
+	uint_t         shape;
+	uint_t         offset;
+	uint_t         vcount;
+	uint_t         tcount;
+	DList          units;
+	DList          chunks;
+	DaoxMatrix4D   matrix;   /* Object to world matrix; */
 	DaoxMaterial  *material;
 	DaoxTexture   *texture;
-	uint_t         triangleOffset;
-	uint_t         triangleCount;
 };
 
 
@@ -52,10 +57,6 @@ struct DaoxRenderer
 	DAO_CSTRUCT_COMMON;
 
 	uchar_t  showAxis;
-	uint_t   frameIndex;
-	uint_t   vertexCount;
-	uint_t   triangleCount;
-
 	uint_t   targetWidth;
 	uint_t   targetHeight;
 
@@ -73,18 +74,13 @@ struct DaoxRenderer
 	DaoxBuffer  buffer;
 	DaoxBuffer  bufferVG;
 
-	DMap    *mapMaterials;
-	DList   *visibleModels;
-	DList   *visibleChunks;
-	DArray  *drawLists;
-	DArray  *drawLists2;
+	DList   *dynamicTasks;
+	DList   *staticTasks;
 
 	DList   *terrains;
 	DList   *canvases;
-
-	DArray  *vertices;   /* <DaoxVertex> */
-	DArray  *triangles;  /* <DaoxTriangle> */
-	DArray  *mapping;    /* <int> */
+	DList   *taskCache;
+	DMap    *map;
 };
 extern DaoType *daox_type_renderer;
 

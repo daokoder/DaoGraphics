@@ -265,23 +265,12 @@ struct DaoxModel
 {
 	DaoxSceneNode  base;
 	DaoxMesh      *mesh;
-
-	/*
-	// The memory of these arrays is freed after the model has been invisible
-	// for sufficiently long time.
-	*/
-	DArray  *offsets;    /* offsets in the vertex buffer object; */
-	DList   *positions;  /* vertex positions, global coordinates; */
-	DList   *normals;    /* vertex normals, global coordinates; */
-	DList   *tangents;   /* vertex tangents, global coordinates; */
-	uint_t   viewFrame;
 };
 extern DaoType *daox_type_model;
 
 DaoxModel* DaoxModel_New();
 void DaoxModel_Delete( DaoxModel *self );
 void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh );
-void DaoxModel_TransformMesh( DaoxModel *self );
 
 
 

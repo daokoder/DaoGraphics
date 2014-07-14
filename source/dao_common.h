@@ -40,7 +40,8 @@
 	struct DaoxCanvas       **pCanvas; \
 	struct DaoxCanvasState  **pCanvasState; \
 	struct DaoxCanvasNode   **pCanvasNode; \
-	struct DaoxSceneNode    **pSceneNode;
+	struct DaoxSceneNode    **pSceneNode; \
+	struct DaoxDrawTask     **pDrawTask;
 
 #define DAO_ARRAY_ITEM_TYPES \
 	struct DaoxVector2D     *vectors2d; \
