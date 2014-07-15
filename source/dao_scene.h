@@ -325,7 +325,7 @@ struct DaoxTerrain
 	float  depth;
 
 	DaoxImage         *heightmap;
-	DaoxTexture       *texture;
+	DaoxMaterial      *material;
 
 	DaoxTerrainPatch  *patchTree;
 	DaoxTerrainPoint  *baseCenter;
@@ -343,7 +343,7 @@ void DaoxTerrain_Delete( DaoxTerrain *self );
 
 void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float height );
 void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap );
-void DaoxTerrain_SetTexture( DaoxTerrain *self, DaoxTexture *texture );
+void DaoxTerrain_SetMaterial( DaoxTerrain *self, DaoxMaterial *material );
 void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float mdiff, DList *pts );
 void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff );
 void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );

@@ -47,7 +47,6 @@ struct DaoxDrawTask
 	DList          chunks;
 	DaoxMatrix4D   matrix;   /* Object to world matrix; */
 	DaoxMaterial  *material;
-	DaoxTexture   *texture;
 };
 
 

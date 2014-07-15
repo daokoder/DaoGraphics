@@ -401,6 +401,10 @@ void main(void)\n\
 		texColor = texture( colorTexture, varTexCoord );\n\
 	}\n\
 	fragColor = ComputeAllLights( texColor );\n\
+	if( hasColorTexture > 0 ){\n\
+		if( texColor[3] < 0.9 ) discard;\n\
+		fragColor[3] = texColor[3];\n\
+	}\n\
 	if( lightCount == 0 ) fragColor = texColor;\n\
 	//fragColor = texColor;\n\
 	if( vectorGraphics > 0 ){ \n\
@@ -802,8 +806,8 @@ void* DaoxBuffer_MapVertices( DaoxBuffer *self, int count )
 {
 	int dataSize = count * self->vertexSize;
 	glBindBuffer( GL_ARRAY_BUFFER, self->vertexVBO );
-	if( self->vertexOffset + count + 16 > self->vertexCapacity ){
-		if( count > self->vertexCapacity ) self->vertexCapacity = 1.2 * count;
+	if( self->vertexOffset + count > self->vertexCapacity ){
+		if( (self->vertexOffset + count) > self->vertexCapacity ) self->vertexCapacity = 1.2 * count;
 		glBufferData( GL_ARRAY_BUFFER, self->vertexCapacity*self->vertexSize, NULL, GL_STREAM_DRAW );
 		DaoxBuffer_SetVertexBufferAttributes( self );
 		self->vertexOffset = 0;
@@ -827,7 +831,7 @@ DaoGLTriangle* DaoxBuffer_MapTriangles( DaoxBuffer *self, int count )
 	int dataSize = count * self->triangleSize;
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->triangleVBO );
 	if( self->triangleOffset + count > self->triangleCapacity ){
-		if( count > self->triangleCapacity ) self->triangleCapacity = 1.2 * count;
+		if( (self->triangleOffset + count) > self->triangleCapacity ) self->triangleCapacity = 1.2 * count;
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, self->triangleCapacity*self->triangleSize, NULL, GL_STREAM_DRAW );
 		self->triangleOffset = 0;
 	}

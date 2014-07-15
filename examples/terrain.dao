@@ -29,9 +29,11 @@ camera.SetFarPlane( 10000 );
 camera.Orient( $Z );
 scene.AddNode( camera );
 
-light1 = Graphics::Light( $spot, 0.4, 0.3, 0.2 )
-light2 = Graphics::Light( $spot, 0.3, 0.4, 0.2 )
-light3 = Graphics::Light( $spot, 0.3, 0.3, 0.2 )
+intensity = 1.0;
+
+light1 = Graphics::Light( $spot, 0.4*intensity, 0.3*intensity, 0.2*intensity )
+light2 = Graphics::Light( $spot, 0.3*intensity, 0.4*intensity, 0.2*intensity )
+light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.2*intensity )
 light1.Move( 50, 90, 150 )
 light2.Move( 101.5, 61.5, 161.5 )
 light2.Move( 0, 0, -50 )

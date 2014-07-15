@@ -126,7 +126,7 @@ static DaoFuncItem DaoxMaterialMeths[]=
 		"SetColor( self: Material, ...: tuple<enum<ambient,diffuse,specular,emission>,tuple<float,float,float>> )"
 	},
 	{ MAT_SetTexture,
-		"SetTexture( self: Material, map: Image, which: enum<first,second> = $first )"
+		"SetTexture( self: Material, texture: Texture, which: enum<first,second> = $first )"
 	},
 	{ NULL, NULL }
 };
@@ -292,16 +292,16 @@ DaoTypeBase DaoxModel_Typer =
 
 
 
-static void TERRAIN_SetTexture( DaoProcess *proc, DaoValue *p[], int N )
+static void TERRAIN_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTerrain *self = (DaoxTerrain*) p[0];
-	DaoxTexture *texture = (DaoxTexture*) p[1];
-	DaoxTerrain_SetTexture( self, texture );
+	DaoxMaterial *material = (DaoxMaterial*) p[1];
+	DaoxTerrain_SetMaterial( self, material );
 }
 static DaoFuncItem DaoxTerrainMeths[]=
 {
-	{ TERRAIN_SetTexture,
-		"SetTexture( self: Terrain, texture: Texture, which: enum<first,second> = $first )"
+	{ TERRAIN_SetMaterial,
+		"SetMaterial( self: Terrain, material: Material, which: enum<first,second> = $first )"
 	},
 	{ NULL, NULL }
 };

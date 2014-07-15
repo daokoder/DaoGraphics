@@ -817,9 +817,9 @@ void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap )
 {
 	GC_Assign( & self->heightmap, heightmap );
 }
-void DaoxTerrain_SetTexture( DaoxTerrain *self, DaoxTexture *texture )
+void DaoxTerrain_SetMaterial( DaoxTerrain *self, DaoxMaterial *material )
 {
-	GC_Assign( & self->texture, texture );
+	GC_Assign( & self->material, material );
 }
 
 float DaoxTerrain_GetPixel( DaoxTerrain *self, float x, float y )
@@ -1258,7 +1258,7 @@ static int DaoxTerrain_PatchHasFineView( DaoxTerrain *self, DaoxTerrainPatch *pa
 
 	viewDiff = patch->maxHeight - patch->minHeight;
 	viewDiff = frustum->ratio * frustum->near * viewDiff / mindist;
-	return viewDiff < 2.0;
+	return viewDiff < 5.0;
 }
 static void DaoxTerrain_ActivateVertices( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
 {
@@ -1281,7 +1281,7 @@ static void DaoxTerrain_ActivateVertices( DaoxTerrain *self, DaoxTerrainPatch *p
 }
 static void DaoxTerrain_GenerateTriangles( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
 {
-	int i;
+	int i, level = patch->center->divLevel;
 
 	if( ! patch->visible ){
 		/* For building coarse but complete mesh: */
@@ -1290,11 +1290,21 @@ static void DaoxTerrain_GenerateTriangles( DaoxTerrain *self, DaoxTerrainPatch *
 		return;
 	}
 	if( patch->subs[0] == NULL || patch->smooth ){
+		int active1, active2, active3, active4;
 		DaoxTerrainPoint *first, *second = NULL;
-		int active1 = patch->center->east && patch->center->east->activeIndex > 0;
-		int active2 = patch->center->west && patch->center->west->activeIndex > 0;
-		int active3 = patch->center->south && patch->center->south->activeIndex > 0;
-		int active4 = patch->center->north && patch->center->north->activeIndex > 0;
+		DaoxTerrainPoint *east = patch->center->east;
+		DaoxTerrainPoint *west = patch->center->west;
+		DaoxTerrainPoint *south = patch->center->south;
+		DaoxTerrainPoint *north = patch->center->north;
+
+		while( east && east->divLevel != level ) east = east->east;
+		while( west && west->divLevel != level ) west = west->west;
+		while( south && south->divLevel != level ) south = south->south;
+		while( north && north->divLevel != level ) north = north->north;
+		active1 = east && east->activeIndex > 0;
+		active2 = west && west->activeIndex > 0;
+		active3 = south && south->activeIndex > 0;
+		active4 = north && north->activeIndex > 0;
 
 		if( active1 == 0 && active2 == 0 && active3 == 0 && active4 == 0 ){
 			DaoxTerrain_MakeTriangle( self, patch->points[0], patch->points[1], patch->points[2] );
