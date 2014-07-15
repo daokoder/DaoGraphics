@@ -111,6 +111,12 @@ static void MAT_SetColor( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 }
+static void MAT_SetTexture( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxMaterial *self = (DaoxMaterial*) p[0];
+	DaoxTexture *texture = (DaoxTexture*) p[1];
+	DaoxMaterial_SetTexture( self, texture, p[2]->xEnum.value + 1 );
+}
 static DaoFuncItem DaoxMaterialMeths[]=
 {
 	{ MAT_New,
@@ -118,6 +124,9 @@ static DaoFuncItem DaoxMaterialMeths[]=
 	},
 	{ MAT_SetColor,
 		"SetColor( self: Material, ...: tuple<enum<ambient,diffuse,specular,emission>,tuple<float,float,float>> )"
+	},
+	{ MAT_SetTexture,
+		"SetTexture( self: Material, map: Image, which: enum<first,second> = $first )"
 	},
 	{ NULL, NULL }
 };
@@ -292,7 +301,7 @@ static void TERRAIN_SetTexture( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxTerrainMeths[]=
 {
 	{ TERRAIN_SetTexture,
-		"SetTexture( self: Terrain, texture: Texture )"
+		"SetTexture( self: Terrain, texture: Texture, which: enum<first,second> = $first )"
 	},
 	{ NULL, NULL }
 };

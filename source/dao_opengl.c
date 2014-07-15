@@ -294,14 +294,6 @@ static const char *const daox_vertex_shader3d_150 =
 "//#version 150\n\
 uniform int  vectorGraphics;\n\
 uniform int  lightCount;\n\
-uniform int  hasColorTexture;\n\
-uniform int  hasBumpTexture;\n\
-uniform vec3 lightSource[32];\n\
-uniform vec4 lightIntensity[32];\n\
-uniform vec4 ambientColor;\n\
-uniform vec4 diffuseColor;\n\
-uniform vec4 specularColor;\n\
-uniform vec4 emissionColor;\n\
 uniform vec3 cameraPosition;\n\
 uniform mat4 projMatrix;\n\
 uniform mat4 viewMatrix;\n\
@@ -309,60 +301,31 @@ uniform mat4 modelMatrix;\n\
 \n\
 in vec3 position;\n\
 in vec3 normal;\n\
+in vec3 tangent;\n\
 in vec2 texCoord;\n\
 in vec2 texMO;\n\
 \n\
 out vec2  vertexPosition; \n\
-out vec2  texCoord2;\n\
 out vec4  vertexColor;\n\
 out vec3  bezierKLM; \n\
 out float pathOffset; \n\
 \n\
-out vec3 worldPosition; \n\
-out vec3 worldNormal; // normal in world coordinates; \n\
-out vec3 relativeCameraPosition;\n\
-out vec3 relativeLightSource[32];\n\
-\n\
-vec4 ComputeLight( vec3 lightSource, vec4 lightIntensity, vec4 texColor )\n\
-{\n\
-	float cosAngIncidence = dot( worldNormal, lightSource );\n\
-	cosAngIncidence = clamp(cosAngIncidence, 0, 1);\n\
-	vec3 reflection = 0.5*(1 + cosAngIncidence) * worldNormal;\n\
-	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
-	float dotvalue = dot(reflection, relativeCameraPosition);\n\
-	dotvalue = clamp(dotvalue, 0, 1);\n\
-	vertexColor += lightIntensity * texColor * dotvalue;\n\
-	vertexColor += lightIntensity * specularColor * dotvalue;\n\
-	vertexColor += lightIntensity * ambientColor + emissionColor;\n\
-	return vertexColor;\n\
-}\n\
-vec4 ComputeAllLights( vec4 vertexColor, vec4 texColor )\n\
-{\n\
-	for(int i=0; i<lightCount; ++i){\n\
-		vec3 relativeLightSource2 = lightSource[i] - worldPosition;\n\
-		relativeLightSource2 = normalize( relativeLightSource2 );\n\
-		vertexColor += ComputeLight( relativeLightSource2, lightIntensity[i], texColor );\n\
-		relativeLightSource[i] = relativeLightSource2;\n\
-	}\n\
-	return vertexColor;\n\
-}\n\
+out vec3 varPosition; \n\
+out vec3 varNormal;  \n\
+out vec3 varTangent; \n\
+out vec2 varTexCoord;\n\
 \n\
 void main(void)\n\
 {\n\
-	vec4 texColor = diffuseColor;\n\
-	worldPosition = vec3( modelMatrix * vec4( position, 1.0 ) );\n\
-	worldNormal = vec3( modelMatrix * vec4( normal, 1.0 ) );\n\
+	vec3 worldPosition = vec3( modelMatrix * vec4( position, 1.0 ) );\n\
+	varPosition = position;\n\
+	varNormal = normal;\n\
+	varTangent = tangent;\n\
+	varTexCoord = texCoord;\n\
 	vertexPosition = vec2( position ); \n\
 	bezierKLM = vec3( texCoord, texMO[0] ); \n\
 	pathOffset = texMO[1]; \n\
-	relativeCameraPosition = normalize( cameraPosition - worldPosition );\n\
-	vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
-	if( hasColorTexture > 0 || vectorGraphics > 0 ) texColor = vec4( 1.0, 1.0, 1.0, 1.0 );\n\
-	vertexColor = ComputeAllLights( vertexColor, texColor );\n\
-	if( lightCount == 0 ) vertexColor = texColor;\n\
-	//if( true ) vertexColor = texColor;\n\
 	gl_Position = projMatrix * viewMatrix * vec4( worldPosition, 1.0 );\n\
-	texCoord2 = texCoord;\n\
 }\n";
 
 
@@ -370,31 +333,79 @@ static const char *const daox_fragment_shader3d_150 =
 "//#version 150\n\
 uniform int  vectorGraphics;\n\
 uniform int  lightCount;\n\
+uniform vec4 ambientColor;\n\
+uniform vec4 diffuseColor;\n\
+uniform vec4 specularColor;\n\
+uniform vec4 emissionColor;\n\
 uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
+uniform vec3 cameraPosition;\n\
+uniform mat4 modelMatrix;\n\
 \n\
+in  vec3 varPosition;\n\
+in  vec3 varNormal;\n\
+in  vec3 varTangent;\n\
+in  vec2 varTexCoord;\n\
 in  vec2 vertexPosition; \n\
-in  vec2 texCoord2;\n\
-in  vec3  bezierKLM; \n\
+in  vec3 bezierKLM; \n\
 in  float pathOffset; \n\
-in  vec4 vertexColor;\n\
-in  vec3 worldNormal;\n\
-in  vec3 relativeLightSource[32];\n\
-in  vec3 relativeCameraPosition;\n\
 out vec4 fragColor;\n\
+\n\
+vec3 worldPosition;\n\
+\n\
+vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
+{\n\
+	vec3 camDir = normalize( cameraPosition - worldPosition );\n\
+	vec3 normal = normalize( varNormal );\n\
+	vec3 tangent = normalize( varTangent );\n\
+	vec3 binormal = cross( normal, tangent );\n\
+	if( hasBumpTexture > 0 ){\n\
+		float ldx = dot( lightDir, tangent );\n\
+		float ldy = dot( lightDir, binormal );\n\
+		float ldz = dot( lightDir, normal );\n\
+		float cdx = dot( camDir, tangent );\n\
+		float cdy = dot( camDir, binormal );\n\
+		float cdz = dot( camDir, normal );\n\
+		lightDir = normalize( vec3( ldx, ldy, ldz ) );\n\
+		camDir = normalize( vec3( cdx, cdy, cdz ) );\n\
+		normal = vec3( texture( bumpTexture, varTexCoord ) );\n\
+		normal = (normal - 0.5) * 2.0;\n\
+		//normal = normalize( normal );\n\
+	}\n\
+	float cosAngIncidence = dot( normal, lightDir );\n\
+	cosAngIncidence = clamp(cosAngIncidence, 0, 1);\n\
+	vec3 reflection = 0.5*(1 + cosAngIncidence) * normal;\n\
+	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
+	float dotvalue = dot(reflection, camDir);\n\
+	dotvalue = clamp(dotvalue, 0, 1);\n\
+	vertexColor += lightIntensity * texColor;\n\
+	vertexColor += lightIntensity * specularColor * dotvalue;\n\
+	vertexColor += lightIntensity * ambientColor + emissionColor;\n\
+	return vertexColor;\n\
+}\n\
+vec4 ComputeAllLights( vec4 texColor )\n\
+{\n\
+	vec4 vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
+	for(int i=0; i<lightCount; ++i){\n\
+		vec3 lightDir = normalize( lightSource[i] - worldPosition );\n\
+		vertexColor += ComputeLight( lightDir, lightIntensity[i], texColor );\n\
+	}\n\
+	return vertexColor;\n\
+}\n\
 \n\
 void main(void)\n\
 {\n\
-	fragColor = vertexColor;\n\
+	vec4 texColor = diffuseColor;\n\
+	worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
 	if( hasColorTexture > 0 ){\n\
-		vec4 texColor = texture( colorTexture, texCoord2 );\n\
-		vec4 fragRGB = texColor * vertexColor;\n\
-		fragColor = vec4( fragRGB[0], fragRGB[1], fragRGB[2], vertexColor[3] );\n\
-		if( lightCount == 0 ) fragColor = texColor;\n\
+		texColor = texture( colorTexture, varTexCoord );\n\
 	}\n\
+	fragColor = ComputeAllLights( texColor );\n\
+	if( lightCount == 0 ) fragColor = texColor;\n\
+	//fragColor = texColor;\n\
 	if( vectorGraphics > 0 ){ \n\
-		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, texCoord2, pathOffset ); \n\
-		fragColor = vertexColor * color; \n\
+		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
+		fragColor = texColor * color; \n\
 	}\n\
 }\n";
 
@@ -533,6 +544,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	//self->uniforms.material = glGetUniformBlockIndex(self->program, "material");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.normal = glGetAttribLocation(self->program, "normal");
+	self->attributes.tangent = glGetAttribLocation(self->program, "tangent");
 	self->attributes.texCoord = glGetAttribLocation(self->program, "texCoord");
 	self->attributes.texMO = glGetAttribLocation(self->program, "texMO");
 	printf( "DaoxShader_Finalize: %i\n", self->attributes.position );
@@ -702,26 +714,29 @@ void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo )
 
 	DaoxBuffer_InitBuffers( self );
 }
-void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int texuv, int texmo )
+void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv, int texmo )
 {
 	DaoGLVertex3D *vertex = NULL;
 	DaoxBuffer_Init( self );
 
-	self->traitCount = 4;
+	self->traitCount = 5;
 	self->vertexSize = sizeof(DaoGLVertex3D);
 	self->triangleSize = sizeof(DaoGLTriangle);
 	self->traits[0].uniform = pos;
 	self->traits[1].uniform = norm;
-	self->traits[2].uniform = texuv;
-	self->traits[3].uniform = texmo;
+	self->traits[2].uniform = tan;
+	self->traits[3].uniform = texuv;
+	self->traits[4].uniform = texmo;
 	self->traits[0].count = 3;
 	self->traits[1].count = 3;
-	self->traits[2].count = 2;
+	self->traits[2].count = 3;
 	self->traits[3].count = 2;
+	self->traits[4].count = 2;
 	self->traits[0].offset = NULL;
 	self->traits[1].offset = (void*) & vertex->norm;
-	self->traits[2].offset = (void*) & vertex->tex;
+	self->traits[2].offset = (void*) & vertex->tan;
 	self->traits[3].offset = (void*) & vertex->tex;
+	self->traits[4].offset = (void*) & vertex->tex;
 
 	DaoxBuffer_InitBuffers( self );
 }

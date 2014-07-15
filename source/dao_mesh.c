@@ -142,33 +142,66 @@ void DaoxMeshUnit_ScaleBy( DaoxMeshUnit *self, float fx, float fy, float fz )
 		pos->z *= fz;
 	}
 }
-void DaoxMeshUnit_UpdateNorms( DaoxMeshUnit *self )
+void DaoxMeshUnit_UpdateNormTangents( DaoxMeshUnit *self, int donormal, int dotangent )
 {
 	int i, j;
 
 	for(i=0; i<self->vertices->size; ++i){
-		DaoxVector3D *norm = & self->vertices->data.vertices[i].norm;
-		norm->x = norm->y = norm->z = 0.0;
+		DaoxVertex *vertex = & self->vertices->data.vertices[i];
+		DaoxVector3D *norm = & vertex->norm;
+		DaoxVector3D *tan = & vertex->tan;
+		if( donormal ) norm->x = norm->y = norm->z = 0.0;
+		if( dotangent ) tan->x = tan->y = tan->z = 0.0;
 	}
 	for(i=0; i<self->triangles->size; ++i){
 		DaoxTriangle triangle = self->triangles->data.triangles[i];
-		DaoxVector3D A = self->vertices->data.vertices[ triangle.index[0] ].pos;
-		DaoxVector3D B = self->vertices->data.vertices[ triangle.index[1] ].pos;
-		DaoxVector3D C = self->vertices->data.vertices[ triangle.index[2] ].pos;
-		DaoxVector3D AB = DaoxVector3D_Sub( & B, & A );
-		DaoxVector3D BC = DaoxVector3D_Sub( & C, & B );
-		DaoxVector3D facenorm = DaoxVector3D_Cross( & AB, & BC );
+		DaoxVertex VA = self->vertices->data.vertices[ triangle.index[0] ];
+		DaoxVertex VB = self->vertices->data.vertices[ triangle.index[1] ];
+		DaoxVertex VC = self->vertices->data.vertices[ triangle.index[2] ];
+		DaoxVector3D AB = DaoxVector3D_Sub( & VB.pos, & VA.pos );
+		DaoxVector3D AC = DaoxVector3D_Sub( & VC.pos, & VA.pos );
+		DaoxVector2D ABT = DaoxVector2D_Sub( & VB.tex, & VA.tex );
+		DaoxVector2D ACT = DaoxVector2D_Sub( & VC.tex, & VA.tex );
+		DaoxVector3D facenorm = DaoxVector3D_Cross( & AB, & AC );
+		DaoxVector3D tangent = { 1.0, 1.0, 1.0 };
+		float denominator = ABT.x * ACT.y - ABT.y * ACT.x;
+
 		facenorm = DaoxVector3D_Normalize( & facenorm );
+		if( fabs( denominator ) > EPSILON ){
+			tangent.x = AB.x * ACT.y - AC.x * ABT.y;
+			tangent.y = AB.y * ACT.y - AC.y * ABT.y;
+			tangent.z = AB.z * ACT.y - AC.z * ABT.y;
+			tangent = DaoxVector3D_Normalize( & tangent );
+		}
+
 		for(j=0; j<3; ++j){
-			DaoxVector3D *vnorm = & self->vertices->data.vertices[ triangle.index[j] ].norm;
-			vnorm->x += facenorm.x;
-			vnorm->y += facenorm.y;
-			vnorm->z += facenorm.z;
+			DaoxVertex *vertex = & self->vertices->data.vertices[ triangle.index[j] ];
+			DaoxVector3D *norm = & vertex->norm;
+			DaoxVector3D *tan = & vertex->tan;
+			if( donormal ){
+				norm->x += facenorm.x;
+				norm->y += facenorm.y;
+				norm->z += facenorm.z;
+			}
+			if( dotangent ){
+				DaoxVector3D tangent2 = tangent;
+				if( donormal == 0 ){  /* Adjust tangent according to the supplied normal: */
+					DaoxVector3D binorm = DaoxVector3D_Cross( & facenorm, & tangent );
+					tangent2 = DaoxVector3D_Cross( & binorm, norm );;
+					tangent2 = DaoxVector3D_Normalize( & tangent2 );
+				}
+				tan->x += tangent2.x;
+				tan->y += tangent2.y;
+				tan->z += tangent2.z;
+			}
 		}
 	}
 	for(i=0; i<self->vertices->size; ++i){
-		DaoxVector3D *norm = & self->vertices->data.vertices[i].norm;
-		*norm = DaoxVector3D_Normalize( norm );
+		DaoxVertex *vertex = & self->vertices->data.vertices[i];
+		DaoxVector3D *norm = & vertex->norm;
+		DaoxVector3D *tan = & vertex->tan;
+		if( donormal ) *norm = DaoxVector3D_Normalize( norm );
+		if( dotangent ) *tan = DaoxVector3D_Normalize( tan );
 	}
 }
 void DaoxMeshUnit_SetMaterial( DaoxMeshUnit *self, DaoxMaterial *material )
@@ -357,12 +390,12 @@ void DaoxMesh_UpdateTree( DaoxMesh *self, int maxtriangles )
 		DaoxMeshUnit_UpdateTree( unit, maxtriangles );
 	}
 }
-void DaoxMesh_UpdateNorms( DaoxMesh *self )
+void DaoxMesh_UpdateNormTangents( DaoxMesh *self, int norm, int tan )
 {
 	int i;
 	for(i=0; i<self->units->size; ++i){
 		DaoxMeshUnit *unit = (DaoxMeshUnit*) self->units->items.pVoid[i];
-		DaoxMeshUnit_UpdateNorms( unit );
+		DaoxMeshUnit_UpdateNormTangents( unit, norm, tan );
 	}
 }
 void DaoxMesh_ResetBoundingBox( DaoxMesh *self )
@@ -473,7 +506,7 @@ DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self )
 			triangle->index[2] = face[j];
 		}
 	}
-	DaoxMeshUnit_UpdateNorms( unit );
+	DaoxMeshUnit_UpdateNormTangents( unit, 1, 0 );
 	DaoxMesh_ResetBoundingBox( self );
 	return unit;
 }

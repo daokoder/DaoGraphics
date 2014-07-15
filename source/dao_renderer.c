@@ -167,10 +167,11 @@ void DaoxRenderer_InitBuffers( DaoxRenderer *self )
 {
 	int pos  = self->shader.attributes.position;
 	int norm = self->shader.attributes.normal;
+	int tan = self->shader.attributes.tangent;
 	int texuv  = self->shader.attributes.texCoord;
 	int texmo  = self->shader.attributes.texMO;
-	DaoxBuffer_Init3D( & self->terrainBuffer, pos, norm, texuv, texmo );
-	DaoxBuffer_Init3D( & self->buffer, pos, norm, texuv, texmo );
+	DaoxBuffer_Init3D( & self->terrainBuffer, pos, norm, tan, texuv, texmo );
+	DaoxBuffer_Init3D( & self->buffer, pos, norm, tan, texuv, texmo );
 	DaoxBuffer_Init3DVG( & self->bufferVG, pos, norm, texuv, texmo );
 }
 
@@ -430,6 +431,9 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self )
 				glvertex->norm.x = vertex->norm.x;
 				glvertex->norm.y = vertex->norm.y;
 				glvertex->norm.z = vertex->norm.z;
+				glvertex->tan.x = vertex->tan.x;
+				glvertex->tan.y = vertex->tan.y;
+				glvertex->tan.z = vertex->tan.z;
 				glvertex->tex.x = vertex->tex.x;
 				glvertex->tex.y = vertex->tex.y;
 			}
@@ -529,7 +533,7 @@ void DaoxRenderer_UpdateTerrainBuffer( DaoxRenderer *self )
 }
 void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 {
-	DaoxColor dark = {0.1, 0.1, 0.1, 1.0};
+	DaoxColor dark = {0.2, 0.2, 0.2, 1.0};
 	DaoxTexture *colorTexture = drawtask->texture;
 	DaoxTexture *bumpTexture = NULL;
 	DaoxMaterial *material = drawtask->material;
@@ -570,12 +574,13 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	if( bumpTexture ){
 		DaoxTexture_glInitTexture( bumpTexture );
 		if( bumpTexture->tid ){
-			glActiveTexture(GL_TEXTURE0);
+			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, bumpTexture->tid);
 			glUniform1i(self->shader.uniforms.bumpTexture, 0);
 			hasBumpTexture = 1;
 		}
 	}
+	//printf( "hasBumpTexture = %i\n", hasBumpTexture );
 	glUniform1i(self->shader.uniforms.hasColorTexture, hasColorTexture );
 	glUniform1i(self->shader.uniforms.hasBumpTexture, hasBumpTexture );
 	glDrawRangeElements( drawtask->shape, 0, M, M, GL_UNSIGNED_INT, (void*)K );

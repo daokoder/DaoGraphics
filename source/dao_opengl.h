@@ -81,6 +81,7 @@ struct DaoGLVertex3D
 {
 	struct { GLfloat  x, y, z; }  pos;
 	struct { GLfloat  x, y, z; }  norm;
+	struct { GLfloat  x, y, z; }  tan;
 	struct { GLfloat  x, y; }     tex;
 };
 
@@ -141,6 +142,7 @@ struct DaoxShader
 	struct {
 		uint_t  position;
 		uint_t  normal;
+		uint_t  tangent;
 		uint_t  texCoord;
 		uint_t  texMO;
 		uint_t  texKLMO;
@@ -191,7 +193,7 @@ struct DaoxBuffer
 
 void DaoxBuffer_Init( DaoxBuffer *self );
 void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo );
-void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int texuv, int texmo );
+void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv, int texmo );
 void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int texmo );
 void DaoxBuffer_Free( DaoxBuffer *self );
 

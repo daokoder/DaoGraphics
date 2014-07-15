@@ -210,7 +210,7 @@ int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *
 			color->red = numbers[0];
 			color->green = numbers[1];
 			color->blue = numbers[2];
-		}else if( DaoxToken_CheckKeywords( token, "^ (map_Kd|map_bump) $" ) ){
+		}else if( DaoxToken_CheckKeywords( token, "^ (map_Kd|map_Bump) $" ) ){
 			int which = 0;
 			if( strcmp( token->string.chars, "map_Kd" ) == 0 ){
 				which = 1;
@@ -348,6 +348,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 				DaoxMeshUnit_SetMaterial( unit, material );
 				DaoxMesh_UpdateTree( mesh, 0 ); 
 				DaoxMesh_ResetBoundingBox( mesh );
+				DaoxMesh_UpdateNormTangents( mesh, 0, 1 );
 				DaoxModel_SetMesh( model, mesh );
 				DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
 				model = NULL;
@@ -417,6 +418,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 		DaoxMeshUnit_SetMaterial( unit, material );
 		DaoxMesh_UpdateTree( mesh, 0 ); 
 		DaoxMesh_ResetBoundingBox( mesh );
+		DaoxMesh_UpdateNormTangents( mesh, 0, 1 );
 		DaoxOBBox3D_Print( & mesh->obbox );
 		DaoxModel_SetMesh( model, mesh );
 		DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
