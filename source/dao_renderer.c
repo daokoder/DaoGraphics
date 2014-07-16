@@ -379,7 +379,8 @@ void DaoxScene_EstimateBoundingBox( DaoxScene *self, DaoxOBBox3D *obbox )
 	daoint i, j, k;
 	for(i=0; i<self->nodes->size; ++i){
 		DaoxSceneNode *node = self->nodes->items.pSceneNode[i];
-		DaoxOBBox3D obbox = DaoxOBBox3D_Transform( & node->obbox, & node->transform );
+		DaoxMatrix4D transform = DaoxSceneNode_GetWorldTransform( node );
+		DaoxOBBox3D obbox = DaoxOBBox3D_Transform( & node->obbox, & transform );
 		DaoxVector3D P = DaoxOBBox3D_GetDiagonalVertex( & obbox );
 		if( node->ctype == daox_type_light ) continue;
 		if( node->ctype == daox_type_camera ) continue;
@@ -629,8 +630,8 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	angle += 0.001;
 	//printf( "angle = %f\n", angle );
 	rotation = DaoxMatrix4D_AxisRotation( zaxis, 0.001 );
-	cam->base.objectToWorld = DaoxMatrix4D_MulMatrix( & cam->base.objectToWorld, & rotation );
-	cam->base.objectToParent = DaoxMatrix4D_MulMatrix( & cam->base.objectToParent, & rotation );
+	cam->base.objectToWorld = DaoxMatrix4D_Product( & cam->base.objectToWorld, & rotation );
+	cam->base.objectToParent = DaoxMatrix4D_Product( & cam->base.objectToParent, & rotation );
 	//DaoxMatrix4D_Print( & cam->objectToWorld );
 #endif
 

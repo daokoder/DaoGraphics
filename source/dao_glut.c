@@ -182,7 +182,7 @@ void DaoxScene_Zoom( int zoomin )
 		if( zoomin ){
 			camera->fovAngle *= 0.95;
 		}else{
-			camera->fovAngle = 0.98 * camera->fovAngle + 0.02 * 179;
+			camera->fovAngle = 0.95 * camera->fovAngle + 0.05 * 179;
 		}
 	}
 }

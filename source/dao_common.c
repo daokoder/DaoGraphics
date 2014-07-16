@@ -28,7 +28,21 @@
 
 #include "stdlib.h"
 #include "math.h"
+#include "assert.h"
 #include "dao_common.h"
+
+
+typedef struct DaoxMatrix2D  DaoxMatrix2D;
+
+struct DaoxMatrix2D
+{
+	float  A;
+	float  B;
+	float  C;
+	float  D;
+};
+
+
 
 float daox_graphics_device_width = 300.0;
 float daox_graphics_device_height = 200.0;
@@ -359,6 +373,89 @@ DaoxVector3D DaoxVector3D_ProjectToPlane( DaoxVector3D *self, DaoxVector3D *plan
 
 
 
+
+
+DaoxQuaternion DaoxQuaternion_FromAxisAngle( DaoxVector3D *axis, float angle )
+{
+	DaoxQuaternion res;
+	DaoxVector3D unit = DaoxVector3D_Normalize( axis );
+	double cosine = cos( 0.5 * angle );
+	double sine = sin( 0.5 * angle );
+	res.w = cosine;
+	res.x = sine * unit.x;
+	res.y = sine * unit.y;
+	res.z = sine * unit.z;
+	return res;
+}
+DaoxQuaternion DaoxQuaternion_FromRotation( DaoxVector3D *rotation )
+{
+	DaoxQuaternion res;
+	double angle = sqrt( DaoxVector3D_Norm2( rotation ) );
+	double cosine = cos( 0.5 * angle );
+	double sine = sin( 0.5 * angle );
+	res.w = cosine;
+	res.x = sine * rotation->x / (angle + EPSILON);
+	res.y = sine * rotation->y / (angle + EPSILON);
+	res.z = sine * rotation->z / (angle + EPSILON);
+	return res;
+}
+
+DaoxQuaternion DaoxQuaternion_Product( DaoxQuaternion *self, DaoxQuaternion *other )
+{
+	DaoxQuaternion P = *self;
+	DaoxQuaternion Q = *other;
+	DaoxQuaternion res;
+	res.w = P.w * Q.w - P.x * Q.x - P.y * Q.y - P.z * Q.z;
+	res.x = P.w * Q.x + P.x * Q.w + P.y * Q.z - P.z * Q.y;
+	res.y = P.w * Q.y - P.x * Q.z + P.y * Q.w + P.z * Q.x;
+	res.z = P.w * Q.z + P.x * Q.y - P.y * Q.x + P.z * Q.w;
+	return res;
+}
+
+double DaoxQuaternion_Norm( DaoxQuaternion *self )
+{
+	double norm = self->w * self->w;
+	norm += self->x * self->x;
+	norm += self->y * self->y;
+	norm += self->z * self->z;
+	return sqrt( norm );
+}
+DaoxVector3D DaoxQuaternion_Rotate( DaoxQuaternion *self, DaoxVector3D *vector )
+{
+	DaoxVector3D res;
+	DaoxQuaternion prod, reciprocal;
+	DaoxQuaternion qvector = { 0.0 };
+	double norm = DaoxQuaternion_Norm( self );
+
+	qvector.x = vector->x;
+	qvector.y = vector->y;
+	qvector.z = vector->z;
+
+	reciprocal.w =   self->w / norm;
+	reciprocal.x = - self->x / norm;
+	reciprocal.y = - self->y / norm;
+	reciprocal.z = - self->z / norm;
+
+	prod = DaoxQuaternion_Product( self, & qvector );
+	prod = DaoxQuaternion_Product( & prod, & reciprocal );
+	res.x = prod.x;
+	res.y = prod.y;
+	res.z = prod.z;
+	return res;
+}
+void DaoxQuaternion_ToRotation( DaoxQuaternion *self, DaoxVector3D *rotation )
+{
+	double norm = sqrt( self->x * self->x + self->y * self->y + self->z * self->z );
+	double angle = 2.0 * atan( norm / (self->w + EPSILON) );
+	rotation->x = self->x * angle / norm;
+	rotation->y = self->y * angle / norm;
+	rotation->z = self->z * angle / norm;
+}
+
+
+
+
+
 DaoxMatrix3D  DaoxMatrix3D_Identity()
 {
 	DaoxMatrix3D res;
@@ -506,6 +603,24 @@ DaoxMatrix4D  DaoxMatrix4D_Translation( float x, float y, float z )
 	res.B3 = z;
 	return res;
 }
+DaoxMatrix4D  DaoxMatrix4D_FromQuaternion( DaoxQuaternion *rotation )
+{
+	double w = rotation->w;
+	double x = rotation->x;
+	double y = rotation->y;
+	double z = rotation->z;
+	double n = w*w + x*x + y*y + z*z;
+	double s = fabs(n) < EPSILON ? 0.0 : 2.0 / n;
+	double wx = s*w*x, wy = s*w*y, wz = s*w*z;
+	double xx = s*x*x, xy = s*x*y, xz = s*x*z;
+	double yy = s*y*y, yz = s*y*z, zz = s*z*z;
+	DaoxMatrix4D res;
+	res.A11 = 1 - (yy + zz);  res.A12 =       xy - wz ;  res.A13 =      xz + wy;
+	res.A21 =      xy + wz ;  res.A22 =  1 - (xx + zz);  res.A23 =      yz - wx;
+	res.A31 =      xz - wy ;  res.A32 =       yz + wx ;  res.A33 = 1 - (xx + yy);
+	res.B1 = res.B2 = res.B3 = 0.0;
+	return res;
+}
 DaoxMatrix4D  DaoxMatrix4D_EulerRotation( float alpha, float beta, float gamma )
 {
 	DaoxMatrix4D res = DaoxMatrix4D_Identity();
@@ -599,7 +714,7 @@ DaoxVector3D  DaoxMatrix4D_Rotate( DaoxMatrix4D *self, DaoxVector3D *vec )
 	res.z = self->A31 * vec->x + self->A32 * vec->y + self->A33 * vec->z;
 	return res;
 }
-DaoxMatrix4D  DaoxMatrix4D_MulMatrix( DaoxMatrix4D *self, DaoxMatrix4D *mat )
+DaoxMatrix4D  DaoxMatrix4D_Product( DaoxMatrix4D *self, DaoxMatrix4D *mat )
 {
 	DaoxMatrix4D res;
 	res.A11 = self->A11 * mat->A11 + self->A12 * mat->A21 + self->A13 * mat->A31;

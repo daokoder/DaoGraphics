@@ -68,24 +68,20 @@ extern float daox_graphics_device_width;
 extern float daox_graphics_device_height;
 
 
-typedef struct DaoxColor     DaoxColor;
-typedef struct DaoxMaterial  DaoxMaterial;
+typedef struct DaoxColor       DaoxColor;
+typedef struct DaoxMaterial    DaoxMaterial;
 
-typedef struct DaoxVector2D  DaoxVector2D;  /* 2D float vector type (for 2D points); */
-typedef struct DaoxVector3D  DaoxVector3D;  /* 3D float vector type (for 2D points); */
+typedef struct DaoxVector2D    DaoxVector2D;
+typedef struct DaoxVector3D    DaoxVector3D;
+typedef struct DaoxQuaternion  DaoxQuaternion;
+typedef struct DaoxMatrix3D    DaoxMatrix3D;
+typedef struct DaoxMatrix4D    DaoxMatrix4D;
+typedef struct DaoxOBBox2D     DaoxOBBox2D;
+typedef struct DaoxOBBox3D     DaoxOBBox3D;
+typedef struct DaoxAABBox2D    DaoxAABBox2D;
 
-typedef struct DaoxMatrix2D  DaoxMatrix2D;  /* 2D float matrix type; */
-typedef struct DaoxMatrix3D  DaoxMatrix3D;  /* 3D float matrix type (for 2D transforms); */
-typedef struct DaoxMatrix4D  DaoxMatrix4D;  /* 4D float matrix type (for 3D transforms); */
-
-typedef struct DaoxVertex    DaoxVertex;
-typedef struct DaoxTriangle  DaoxTriangle;
-
-typedef struct DaoxOBBox2D   DaoxOBBox2D;
-typedef struct DaoxOBBox3D   DaoxOBBox3D;
-
-typedef struct DaoxAABBox2D  DaoxAABBox2D;
-
+typedef struct DaoxVertex      DaoxVertex;
+typedef struct DaoxTriangle    DaoxTriangle;
 
 
 extern const DaoxColor daox_black_color;
@@ -136,15 +132,6 @@ int DaoxTriangle_Contain( DaoxVector2D C, DaoxVector2D A, DaoxVector2D B, DaoxVe
 
 
 
-struct DaoxMatrix2D
-{
-	float  A;
-	float  B;
-	float  C;
-	float  D;
-};
-
-
 
 struct DaoxVector3D
 {
@@ -178,6 +165,27 @@ DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D point, DaoxVector3D norm, Daox
 
 
 
+
+struct DaoxQuaternion
+{
+	float  w;
+	float  x;
+	float  y;
+	float  z;
+};
+
+DaoxQuaternion DaoxQuaternion_FromAxisAngle( DaoxVector3D *axis, float angle );
+DaoxQuaternion DaoxQuaternion_FromRotation( DaoxVector3D *rotation );
+
+DaoxQuaternion DaoxQuaternion_Product( DaoxQuaternion *self, DaoxQuaternion *other );
+
+DaoxVector3D DaoxQuaternion_Rotate( DaoxQuaternion *self, DaoxVector3D *vector );
+void DaoxQuaternion_ToRotation( DaoxQuaternion *self, DaoxVector3D *rotation );
+
+
+
+
+/* 3D float matrix type (for 2D transforms); */
 struct DaoxMatrix3D
 {
 	float  A11, A12, B1;
@@ -204,6 +212,7 @@ DaoxMatrix3D DaoxMatrix3D_Inverse( DaoxMatrix3D *self );
 
 
 
+/* 4D float matrix type (for 3D transforms); */
 struct DaoxMatrix4D
 {
 	float  A11, A12, A13, B1;
@@ -217,37 +226,20 @@ DaoxMatrix4D  DaoxMatrix4D_InitColumnMajor( float M[16] );
 DaoxMatrix4D  DaoxMatrix4D_InitRows( float R0[4], float R1[4], float R2[4] );
 DaoxMatrix4D  DaoxMatrix4D_InitColumns( float C0[3], float C1[3], float C2[3], float C3[3] );
 DaoxMatrix4D  DaoxMatrix4D_Translation( float x, float y, float z );
+DaoxMatrix4D  DaoxMatrix4D_FromQuaternion( DaoxQuaternion *rotation );
 DaoxMatrix4D  DaoxMatrix4D_AxisRotation( DaoxVector3D axis, float alpha );
 DaoxMatrix4D  DaoxMatrix4D_EulerRotation( float alpha, float beta, float gamma );
 
 DaoxVector3D  DaoxMatrix4D_MulVector( DaoxMatrix4D *self, DaoxVector3D *vector, float w );
 DaoxVector3D  DaoxMatrix4D_Transform( DaoxMatrix4D *self, DaoxVector3D *vec );
 DaoxVector3D  DaoxMatrix4D_Rotate( DaoxMatrix4D *self, DaoxVector3D *vec );
-DaoxMatrix4D  DaoxMatrix4D_MulMatrix( DaoxMatrix4D *self, DaoxMatrix4D *other );
+DaoxMatrix4D  DaoxMatrix4D_Product( DaoxMatrix4D *self, DaoxMatrix4D *other );
 DaoxMatrix4D  DaoxMatrix4D_Inverse( DaoxMatrix4D *self );
 DaoxMatrix4D  DaoxMatrix4D_RotationOnly( DaoxMatrix4D *self );
 DaoxMatrix4D  DaoxMatrix4D_TranslationOnly( DaoxMatrix4D *self );
 
 void DaoxMatrix4D_Print( DaoxMatrix4D *self );
 
-
-
-
-
-struct DaoxVertex
-{
-	DaoxVector3D  pos;
-	DaoxVector3D  norm;
-	DaoxVector3D  tan;
-	DaoxVector2D  tex;
-};
-
-
-
-struct DaoxTriangle
-{
-	uint_t  index[3];
-};
 
 
 
@@ -323,6 +315,25 @@ void DaoxAABBox2D_InitXY( DaoxAABBox2D *self, float x, float y );
 void DaoxAABBox2D_Update( DaoxAABBox2D *self, DaoxVector2D point );
 void DaoxAABBox2D_UpdateXY( DaoxAABBox2D *self, float x, float y );
 DaoxAABBox2D DaoxAABBox2D_Transform( DaoxAABBox2D *self, DaoxMatrix3D *t );
+
+
+
+
+
+struct DaoxVertex
+{
+	DaoxVector3D  pos;
+	DaoxVector3D  norm;
+	DaoxVector3D  tan;
+	DaoxVector2D  tex;
+};
+
+
+
+struct DaoxTriangle
+{
+	uint_t  index[3];
+};
 
 
 

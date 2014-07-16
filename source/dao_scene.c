@@ -388,7 +388,8 @@ void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type )
 	self->renderable = 0;
 	self->parent = NULL;
 	self->children = DList_New( DAO_DATA_VALUE );
-	self->transform = DaoxMatrix4D_Identity();
+	self->scale = DaoxVector3D_XYZ( 1.0, 1.0, 1.0 );
+	self->rotation = self->translation = DaoxVector3D_XYZ( 0.0, 0.0, 0.0 );
 }
 void DaoxSceneNode_Free( DaoxSceneNode *self )
 {
@@ -407,19 +408,17 @@ void DaoxSceneNode_Delete( DaoxSceneNode *self )
 	DaoxSceneNode_Free( self );
 	dao_free( self );
 }
-void DaoxSceneNode_ApplyTransform( DaoxSceneNode *self, DaoxMatrix4D mat )
-{
-	self->transform = DaoxMatrix4D_MulMatrix( & mat, & self->transform );
-}
 void DaoxSceneNode_MoveByXYZ( DaoxSceneNode *self, float dx, float dy, float dz )
 {
-	DaoxMatrix4D M = DaoxMatrix4D_Translation( dx, dy, dz );
-	DaoxSceneNode_ApplyTransform( self, M );
+	self->translation.x += dx;
+	self->translation.y += dy;
+	self->translation.z += dz;
 }
 void DaoxSceneNode_MoveXYZ( DaoxSceneNode *self, float x, float y, float z )
 {
-	DaoxMatrix4D M = self->transform;
-	DaoxSceneNode_MoveByXYZ( self, x - M.B1, y - M.B2, z - M.B3 );
+	self->translation.x = x;
+	self->translation.y = y;
+	self->translation.z = z;
 }
 void DaoxSceneNode_MoveBy( DaoxSceneNode *self, DaoxVector3D delta )
 {
@@ -429,21 +428,36 @@ void DaoxSceneNode_Move( DaoxSceneNode *self, DaoxVector3D pos )
 {
 	DaoxSceneNode_MoveXYZ( self, pos.x, pos.y, pos.z );
 }
+DaoxMatrix4D DaoxSceneNode_GetParentTransform( DaoxSceneNode *self )
+{
+	DaoxQuaternion quaternion = DaoxQuaternion_FromRotation( & self->rotation );
+	DaoxMatrix4D transform = DaoxMatrix4D_FromQuaternion( & quaternion );
+	DaoxMatrix4D scale = DaoxMatrix4D_Identity();
+	transform.B1 = self->translation.x;
+	transform.B2 = self->translation.y;
+	transform.B3 = self->translation.z;
+	scale.A11 = self->scale.x;
+	scale.A22 = self->scale.y;
+	scale.A33 = self->scale.z;
+	transform = DaoxMatrix4D_Product( & transform, & scale );
+	return transform;
+}
 DaoxMatrix4D DaoxSceneNode_GetWorldTransform( DaoxSceneNode *self )
 {
-	DaoxMatrix4D transform = self->transform;
+	DaoxMatrix4D transform = DaoxSceneNode_GetParentTransform( self );
 	DaoxSceneNode *node = self;
 	while( node->parent ){
+		DaoxMatrix4D trans = DaoxSceneNode_GetParentTransform( node->parent );
+		transform = DaoxMatrix4D_Product( & trans, & transform );
 		node = node->parent;
-		transform = DaoxMatrix4D_MulMatrix( & node->transform, & transform );
 	}
 	return transform;
 }
 DaoxVector3D DaoxSceneNode_GetWorldPosition( DaoxSceneNode *self )
 {
-	DaoxMatrix4D transform = DaoxSceneNode_GetWorldTransform( self );
-	DaoxVector3D vec = {0.0, 0.0, 0.0};
-	return DaoxMatrix4D_MulVector( & transform, & vec, 1.0 );
+	DaoxMatrix4D transform = DaoxMatrix4D_Identity();
+	if( self->parent ) transform = DaoxSceneNode_GetWorldTransform( self->parent );
+	return DaoxMatrix4D_MulVector( & transform, & self->translation, 1.0 );
 }
 void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child )
 {
@@ -457,31 +471,25 @@ void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child )
 
 void DaoxPointable_PointAt( DaoxPointable *self, DaoxVector3D pos )
 {
-	double angle;
 	DaoxVector3D axis, newPointDirection;
-	DaoxVector3D sourcePosition = {0.0,0.0,0.0};
 	DaoxVector3D pointDirection = {0.0,0.0,-1.0};
-	DaoxMatrix4D rotation = DaoxMatrix4D_RotationOnly( & self->base.transform );
-	DaoxMatrix4D translation = DaoxMatrix4D_TranslationOnly( & self->base.transform );
-	DaoxMatrix4D rot;
+	DaoxQuaternion rotation = DaoxQuaternion_FromRotation( & self->base.rotation );
 
 	if( DaoxVector3D_Dist( & self->targetPosition, & pos ) < 1E-9 ) return;
+
 	self->targetPosition = pos;
-	sourcePosition = DaoxMatrix4D_MulVector( & self->base.transform, & sourcePosition, 1.0 );
-	pointDirection = DaoxMatrix4D_MulVector( & rotation, & pointDirection, 1.0 );
-	newPointDirection = DaoxVector3D_Sub( & pos, & sourcePosition );
+	pointDirection = DaoxQuaternion_Rotate( & rotation, & pointDirection );
+	newPointDirection = DaoxVector3D_Sub( & pos, & self->base.translation );
 
 	pointDirection = DaoxVector3D_Normalize( & pointDirection );
 	newPointDirection = DaoxVector3D_Normalize( & newPointDirection );
 	axis = DaoxVector3D_Cross( & newPointDirection, & pointDirection );
 	if( DaoxVector3D_Norm2( & axis ) > 1E-9 ){
-		angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
-		rot = DaoxMatrix4D_AxisRotation( axis, -angle );
-		rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
-	}else{
-		rot = rotation;
+		float angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
+		DaoxQuaternion rot = DaoxQuaternion_FromAxisAngle( & axis, -angle );
+		rot = DaoxQuaternion_Product( & rot, & rotation );
+		DaoxQuaternion_ToRotation( & rot, & self->base.rotation );
 	}
-	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
 }
 void DaoxPointable_PointAtXYZ( DaoxPointable *self, float x, float y, float z )
 {
@@ -495,30 +503,24 @@ void DaoxPointable_Move( DaoxPointable *self, DaoxVector3D pos )
 {
 	double angle;
 	DaoxVector3D axis, newPointDirection;
-	DaoxVector3D sourcePosition = {0.0,0.0,0.0};
 	DaoxVector3D pointDirection = {0.0,0.0,-1.0};
-	DaoxMatrix4D rotation = DaoxMatrix4D_RotationOnly( & self->base.transform );
-	DaoxMatrix4D translation = DaoxMatrix4D_Translation( pos.x, pos.y, pos.z );
-	DaoxMatrix4D rot;
+	DaoxQuaternion rotation = DaoxQuaternion_FromRotation( & self->base.rotation );
 
-	sourcePosition = DaoxMatrix4D_MulVector( & self->base.transform, & sourcePosition, 1.0 );
+	if( DaoxVector3D_Dist( & self->base.translation, & pos ) < 1E-9 ) return;
 
-	if( DaoxVector3D_Dist( & sourcePosition, & pos ) < 1E-9 ) return;
-
-	pointDirection = DaoxMatrix4D_MulVector( & rotation, & pointDirection, 1.0 );
+	pointDirection = DaoxQuaternion_Rotate( & rotation, & pointDirection );
 	newPointDirection = DaoxVector3D_Sub( & self->targetPosition, & pos );
 
 	pointDirection = DaoxVector3D_Normalize( & pointDirection );
 	newPointDirection = DaoxVector3D_Normalize( & newPointDirection );
 	axis = DaoxVector3D_Cross( & newPointDirection, & pointDirection );
 	if( DaoxVector3D_Norm2( & axis ) > 1E-9 ){
-		angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
-		rot = DaoxMatrix4D_AxisRotation( axis, -angle );
-		rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
-	}else{
-		rot = rotation;
+		float angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
+		DaoxQuaternion rot = DaoxQuaternion_FromAxisAngle( & axis, -angle );
+		rot = DaoxQuaternion_Product( & rot, & rotation );
+		DaoxQuaternion_ToRotation( & rot, & self->base.rotation );
 	}
-	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
+	self->base.translation = pos;
 
 	DaoxPointable_PointAt( self, self->targetPosition );
 }
@@ -576,13 +578,12 @@ void DaoxCamera_CopyFrom( DaoxCamera *self, DaoxCamera *other )
 
 DaoxVector3D DaoxCamera_GetPosition( DaoxCamera *self )
 {
-	DaoxVector3D position = {0.0,0.0,0.0};
-	return DaoxMatrix4D_MulVector( & self->base.transform, & position, 1.0 );
+	return self->base.translation;
 }
 DaoxVector3D DaoxCamera_GetDirection( DaoxCamera *self, DaoxVector3D *localDirection )
 {
-	DaoxMatrix4D rotation = DaoxMatrix4D_RotationOnly( & self->base.transform );
-	return DaoxMatrix4D_MulVector( & rotation, localDirection, 1.0 );
+	DaoxQuaternion rotation = DaoxQuaternion_FromRotation( & self->base.rotation );
+	return DaoxQuaternion_Rotate( & rotation, localDirection );
 }
 DaoxVector3D DaoxCamera_GetViewDirection( DaoxCamera *self )
 {
@@ -610,9 +611,10 @@ void DaoxCamera_MoveXYZ( DaoxCamera *self, float x, float y, float z )
 }
 void DaoxCamera_MoveBy( DaoxCamera *self, DaoxVector3D delta )
 {
-	DaoxVector3D position = DaoxMatrix4D_MulVector( & self->base.transform, & delta, 1.0 );;
-	DaoxPointable_Move( (DaoxPointable*) self, position );
-	DaoxPointable_PointAt( (DaoxPointable*) self, self->viewTarget );
+	delta.x += self->base.translation.x;
+	delta.y += self->base.translation.y;
+	delta.z += self->base.translation.z;
+	DaoxPointable_Move( (DaoxPointable*) self, delta );
 }
 void DaoxCamera_MoveByXYZ( DaoxCamera *self, float dx, float dy, float dz )
 {
@@ -626,11 +628,10 @@ void DaoxCamera_RotateBy( DaoxCamera *self, float alpha )
 {
 	DaoxVector3D cameraPosition = DaoxCamera_GetPosition( self );
 	DaoxVector3D cameraDirection = DaoxCamera_GetViewDirection( self );
-	DaoxMatrix4D rotation = DaoxMatrix4D_RotationOnly( & self->base.transform );
-	DaoxMatrix4D translation = DaoxMatrix4D_TranslationOnly( & self->base.transform );
-	DaoxMatrix4D rot = DaoxMatrix4D_AxisRotation( cameraDirection, alpha );
-	rot = DaoxMatrix4D_MulMatrix( & rot, & rotation );
-	self->base.transform = DaoxMatrix4D_MulMatrix( & translation, & rot );
+	DaoxQuaternion rotation = DaoxQuaternion_FromRotation( & self->base.rotation );
+	DaoxQuaternion rotation2 = DaoxQuaternion_FromAxisAngle( & cameraDirection, alpha );
+	rotation = DaoxQuaternion_Product( & rotation2, & rotation );
+	DaoxQuaternion_ToRotation( & rotation, & self->base.rotation );
 }
 void DaoxCamera_Orient( DaoxCamera *self, int xyz )
 {

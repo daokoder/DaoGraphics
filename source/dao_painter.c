@@ -500,7 +500,9 @@ void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D view
 	float H = viewport.top - viewport.bottom;
 
 	camera.base.parent = NULL;
-	camera.base.transform = DaoxMatrix4D_Identity();
+	camera.base.scale = DaoxVector3D_XYZ( 1.0, 1.0, 1.0 );
+	camera.base.rotation = DaoxVector3D_XYZ( 0.0, 0.0, 0.0 );
+	camera.base.translation = DaoxVector3D_XYZ( 0.0, 0.0, 0.0 );
 	camera.aspectRatio = W / H;
 	camera.fovAngle = 90.0;
 	camera.nearPlane = 0.01*W;

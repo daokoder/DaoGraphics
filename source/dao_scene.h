@@ -169,8 +169,10 @@ struct DaoxSceneNode
 
 	uchar_t  renderable;
 
-	DaoxOBBox3D     obbox;     /* local coordinates; */
-	DaoxMatrix4D    transform; /* local to parent */
+	DaoxOBBox3D     obbox;        /* local space; */
+	DaoxVector3D    scale;        /* local space; */
+	DaoxVector3D    rotation;     /* local space (axis-angle); */
+	DaoxVector3D    translation;  /* parent space; */
 
 	DaoxSceneNode  *parent;
 	DList          *children;
@@ -190,8 +192,7 @@ void DaoxSceneNode_MoveXYZ( DaoxSceneNode *self, float x, float y, float z );
 void DaoxSceneNode_MoveBy( DaoxSceneNode *self, DaoxVector3D delta );
 void DaoxSceneNode_Move( DaoxSceneNode *self, DaoxVector3D pos );
 
-void DaoxSceneNode_ApplyTransform( DaoxSceneNode *self, DaoxMatrix4D matrix );
-
+DaoxMatrix4D DaoxSceneNode_GetParentTransform( DaoxSceneNode *self );
 DaoxMatrix4D DaoxSceneNode_GetWorldTransform( DaoxSceneNode *self );
 
 DaoxVector3D DaoxSceneNode_GetWorldPosition( DaoxSceneNode *self );

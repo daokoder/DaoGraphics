@@ -335,10 +335,9 @@ static void SCENE_AddBox( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxMesh_MakeBoxObject( mesh );
 	DaoxMesh_UpdateTree( mesh, 0 );
 	DaoxModel_SetMesh( model, mesh );
-	transform.A11 = p[1]->xFloat.value;
-	transform.A22 = p[2]->xFloat.value;
-	transform.A33 = p[3]->xFloat.value;
-	model->base.transform = transform;
+	model->base.scale.x = p[1]->xFloat.value;
+	model->base.scale.y = p[2]->xFloat.value;
+	model->base.scale.z = p[3]->xFloat.value;
 	DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) model, 0, 0, 0 );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) model );
 	DaoProcess_PutValue( proc, (DaoValue*) model );
