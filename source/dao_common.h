@@ -31,17 +31,18 @@
 
 
 #define DAO_LIST_ITEM_TYPES \
-	struct DaoxMaterial     **pMaterial; \
-	struct DaoxMeshChunk    **pMeshChunk; \
-	struct DaoxMeshUnit     **pMeshUnit; \
-	struct DaoxModel        **pModel; \
-	struct DaoxLight        **pLight; \
-	struct DaoxTerrain      **pTerrain; \
-	struct DaoxCanvas       **pCanvas; \
-	struct DaoxCanvasState  **pCanvasState; \
-	struct DaoxCanvasNode   **pCanvasNode; \
-	struct DaoxSceneNode    **pSceneNode; \
-	struct DaoxDrawTask     **pDrawTask;
+	struct DaoxMaterial      **pMaterial; \
+	struct DaoxMeshChunk     **pMeshChunk; \
+	struct DaoxMeshUnit      **pMeshUnit; \
+	struct DaoxModel         **pModel; \
+	struct DaoxLight         **pLight; \
+	struct DaoxTerrain       **pTerrain; \
+	struct DaoxCanvas        **pCanvas; \
+	struct DaoxCanvasState   **pCanvasState; \
+	struct DaoxCanvasNode    **pCanvasNode; \
+	struct DaoxSceneNode     **pSceneNode; \
+	struct DaoxTerrainBlock  **pTerrainBlock; \
+	struct DaoxDrawTask      **pDrawTask;
 
 #define DAO_ARRAY_ITEM_TYPES \
 	struct DaoxVector2D     *vectors2d; \

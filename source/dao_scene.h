@@ -277,12 +277,13 @@ void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh );
 
 typedef struct DaoxTerrainPoint DaoxTerrainPoint;
 typedef struct DaoxTerrainPatch DaoxTerrainPatch;
+typedef struct DaoxTerrainBlock DaoxTerrainBlock;
 
 struct DaoxTerrainPoint
 {
-	uint_t             activeIndex;
-	ushort_t           divLevel;
-	ushort_t           refCount;
+	uint_t             index;
+	ushort_t           level;
+	ushort_t           count;
 
 	DaoxVector3D       pos;
 	DaoxVector3D       norm;
@@ -291,6 +292,7 @@ struct DaoxTerrainPoint
 	DaoxTerrainPoint  *west;
 	DaoxTerrainPoint  *south;
 	DaoxTerrainPoint  *north;
+	DaoxTerrainPoint  *bottom;
 };
 
 
@@ -316,6 +318,17 @@ struct DaoxTerrainPatch
 	DaoxTerrainPatch  *subs[4];
 };
 
+struct DaoxTerrainBlock
+{
+	DaoxTerrainPatch  *patchTree;
+	DaoxTerrainPoint  *baseCenter;
+
+	DaoxTerrainBlock  *east;
+	DaoxTerrainBlock  *west;
+	DaoxTerrainBlock  *south;
+	DaoxTerrainBlock  *north;
+};
+
 struct DaoxTerrain
 {
 	DaoxSceneNode  base;
@@ -325,15 +338,17 @@ struct DaoxTerrain
 	float  height;  /* z-axis; */
 	float  depth;
 
-	DaoxImage         *heightmap;
-	DaoxMaterial      *material;
+	DList   *blocks;
+	DList   *vertices;
+	DArray  *triangles;
 
 	DaoxTerrainPatch  *patchTree;
 	DaoxTerrainPoint  *baseCenter;
 
-	DArray  *triangles;
-	DList   *vertices;
+	DaoxImage     *heightmap;
+	DaoxMaterial  *material;
 
+	DList   *pointList;
 	DList   *pointCache;
 	DList   *patchCache;
 };
@@ -345,8 +360,8 @@ void DaoxTerrain_Delete( DaoxTerrain *self );
 void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float height );
 void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap );
 void DaoxTerrain_SetMaterial( DaoxTerrain *self, DaoxMaterial *material );
-void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch, float mdiff, DList *pts );
-void DaoxTerrain_Rebuild( DaoxTerrain *self, float maxHeightDiff );
+void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch );
+void DaoxTerrain_Rebuild( DaoxTerrain *self );
 void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 

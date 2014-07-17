@@ -353,7 +353,7 @@ static void SCENE_AddTerrain( DaoProcess *proc, DaoValue *p[], int N )
 
 	DaoxTerrain_SetHeightmap( terrain, heightmap );
 	DaoxTerrain_SetSize( terrain, width, length, height );
-	DaoxTerrain_Rebuild( terrain, height / 16 );
+	DaoxTerrain_Rebuild( terrain );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
