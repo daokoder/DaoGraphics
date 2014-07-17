@@ -328,6 +328,7 @@ void DaoxRenderer_RenderCanvasNode( DaoxRenderer *self, DaoxCanvas *canvas, Daox
 	DaoxOBBox2D obbox;
 	DaoxMatrix3D inverse;
 	DaoxVector3D itempos = {0.0,0.0,0.0};
+	DaoxMatrix3D transform2 = DaoxCanvasNode_GetLocalTransform( item );
 	GLfloat modelMatrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
 	float distance, diameter;
 	float scale = 1;//DaoxCanvas_Scale( canvas );
@@ -338,7 +339,7 @@ void DaoxRenderer_RenderCanvasNode( DaoxRenderer *self, DaoxCanvas *canvas, Daox
 	int i;
 
 	DaoxCanvasNode_Update( item, canvas );
-	DaoxMatrix3D_Multiply( & transform, item->transform );
+	DaoxMatrix3D_Multiply( & transform, transform2 );
 	obbox = DaoxOBBox2D_Transform( & item->obbox, & transform );
 #if 0
 	itempos.x = obbox.O.x;

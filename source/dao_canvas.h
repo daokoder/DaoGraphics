@@ -134,11 +134,12 @@ struct DaoxCanvasNode
 	uchar_t  visible;
 	uchar_t  dataChanged;  /* geometry changed; */
 	uchar_t  stateChanged; /* orientation, stroke width etc. changed; */
+	float    magnitude;    /* scale on the raw data, no effects on the strokes and children; */
 
-	float    scale;  /* shape scale, no effects on the strokes and children items; */
-
-	DaoxOBBox2D       obbox;      /* local coordinates; */
-	DaoxMatrix3D      transform;  /* local to parent; */
+	DaoxOBBox2D       obbox;        /* local space; */
+	DaoxVector2D      scale;        /* local space; */
+	DaoxVector2D      rotation;     /* local space (cos,sin); */
+	DaoxVector2D      translation;  /* parent space; */
 	DaoxCanvasState  *state;
 
 	DaoxCanvasNode   *parent;     /* parent item; */
@@ -148,9 +149,9 @@ struct DaoxCanvasNode
 	DaoxPathMesh  *strokes;  /* may be filled with stroking color; */
 
 	union {
-		DArray  *points;  /* polyline or polygon item; */
-		DaoxTexture     *texture; /* image item; */
-		DString         *text;    /* text item; */
+		DArray       *points;  /* polyline or polygon item; */
+		DaoxTexture  *texture; /* image item; */
+		DString      *text;    /* text item; */
 	} data;
 };
 
@@ -262,6 +263,7 @@ DAO_DLL void DaoxCanvasNode_Delete( DaoxCanvasNode *self );
 DAO_DLL void DaoxCanvasNode_MarkDataChanged( DaoxCanvasNode *self );
 DAO_DLL void DaoxCanvasNode_MarkStateChanged( DaoxCanvasNode *self );
 DAO_DLL void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas );
+DAO_DLL DaoxMatrix3D DaoxCanvasNode_GetLocalTransform( DaoxCanvasNode *self );
 
 
 

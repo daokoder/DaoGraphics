@@ -273,15 +273,21 @@ void DaoxCanvasState_SetParentItem( DaoxCanvasState *self, DaoxCanvasNode *item 
 
 
 
+void DaoxCanvasNode_ResetTransform( DaoxCanvasNode *self )
+{
+	self->scale = DaoxVector2D_XY( 1.0, 1.0 );
+	self->rotation = DaoxVector2D_XY( 1.0, 0.0 );
+	self->translation = DaoxVector2D_XY( 0.0, 0.0 );
+}
 void DaoxCanvasNode_Init( DaoxCanvasNode *self, DaoType *type )
 {
 	memset( self, 0, sizeof(DaoxCanvasNode) );
 	DaoCstruct_Init( (DaoCstruct*)self, type );
-	self->scale = 1.0;
+	self->magnitude = 1.0;
 	self->visible = 1;
 	self->dataChanged = 1;
 	self->stateChanged = 1;
-	self->transform = DaoxMatrix3D_Identity();
+	DaoxCanvasNode_ResetTransform( self );
 }
 void DaoxCanvasNode_Free( DaoxCanvasNode *self )
 {
@@ -321,6 +327,17 @@ void DaoxCanvasNode_MarkStateChanged( DaoxCanvasNode *self )
 	self->stateChanged = 1;
 	if( self->parent ) DaoxCanvasNode_MarkStateChanged( self->parent );
 }
+DaoxMatrix3D DaoxCanvasNode_GetLocalTransform( DaoxCanvasNode *self )
+{
+	DaoxMatrix3D transform;
+	transform.A11 =   self->scale.x * self->rotation.x;
+	transform.A12 = - self->scale.y * self->rotation.y;
+	transform.A21 =   self->scale.x * self->rotation.y;
+	transform.A22 =   self->scale.y * self->rotation.x;
+	transform.B1 = self->translation.x;
+	transform.B2 = self->translation.y;
+	return transform;
+}
 static void DArray_PushOBBoxVertexPoints2D( DArray *self, DaoxOBBox2D *box )
 {
 	DaoxVector2D dY = DaoxVector2D_Sub( & box->Y, & box->O );
@@ -345,7 +362,7 @@ void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 		DaoType *ctype = self->ctype;
 		DaoxCanvasState *state = self->state;
 		DaoxColorGradient *strokeGradient = state->strokeGradient;
-		float strokeWidth = state->strokeWidth / (self->scale + EPSILON);
+		float strokeWidth = state->strokeWidth / (self->magnitude + EPSILON);
 		float strokeAlpha = state->strokeColor.alpha;
 		int refine = state->dash || strokeGradient != NULL;
 		int junction = state->junction;
@@ -392,10 +409,10 @@ void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 
 	points = DArray_New( sizeof(DaoxVector2D) );
 	if( self->path ){
-		DaoxOBBox2D obbox = DaoxOBBox2D_Scale( & self->path->obbox, self->scale );
+		DaoxOBBox2D obbox = DaoxOBBox2D_Scale( & self->path->obbox, self->magnitude );
 		if( self->strokes && self->strokes->points->size ){
 			float strokeWidth = self->state ? self->state->strokeWidth : 0;
-			strokeWidth *= self->scale + EPSILON;
+			strokeWidth *= self->magnitude + EPSILON;
 			obbox = DaoxOBBox2D_CopyWithMargin( & obbox, 0.5*strokeWidth );
 		}
 		DArray_PushOBBoxVertexPoints2D( points, & obbox );
@@ -541,13 +558,11 @@ void DaoxCanvasLine_Set( DaoxCanvasLine *self, float x1, float y1, float x2, flo
 	float sine = dy / (r + EPSILON);
 
 	assert( self->ctype == daox_type_canvas_line );
-	self->scale = r / UNIT;
-	self->transform.A11 = cosine;
-	self->transform.A12 = - sine;
-	self->transform.A21 = sine;
-	self->transform.A22 = cosine;
-	self->transform.B1 = x1;
-	self->transform.B2 = y1;
+	self->magnitude = r / UNIT;
+	self->rotation.x = cosine;
+	self->rotation.y = sine;
+	self->translation.x = x1;
+	self->translation.y = y1;
 	self->dataChanged = 1;
 }
 
@@ -556,30 +571,30 @@ void DaoxCanvasRect_Set( DaoxCanvasRect *self, float x1, float y1, float x2, flo
 	float w = fabs( x2 - x1 );
 	float h = fabs( y2 - y1 );
 	assert( self->ctype == daox_type_canvas_rect );
-	self->transform = DaoxMatrix3D_Identity();
-	self->transform.B1 = x1;
-	self->transform.B2 = y1;
+	DaoxCanvasNode_ResetTransform( self );
+	self->translation.x = x1;
+	self->translation.y = y1;
 	self->dataChanged = 1;
-	self->scale = w / UNIT;
+	self->magnitude = w / UNIT;
 }
 
 void DaoxCanvasCircle_Set( DaoxCanvasCircle *self, float x, float y, float r )
 {
 	assert( self->ctype == daox_type_canvas_circle );
-	self->scale = r;
-	self->transform = DaoxMatrix3D_Identity();
-	self->transform.B1 = x;
-	self->transform.B2 = y;
+	self->magnitude = r;
+	DaoxCanvasNode_ResetTransform( self );
+	self->translation.x = x;
+	self->translation.y = y;
 	self->dataChanged = 1;
 }
 
 void DaoxCanvasEllipse_Set( DaoxCanvasEllipse *self, float x, float y, float rx, float ry )
 {
 	assert( self->ctype == daox_type_canvas_ellipse );
-	self->scale = rx / UNIT;
-	self->transform = DaoxMatrix3D_Identity();
-	self->transform.B1 = x;
-	self->transform.B2 = y;
+	self->magnitude = rx / UNIT;
+	DaoxCanvasNode_ResetTransform( self );
+	self->translation.x = x;
+	self->translation.y = y;
 	self->dataChanged = 1;
 }
 
@@ -953,8 +968,9 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 	DaoxCanvasText *chitem;
 	DaoxPath *textPath = textItem->path;
 	DaoxFont *font = textItem->state->font;
-	DaoxMatrix3D transform = {1.0,0.0,0.0,0.0,1.0,0.0};
-	DaoxMatrix3D rotation = {0.0,0.0,0.0,0.0,0.0,0.0};
+	DaoxVector2D rotation = {1.0, 0.0};
+	DaoxVector2D charRotation = {1.0, 0.0};
+	DaoxVector2D charTranslation = {0.0, 0.0};
 	float width = textItem->state->strokeWidth;
 	float size = textItem->state->fontSize;
 	float scale = size / (float)font->fontHeight;
@@ -963,11 +979,9 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 
 	if( text->stride != 4 ) return;
 
-	rotation.A11 = cos( angle );
-	rotation.A12 = - sin( angle );
-	rotation.A21 = - rotation.A12;
-	rotation.A22 = rotation.A11;
-	DaoxMatrix3D_Multiply( & transform, rotation );
+	rotation.x = cos( angle );
+	rotation.y = sin( angle );
+	charRotation = rotation;
 
 	state = DaoxCanvas_PushState( self );
 	DaoxCanvasState_SetParentItem( state, textItem );
@@ -975,13 +989,17 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 	offset = x;
 	for(i=0; i<text->size; ++i){
 		DaoxAABBox2D bounds = {0.0,0.0,0.0,0.0};
+		DaoxMatrix3D rotmat = {0.0,0.0,0.0,0.0,0.0,0.0};
 		size_t ch = text->data.uints[i];
 		glyph = DaoxFont_GetCharGlyph( font, ch );
 		if( glyph == NULL ) break;
 
+		rotmat.A11 = rotmat.A22 = rotation.x;
+		rotmat.A12 = - rotation.y;
+		rotmat.A21 = rotation.y;
 		bounds.right = glyph->advanceWidth;
 		bounds.top = font->lineSpace;
-		bounds = DaoxAABBox2D_Transform( & bounds, & rotation );
+		bounds = DaoxAABBox2D_Transform( & bounds, & rotmat );
 		advance = bounds.right - bounds.left;
 
 		if( textItem->children == NULL ) textItem->children = DList_New( DAO_DATA_VALUE );
@@ -990,7 +1008,7 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 		DaoxCanvas_AddNode( self, chitem );
 		DaoGC_IncRC( (DaoValue*) glyph->shape );
 		chitem->path = glyph->shape;
-		chitem->scale = scale;
+		chitem->magnitude = scale;
 
 		if( textPath ){
 			float p = 0.0, adv = 0.5 * (scale * advance + width);
@@ -1000,16 +1018,22 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 			if( seg2.bezier ){
 				float dx = seg1.P2.x - seg1.P1.x;
 				float dy = seg1.P2.y - seg1.P1.y;
-				DaoxMatrix3D_RotateXAxisTo( & transform, dx, dy );
-				DaoxMatrix3D_Multiply( & transform, rotation );
-				transform.B1 = (1.0 - p) * seg2.P1.x + p * seg2.P2.x;
-				transform.B2 = (1.0 - p) * seg2.P1.y + p * seg2.P2.y;
+				float r = sqrt( dx*dx + dy*dy );
+				float cos1 = dx / r;
+				float sin1 = dy / r;
+				float cos2 = rotation.x;
+				float sin2 = rotation.y;
+				charRotation.x = cos1 * cos2 - sin1 * sin2;
+				charRotation.y = sin1 * cos2 + cos1 * sin2;
+				charTranslation.x = (1.0 - p) * seg2.P1.x + p * seg2.P2.x;
+				charTranslation.y = (1.0 - p) * seg2.P1.y + p * seg2.P2.y;
 			}
 		}else{
-			transform.B1 = offset;
-			transform.B2 = y;
+			charTranslation.x = offset;
+			charTranslation.y = y;
 		}
-		chitem->transform = transform;
+		chitem->rotation = charRotation;
+		chitem->translation = charTranslation;
 		offset += scale * advance + width;
 		chitem = NULL;
 	}
@@ -1064,9 +1088,8 @@ DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float 
 	DaoxCanvasPath *item = DaoxCanvasImage_New();
 	DaoxTexture *texture = DaoxTexture_New();
 
-	item->transform = DaoxMatrix3D_Identity();
-	item->transform.B1 = x;
-	item->transform.B2 = y;
+	item->translation.x = x;
+	item->translation.y = y;
 	item->obbox.O.x = item->obbox.O.y = 0;
 	item->obbox.X.x = item->obbox.X.y = 0;
 	item->obbox.Y.x = item->obbox.Y.y = 0;
@@ -1091,30 +1114,37 @@ static void ITEM_SetVisible( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvasNode *self = (DaoxCanvasNode*) p[0];
 	self->visible = p[1]->xEnum.value;
 }
-static void ITEM_SetTransform( DaoProcess *proc, DaoValue *p[], int N )
+static void ITEM_Rotate( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvasNode *self = (DaoxCanvasNode*) p[0];
-	DaoArray *array = (DaoArray*) p[1];
-	daoint n = array->size;
-	if( n != 4 && n != 6 ){
-		DaoProcess_RaiseError( proc, "Param", "need matrix with 4 or 6 elements" );
-		return;
+	float angle = M_PI * p[1]->xFloat.value / 180.0;
+	float relative = p[2]->xInteger.value;
+	float cos1 = self->rotation.x;
+	float sin1 = self->rotation.y;
+	float cos2 = cos( angle );
+	float sin2 = sin( angle );
+	if( relative ){
+		self->rotation.x = cos1 * cos2 - sin1 * sin2;
+		self->rotation.y = sin1 * cos2 + cos1 * sin2;
+	}else{
+		self->rotation.x = cos2;
+		self->rotation.y = sin2;
 	}
-	DaoxMatrix3D_Set( & self->transform, array->data.f, n );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void ITEM_MulTransform( DaoProcess *proc, DaoValue *p[], int N )
+static void ITEM_Move( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxMatrix3D transform;
 	DaoxCanvasNode *self = (DaoxCanvasNode*) p[0];
-	DaoArray *array = (DaoArray*) p[1];
-	daoint n = array->size;
-	if( n != 4 && n != 6 ){
-		DaoProcess_RaiseError( proc, "Param", "need matrix with 4 or 6 elements" );
-		return;
+	float x = p[1]->xFloat.value;
+	float y = p[2]->xFloat.value;
+	float relative = p[3]->xInteger.value;
+	if( relative ){
+		self->translation.x += x;
+		self->translation.y += y;
+	}else{
+		self->translation.x = x;
+		self->translation.y = y;
 	}
-	DaoxMatrix3D_Set( & transform, array->data.f, n );
-	DaoxMatrix3D_Multiply( & self->transform, transform );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 
@@ -1128,9 +1158,15 @@ static void DaoxCanvasNode_GetGCFields( void *p, DList *values, DList *lists, DL
 
 static DaoFuncItem DaoxCanvasNodeMeths[]=
 {
-	{ ITEM_SetVisible,  "SetVisible( self: CanvasNode, visible: enum<false,true> )" },
-	{ ITEM_SetTransform, "SetTransform( self: CanvasNode, transform: array<float> ) => CanvasNode" },
-	{ ITEM_MulTransform, "MulTransform( self: CanvasNode, transform: array<float> ) => CanvasNode" },
+	{ ITEM_SetVisible,
+		"SetVisible( self: CanvasNode, visible: enum<false,true> )"
+	},
+	{ ITEM_Rotate,
+		"Rotate( self: CanvasNode, degree: float, relative = 0 ) => CanvasNode"
+	},
+	{ ITEM_Move,
+		"Move( self: CanvasNode, x: float, y: float, relative = 0 ) => CanvasNode"
+	},
 	{ NULL, NULL }
 };
 

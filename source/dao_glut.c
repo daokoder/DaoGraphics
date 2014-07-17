@@ -180,9 +180,11 @@ void DaoxScene_Zoom( int zoomin )
 		float delta = dist / 4;
 		//DaoxCamera_MoveByXYZ( camera, 0, 0, zoomin ? - delta : delta );
 		if( zoomin ){
-			camera->fovAngle *= 0.95;
+			camera->fovAngle *= 0.9;
 		}else{
-			camera->fovAngle = 0.95 * camera->fovAngle + 0.05 * 179;
+			float scaled = 1.1 * camera->fovAngle;
+			float interpolated = 0.9 * camera->fovAngle + 0.1 * 179;
+			camera->fovAngle = scaled < interpolated ? scaled : interpolated;
 		}
 	}
 }

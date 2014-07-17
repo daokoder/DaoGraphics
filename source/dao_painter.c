@@ -165,7 +165,7 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 {
 	DaoxCanvasState *state = item->state;
 	float resolution = DaoxCanvas_Scale( canvas );
-	float scale = item->scale;
+	float scale = item->magnitude;
 	float stroke = state->strokeWidth * scale / (resolution + 1E-16);
 	int i, fill = item->path != NULL;
 	int fillVertexCount = 0;
@@ -370,6 +370,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	DaoxOBBox2D obbox;
 	DaoxMatrix3D inverse;
 	DaoxVector3D itempos = {0.0,0.0,0.0};
+	DaoxMatrix3D transform2 = DaoxCanvasNode_GetLocalTransform( item );
 	GLfloat modelMatrix[16] = {0};
 	float distance, diameter;
 	float scale = DaoxCanvas_Scale( canvas );
@@ -380,7 +381,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	int i, triangles;
 
 	DaoxCanvasNode_Update( item, canvas );
-	DaoxMatrix3D_Multiply( & transform, item->transform );
+	DaoxMatrix3D_Multiply( & transform, transform2 );
 	obbox = DaoxOBBox2D_Transform( & item->obbox, & transform );
 	itempos.x = obbox.O.x;
 	itempos.y = obbox.O.y;

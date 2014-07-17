@@ -124,7 +124,7 @@ DaoxMatrix2D DaoxMatrix2D_EigenVectors( DaoxMatrix2D *self, DaoxVector2D eigenva
 
 
 
-DaoxVector2D DaoxVector2D_FromXY( float x, float y )
+DaoxVector2D DaoxVector2D_XY( float x, float y )
 {
 	DaoxVector2D point;
 	point.x = x;
