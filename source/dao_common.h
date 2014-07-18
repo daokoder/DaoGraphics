@@ -84,6 +84,7 @@ typedef struct DaoxAABBox2D    DaoxAABBox2D;
 typedef struct DaoxVertex      DaoxVertex;
 typedef struct DaoxTriangle    DaoxTriangle;
 
+typedef struct DaoxTerrain     DaoxTerrain;
 
 extern const DaoxColor daox_black_color;
 extern const DaoxColor daox_white_color;

@@ -28,6 +28,7 @@
 
 
 #include <math.h>
+#include "dao_terrain.h"
 #include "dao_renderer.h"
 
 
@@ -507,8 +508,8 @@ void DaoxRenderer_UpdateTerrainBuffer( DaoxRenderer *self )
 			glvertex->tan.x = 1.0;
 			glvertex->tan.y = 0.0;
 			glvertex->tan.z = 0.0;
-			glvertex->tex.x = point->pos.x / terrain->width + 0.5;
-			glvertex->tex.y = point->pos.y / terrain->length + 0.5;
+			glvertex->tex.x = point->pos.x / terrain->width;
+			glvertex->tex.y = point->pos.y / terrain->length;
 		}
 		for(j=0; j<terrain->triangles->size; ++j){
 			DaoxTriangle *triangle = & terrain->triangles->data.triangles[j];

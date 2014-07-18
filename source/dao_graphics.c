@@ -31,6 +31,7 @@
 #include "dao_renderer.h"
 #include "dao_resource.h"
 #include "dao_format.h"
+#include "dao_terrain.h"
 
 
 DaoVmSpace *__daoVmSpace = NULL;

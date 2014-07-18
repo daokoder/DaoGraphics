@@ -30,8 +30,8 @@
 //
 */
 
-#ifndef __DAO_GRAPHICS3D_H__
-#define __DAO_GRAPHICS3D_H__
+#ifndef __DAO_SCENE_H__
+#define __DAO_SCENE_H__
 
 
 #include "dao_common.h"
@@ -47,7 +47,6 @@ typedef struct DaoxSceneNode   DaoxSceneNode;
 typedef struct DaoxCamera      DaoxCamera;
 typedef struct DaoxLight       DaoxLight;
 typedef struct DaoxModel       DaoxModel;
-typedef struct DaoxTerrain     DaoxTerrain;
 typedef struct DaoxScene       DaoxScene;
 
 
@@ -273,96 +272,6 @@ DaoxModel* DaoxModel_New();
 void DaoxModel_Delete( DaoxModel *self );
 void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh );
 
-
-
-typedef struct DaoxTerrainPoint DaoxTerrainPoint;
-typedef struct DaoxTerrainPatch DaoxTerrainPatch;
-typedef struct DaoxTerrainBlock DaoxTerrainBlock;
-
-struct DaoxTerrainPoint
-{
-	uint_t             index;
-	ushort_t           level;
-	ushort_t           count;
-
-	DaoxVector3D       pos;
-	DaoxVector3D       norm;
-
-	DaoxTerrainPoint  *east;
-	DaoxTerrainPoint  *west;
-	DaoxTerrainPoint  *south;
-	DaoxTerrainPoint  *north;
-	DaoxTerrainPoint  *bottom;
-};
-
-
-/*
-// Indexing of vertex points and sub patches:
-//    1-----Y-----0
-//    |     |     |
-//    |     |     |
-//    ------O-----X
-//    |     |__|__|
-//    |     |  |  |
-//    2-----------3
-*/
-struct DaoxTerrainPatch
-{
-	uchar_t  visible;
-	uchar_t  smooth;
-	float    minHeight;
-	float    maxHeight;
-
-	DaoxTerrainPoint  *center;
-	DaoxTerrainPoint  *points[4];
-	DaoxTerrainPatch  *subs[4];
-};
-
-struct DaoxTerrainBlock
-{
-	DaoxTerrainPatch  *patchTree;
-	DaoxTerrainPoint  *baseCenter;
-
-	DaoxTerrainBlock  *east;
-	DaoxTerrainBlock  *west;
-	DaoxTerrainBlock  *south;
-	DaoxTerrainBlock  *north;
-};
-
-struct DaoxTerrain
-{
-	DaoxSceneNode  base;
-
-	float  width;   /* x-axis; */
-	float  length;  /* y-axis; */
-	float  height;  /* z-axis; */
-	float  depth;
-
-	DList   *blocks;
-	DList   *vertices;
-	DArray  *triangles;
-
-	DaoxTerrainPatch  *patchTree;
-	DaoxTerrainPoint  *baseCenter;
-
-	DaoxImage     *heightmap;
-	DaoxMaterial  *material;
-
-	DList   *pointList;
-	DList   *pointCache;
-	DList   *patchCache;
-};
-extern DaoType *daox_type_terrain;
-
-DaoxTerrain* DaoxTerrain_New();
-void DaoxTerrain_Delete( DaoxTerrain *self );
-
-void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float height );
-void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap );
-void DaoxTerrain_SetMaterial( DaoxTerrain *self, DaoxMaterial *material );
-void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch );
-void DaoxTerrain_Rebuild( DaoxTerrain *self );
-void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 
 
