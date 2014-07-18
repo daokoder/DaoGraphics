@@ -33,6 +33,20 @@
 #include "dao_scene.h"
 
 
+/*
+// TODO:
+// 1. Procedural terrain generation:
+// -- Free generation;
+// -- Terrain type guided generation;
+// 
+//
+// 2. Terrain texturing:
+// -- Classify terrain patches based on its slope and smoothness;
+// -- Support multiple textures for terrain;
+// -- Support texture blending based on terrain types;
+//    DaoxVertex::tan can be used to store terrain types and blending factors;
+*/
+
 
 typedef struct DaoxTerrainPoint DaoxTerrainPoint;
 typedef struct DaoxTerrainPatch DaoxTerrainPatch;
@@ -56,14 +70,14 @@ struct DaoxTerrainPoint
 
 
 /*
-// Indexing of vertex points and sub patches:
-//    1-----Y-----0
+// Indexing of vertex corners and sub patches:
+//    3-----------2
 //    |     |     |
 //    |     |     |
-//    ------O-----X
+//    Y-----C-----|
 //    |     |__|__|
 //    |     |  |  |
-//    2-----------3
+//    O-----X-----1
 */
 struct DaoxTerrainPatch
 {
@@ -73,7 +87,7 @@ struct DaoxTerrainPatch
 	float    maxHeight;
 
 	DaoxTerrainPoint  *center;
-	DaoxTerrainPoint  *points[4];
+	DaoxTerrainPoint  *corners[4];
 	DaoxTerrainPatch  *subs[4];
 };
 
