@@ -50,6 +50,7 @@ routine main( fps_limit = 30, compute_fps = 0 )
 {
 	Graphics::glutInit( 1000, 800, "Dao Graphics Demo: Tiger", fps_limit, compute_fps )
 	canvas = Graphics::Canvas();
+	canvas.SetViewport( -500, 500, -400, 400 );
 	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 	LoadTiger( canvas );
 

@@ -39,16 +39,16 @@ void DaoxTerrainPoint_Delete( DaoxTerrainPoint *self )
 }
 
 
-DaoxTerrainPatch* DaoxTerrainPatch_New()
+DaoxTerrainCell* DaoxTerrainCell_New()
 {
-	DaoxTerrainPatch *self = (DaoxTerrainPatch*) dao_calloc( 1, sizeof(DaoxTerrainPatch) );
+	DaoxTerrainCell *self = (DaoxTerrainCell*) dao_calloc( 1, sizeof(DaoxTerrainCell) );
 	return self;
 }
-void DaoxTerrainPatch_Delete( DaoxTerrainPatch *self )
+void DaoxTerrainCell_Delete( DaoxTerrainCell *self )
 {
 	dao_free( self );
 }
-double DaoxTerrainPatch_Size( DaoxTerrainPatch *self )
+double DaoxTerrainCell_Size( DaoxTerrainCell *self )
 {
 	if( self->corners[0] == NULL || self->corners[1] == NULL ) return 0.0;
 	return DaoxVector3D_Dist( & self->corners[0]->pos, & self->corners[1]->pos );
@@ -76,51 +76,51 @@ DaoxTerrain* DaoxTerrain_New()
 	self->triangles = DArray_New( sizeof(DaoxTriangle) );
 	self->pointList = DList_New(0);
 	self->pointCache = DList_New(0);
-	self->patchCache = DList_New(0);
+	self->cellCache = DList_New(0);
 	self->width = self->length = self->height = 1.0;
 	self->depth = 1.0;
 	return self;
 }
-void DaoxTerrain_CachePatch( DaoxTerrain *self, DaoxTerrainPatch *patch )
+void DaoxTerrain_CacheCell( DaoxTerrain *self, DaoxTerrainCell *cell )
 {
 	int i;
 	for(i=0; i<4; ++i){
-		if( patch->subs[i] == NULL ) continue;
-		DaoxTerrain_CachePatch( self, patch->subs[i] );
-		DList_Append( self->patchCache, patch->subs[i] );
-		patch->subs[i] = NULL;
+		if( cell->subcells[i] == NULL ) continue;
+		DaoxTerrain_CacheCell( self, cell->subcells[i] );
+		DList_Append( self->cellCache, cell->subcells[i] );
+		cell->subcells[i] = NULL;
 	}
-	if( patch->center ){
-		patch->center->count -= 1;
-		if( patch->center->count == 0 ) DList_Append( self->pointCache, patch->center );
+	if( cell->center ){
+		cell->center->count -= 1;
+		if( cell->center->count == 0 ) DList_Append( self->pointCache, cell->center );
 	}
 	for(i=0; i<4; ++i){
-		DaoxTerrainPoint *point = patch->corners[i];
+		DaoxTerrainPoint *point = cell->corners[i];
 		if( point == NULL ) continue;
 		point->count -= 1;
 		if( point->count == 0 ) DList_Append( self->pointCache, point );
-		patch->corners[i] = NULL;
+		cell->corners[i] = NULL;
 	}
 }
 void DaoxTerrain_CacheBlock( DaoxTerrain *self, DaoxTerrainBlock *block )
 {
-	DaoxTerrainPatch *patch = block->patchTree;
+	DaoxTerrainCell *cell = block->cellTree;
 	DaoxTerrainPoint *first;
 	/* Caching bottom corners: */
 	DList_Append( self->pointCache, block->baseCenter );
-	for(first = patch->corners[0]; first != patch->corners[1]; first = first->east){
+	for(first = cell->corners[0]; first != cell->corners[1]; first = first->east){
 		if( first->east->bottom ) DList_Append( self->pointCache, first->east->bottom );
 	}
-	for(first = patch->corners[1]; first != patch->corners[2]; first = first->north){
+	for(first = cell->corners[1]; first != cell->corners[2]; first = first->north){
 		if( first->north->bottom ) DList_Append( self->pointCache, first->north->bottom );
 	}
-	for(first = patch->corners[2]; first != patch->corners[3]; first = first->west){
+	for(first = cell->corners[2]; first != cell->corners[3]; first = first->west){
 		if( first->west->bottom ) DList_Append( self->pointCache, first->west->bottom );
 	}
-	for(first = patch->corners[3]; first != patch->corners[0]; first = first->south){
+	for(first = cell->corners[3]; first != cell->corners[0]; first = first->south){
 		if( first->south->bottom ) DList_Append( self->pointCache, first->south->bottom );
 	}
-	DaoxTerrain_CachePatch( self, block->patchTree );
+	DaoxTerrain_CacheCell( self, block->cellTree );
 }
 void DaoxTerrain_FreeBlocks( DaoxTerrain *self )
 {
@@ -137,13 +137,13 @@ void DaoxTerrain_Delete( DaoxTerrain *self )
 	int i;
 	DaoxTerrain_FreeBlocks( self );
 	for(i=0; i<self->pointCache->size; ++i) dao_free( self->pointCache->items.pVoid[i] );
-	for(i=0; i<self->patchCache->size; ++i) dao_free( self->patchCache->items.pVoid[i] );
+	for(i=0; i<self->cellCache->size; ++i) dao_free( self->cellCache->items.pVoid[i] );
 	DList_Delete( self->blocks );
 	DList_Delete( self->vertices );
 	DArray_Delete( self->triangles );
 	DList_Delete( self->pointList );
 	DList_Delete( self->pointCache );
-	DList_Delete( self->patchCache );
+	DList_Delete( self->cellCache );
 	DaoxSceneNode_Free( (DaoxSceneNode*) self );
 	dao_free( self );
 }
@@ -205,9 +205,10 @@ static DaoxTerrainPoint* DaoxTerrain_MakePoint( DaoxTerrain *self, float x, floa
 	point->norm.x = point->norm.y = point->norm.z = 0.0;
 	point->east = point->west = NULL;
 	point->south = point->north = NULL;
+	point->bottom = NULL;
 	return point;
 }
-static DaoxTerrainPatch* DaoxTerrain_MakePatch( DaoxTerrain *self, DaoxTerrainPoint *corners[4], int level )
+static DaoxTerrainCell* DaoxTerrain_MakeCell( DaoxTerrain *self, DaoxTerrainPoint *corners[4], int level )
 {
 	int i, j, ihmx, ihmy;
 	int mapWidth = self->heightmap->width;
@@ -222,21 +223,21 @@ static DaoxTerrainPatch* DaoxTerrain_MakePatch( DaoxTerrain *self, DaoxTerrainPo
 	float min = 0.0, max = 0.0;
 	float hmx1, hmx2, hmy1, hmy2;
 	float H0, H1, H2, H3;
-	DaoxTerrainPatch *patch = NULL;
+	DaoxTerrainCell *cell = NULL;
 	DList *pointList = self->pointList;
 
-	if( self->patchCache->size ){
-		patch = (DaoxTerrainPatch*) DList_PopBack( self->patchCache );
+	if( self->cellCache->size ){
+		cell = (DaoxTerrainCell*) DList_PopBack( self->cellCache );
 	}else{
-		patch = DaoxTerrainPatch_New();
+		cell = DaoxTerrainCell_New();
 	}
-	patch->center = DaoxTerrain_MakePoint( self, xcenter, ycenter );
-	patch->center->level = level + 1;
-	patch->center->count += 1;
-	DList_Append( pointList, patch->center );
+	cell->center = DaoxTerrain_MakePoint( self, xcenter, ycenter );
+	cell->center->level = level + 1;
+	cell->center->count += 1;
+	DList_Append( pointList, cell->center );
 	for(i=0; i<4; ++i){
-		patch->subs[i] = NULL;
-		patch->corners[i] = corners[i];
+		cell->subcells[i] = NULL;
+		cell->corners[i] = corners[i];
 		corners[i]->count += 1;
 	}
 
@@ -267,77 +268,77 @@ static DaoxTerrainPatch* DaoxTerrain_MakePatch( DaoxTerrain *self, DaoxTerrainPo
 			if( pixel > max ) max = pixel;
 		}
 	}
-	patch->minHeight = (self->height * min) / 255.0;
-	patch->maxHeight = (self->height * max) / 255.0;
-	return patch;
+	cell->minHeight = (self->height * min) / 255.0;
+	cell->maxHeight = (self->height * max) / 255.0;
+	return cell;
 }
-void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch )
+void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainCell *cell )
 {
-	int i, j, level = patch->center->level;
-	float left = patch->corners[0]->pos.x;
-	float right = patch->corners[2]->pos.x;
-	float top = patch->corners[2]->pos.y;
-	float bottom = patch->corners[0]->pos.y;
-	float xcenter = patch->center->pos.x;
-	float ycenter = patch->center->pos.y;
+	int i, j, level = cell->center->level;
+	float left = cell->corners[0]->pos.x;
+	float right = cell->corners[2]->pos.x;
+	float top = cell->corners[2]->pos.y;
+	float bottom = cell->corners[0]->pos.y;
+	float xcenter = cell->center->pos.x;
+	float ycenter = cell->center->pos.y;
 	float mapwidth = self->heightmap->width;
 	float mapheight = self->heightmap->height;
 	float mapsize = sqrt( mapwidth*mapwidth + mapheight*mapheight );
 	float terrainsize = sqrt( self->width*self->width + self->length*self->length );
 	float perpixel = terrainsize/mapsize;
-	float patchsize = DaoxTerrainPatch_Size( patch );
-	float diff = patch->maxHeight - patch->minHeight;
+	float cellsize = DaoxTerrainCell_Size( cell );
+	float diff = cell->maxHeight - cell->minHeight;
 	DaoxTerrainPoint *mid01, *mid12, *mid23, *mid30, *corners[4];
-	DaoxTerrainPoint *center = patch->center;
+	DaoxTerrainPoint *center = cell->center;
 	DList *pointList = self->pointList;
 
-	if( diff < 0.1*self->height && diff < 0.1*(patchsize + 0.5*perpixel) ) return;
+	if( diff < 0.1*self->height && diff < 0.1*(cellsize + 0.5*perpixel) ) return;
 
-	mid01 = patch->corners[0];
-	while( mid01 != patch->corners[1] && mid01->level != level ) mid01 = mid01->east;
-	if( mid01 == patch->corners[1] ){
+	mid01 = cell->corners[0];
+	while( mid01 != cell->corners[1] && mid01->level != level ) mid01 = mid01->east;
+	if( mid01 == cell->corners[1] ){
 		mid01 = DaoxTerrain_MakePoint( self, xcenter, bottom );
 		mid01->level = level;
-		mid01->west = patch->corners[0];
-		mid01->east = patch->corners[1];
-		patch->corners[0]->east = mid01;
-		patch->corners[1]->west = mid01;
+		mid01->west = cell->corners[0];
+		mid01->east = cell->corners[1];
+		cell->corners[0]->east = mid01;
+		cell->corners[1]->west = mid01;
 		DList_Append( pointList, mid01 );
 	}
 
-	mid12 = patch->corners[1];
-	while( mid12 != patch->corners[2] && mid12->level != level ) mid12 = mid12->north;
-	if( mid12 == patch->corners[2] ){
+	mid12 = cell->corners[1];
+	while( mid12 != cell->corners[2] && mid12->level != level ) mid12 = mid12->north;
+	if( mid12 == cell->corners[2] ){
 		mid12 = DaoxTerrain_MakePoint( self, right, ycenter );
 		mid12->level = level;
-		mid12->south = patch->corners[1];
-		mid12->north = patch->corners[2];
-		patch->corners[1]->north = mid12;
-		patch->corners[2]->south = mid12;
+		mid12->south = cell->corners[1];
+		mid12->north = cell->corners[2];
+		cell->corners[1]->north = mid12;
+		cell->corners[2]->south = mid12;
 		DList_Append( pointList, mid12 );
 	}
 
-	mid23 = patch->corners[2];
-	while( mid23 != patch->corners[3] && mid23->level != level ) mid23 = mid23->west;
-	if( mid23 == patch->corners[3] ){
+	mid23 = cell->corners[2];
+	while( mid23 != cell->corners[3] && mid23->level != level ) mid23 = mid23->west;
+	if( mid23 == cell->corners[3] ){
 		mid23 = DaoxTerrain_MakePoint( self, xcenter, top );
 		mid23->level = level;
-		mid23->east = patch->corners[2];
-		mid23->west = patch->corners[3];
-		patch->corners[2]->west = mid23;
-		patch->corners[3]->east = mid23;
+		mid23->east = cell->corners[2];
+		mid23->west = cell->corners[3];
+		cell->corners[2]->west = mid23;
+		cell->corners[3]->east = mid23;
 		DList_Append( pointList, mid23 );
 	}
 
-	mid30 = patch->corners[3];
-	while( mid30 != patch->corners[0] && mid30->level != level ) mid30 = mid30->south;
-	if( mid30 == patch->corners[0] ){
+	mid30 = cell->corners[3];
+	while( mid30 != cell->corners[0] && mid30->level != level ) mid30 = mid30->south;
+	if( mid30 == cell->corners[0] ){
 		mid30 = DaoxTerrain_MakePoint( self, left, ycenter );
 		mid30->level = level;
-		mid30->north = patch->corners[3];
-		mid30->south = patch->corners[0];
-		patch->corners[3]->south = mid30;
-		patch->corners[0]->north = mid30;
+		mid30->north = cell->corners[3];
+		mid30->south = cell->corners[0];
+		cell->corners[3]->south = mid30;
+		cell->corners[0]->north = mid30;
 		DList_Append( pointList, mid30 );
 	}
 	center->east = mid12;
@@ -349,70 +350,70 @@ void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch )
 	mid23->south = center;
 	mid01->north = center;
 
-	corners[0] = patch->corners[0];
+	corners[0] = cell->corners[0];
 	corners[1] = mid01;
 	corners[2] = center;
 	corners[3] = mid30;
-	patch->subs[0] = DaoxTerrain_MakePatch( self, corners, level );
+	cell->subcells[2] = DaoxTerrain_MakeCell( self, corners, level );
 
 	corners[0] = mid01;
-	corners[1] = patch->corners[1];
+	corners[1] = cell->corners[1];
 	corners[2] = mid12;
 	corners[3] = center;
-	patch->subs[1] = DaoxTerrain_MakePatch( self, corners, level );
+	cell->subcells[3] = DaoxTerrain_MakeCell( self, corners, level );
 
 	corners[0] = center;
 	corners[1] = mid12;
-	corners[2] = patch->corners[2];
+	corners[2] = cell->corners[2];
 	corners[3] = mid23;
-	patch->subs[2] = DaoxTerrain_MakePatch( self, corners, level );
+	cell->subcells[0] = DaoxTerrain_MakeCell( self, corners, level );
 
 	corners[0] = mid30;
 	corners[1] = center;
 	corners[2] = mid23;
-	corners[3] = patch->corners[3];
-	patch->subs[3] = DaoxTerrain_MakePatch( self, corners, level );
+	corners[3] = cell->corners[3];
+	cell->subcells[1] = DaoxTerrain_MakeCell( self, corners, level );
 
 	for(i=0; i<4; ++i){
-		DaoxTerrainPatch *sub = patch->subs[i];
+		DaoxTerrainCell *sub = cell->subcells[i];
 		DaoxTerrain_Refine( self, sub );
 	}
 }
-static void DaoxTerrain_UpdatePointNeighbors( DaoxTerrain *self, DaoxTerrainPatch *patch )
+static void DaoxTerrain_UpdatePointNeighbors( DaoxTerrain *self, DaoxTerrainCell *cell )
 {
-	int i, j, level = patch->center->level;
+	int i, j, level = cell->center->level;
 	DaoxTerrainPoint *mid01, *mid12, *mid23, *mid30;
-	DaoxTerrainPoint *center = patch->center;
+	DaoxTerrainPoint *center = cell->center;
 
-	if( patch->subs[0] ){
-		for(i=0; i<4; ++i) DaoxTerrain_UpdatePointNeighbors( self, patch->subs[i] );
+	if( cell->subcells[0] ){
+		for(i=0; i<4; ++i) DaoxTerrain_UpdatePointNeighbors( self, cell->subcells[i] );
 		return;
 	}
 
-	mid01 = patch->corners[0];
-	while( mid01 != patch->corners[1] && mid01->level != level ) mid01 = mid01->east;
-	if( mid01 != patch->corners[1] ){
+	mid01 = cell->corners[0];
+	while( mid01 != cell->corners[1] && mid01->level != level ) mid01 = mid01->east;
+	if( mid01 != cell->corners[1] ){
 		center->south = mid01;
 		mid01->north = center;
 	}
 
-	mid12 = patch->corners[1];
-	while( mid12 != patch->corners[2] && mid12->level != level ) mid12 = mid12->north;
-	if( mid12 != patch->corners[2] ){
+	mid12 = cell->corners[1];
+	while( mid12 != cell->corners[2] && mid12->level != level ) mid12 = mid12->north;
+	if( mid12 != cell->corners[2] ){
 		center->east = mid12;
 		mid12->west = center;
 	}
 
-	mid23 = patch->corners[2];
-	while( mid23 != patch->corners[3] && mid23->level != level ) mid23 = mid23->west;
-	if( mid23 != patch->corners[3] ){
+	mid23 = cell->corners[2];
+	while( mid23 != cell->corners[3] && mid23->level != level ) mid23 = mid23->west;
+	if( mid23 != cell->corners[3] ){
 		center->north = mid23;
 		mid23->south = center;
 	}
 
-	mid30 = patch->corners[3];
-	while( mid30 != patch->corners[0] && mid30->level != level ) mid30 = mid30->south;
-	if( mid30 != patch->corners[0] ){
+	mid30 = cell->corners[3];
+	while( mid30 != cell->corners[0] && mid30->level != level ) mid30 = mid30->south;
+	if( mid30 != cell->corners[0] ){
 		center->west = mid30;
 		mid30->east = center;
 	}
@@ -427,26 +428,26 @@ static void DaoxTerrain_UpdateNormals( DaoxTerrain *self, DaoxTerrainPoint *cent
 	first->norm = DaoxVector3D_Add( & first->norm, & N );
 	second->norm = DaoxVector3D_Add( & second->norm, & N );
 }
-static void DaoxTerrain_ComputeNormals( DaoxTerrain *self, DaoxTerrainPatch *patch )
+static void DaoxTerrain_ComputeNormals( DaoxTerrain *self, DaoxTerrainCell *cell )
 {
 	int i;
-	if( patch->subs[0] == NULL ){
+	if( cell->subcells[0] == NULL ){
 		DaoxTerrainPoint *first;
-		for(first = patch->corners[0]; first != patch->corners[1]; first = first->east){
-			DaoxTerrain_UpdateNormals( self, patch->center, first, first->east );
+		for(first = cell->corners[0]; first != cell->corners[1]; first = first->east){
+			DaoxTerrain_UpdateNormals( self, cell->center, first, first->east );
 		}
-		for(first = patch->corners[1]; first != patch->corners[2]; first = first->north){
-			DaoxTerrain_UpdateNormals( self, patch->center, first, first->north );
+		for(first = cell->corners[1]; first != cell->corners[2]; first = first->north){
+			DaoxTerrain_UpdateNormals( self, cell->center, first, first->north );
 		}
-		for(first = patch->corners[2]; first != patch->corners[3]; first = first->west){
-			DaoxTerrain_UpdateNormals( self, patch->center, first, first->west );
+		for(first = cell->corners[2]; first != cell->corners[3]; first = first->west){
+			DaoxTerrain_UpdateNormals( self, cell->center, first, first->west );
 		}
-		for(first = patch->corners[3]; first != patch->corners[0]; first = first->south){
-			DaoxTerrain_UpdateNormals( self, patch->center, first, first->south );
+		for(first = cell->corners[3]; first != cell->corners[0]; first = first->south){
+			DaoxTerrain_UpdateNormals( self, cell->center, first, first->south );
 		}
 		return;
 	}
-	for(i=0; i<4; ++i) DaoxTerrain_ComputeNormals( self, patch->subs[i] );
+	for(i=0; i<4; ++i) DaoxTerrain_ComputeNormals( self, cell->subcells[i] );
 }
 static DaoxTerrainBlock* DaoxTerrain_MakeBlock( DaoxTerrain *self, DaoxTerrainPoint *corners[4] )
 {
@@ -471,7 +472,7 @@ static DaoxTerrainBlock* DaoxTerrain_MakeBlock( DaoxTerrain *self, DaoxTerrainPo
 		corners[0]->north = corners[3];
 	}
 
-	block->patchTree = DaoxTerrain_MakePatch( self, corners, 0 );
+	block->cellTree = DaoxTerrain_MakeCell( self, corners, 0 );
 	block->baseCenter = DaoxTerrain_MakePoint( self, 0.5*x, 0.5*y );
 	block->baseCenter->pos.z = - self->depth;
 	return block;
@@ -486,35 +487,35 @@ static DaoxTerrainPoint* DaoxTerrain_MakeBottomPoint( DaoxTerrain *self, DaoxTer
 }
 void DaoxTerrain_FinalizeBlock( DaoxTerrain *self, DaoxTerrainBlock *block )
 {
-	DaoxTerrainPatch *patch = block->patchTree;
+	DaoxTerrainCell *cell = block->cellTree;
 	DaoxTerrainPoint *first;
 
 	if( block->south == NULL ){
-		for(first = patch->corners[0]; first != patch->corners[1]; first = first->east){
+		for(first = cell->corners[0]; first != cell->corners[1]; first = first->east){
 			DaoxTerrain_MakeBottomPoint( self, first->east );
 		}
 	}
 	if( block->east == NULL ){
-		for(first = patch->corners[1]; first != patch->corners[2]; first = first->north){
+		for(first = cell->corners[1]; first != cell->corners[2]; first = first->north){
 			DaoxTerrain_MakeBottomPoint( self, first->north );
 		}
 	}
 	if( block->north == NULL ){
-		for(first = patch->corners[2]; first != patch->corners[3]; first = first->west){
+		for(first = cell->corners[2]; first != cell->corners[3]; first = first->west){
 			DaoxTerrain_MakeBottomPoint( self, first->west );
 		}
 	}
 	if( block->west == NULL ){
-		for(first = patch->corners[3]; first != patch->corners[0]; first = first->south){
+		for(first = cell->corners[3]; first != cell->corners[0]; first = first->south){
 			DaoxTerrain_MakeBottomPoint( self, first->south );
 		}
 	}
-	if( block->east && block->north ) DaoxTerrain_MakeBottomPoint( self, patch->corners[2] );
-	if( block->east && block->south ) DaoxTerrain_MakeBottomPoint( self, patch->corners[1] );
-	if( block->west && block->north ) DaoxTerrain_MakeBottomPoint( self, patch->corners[3] );
-	if( block->west && block->south ) DaoxTerrain_MakeBottomPoint( self, patch->corners[0] );
+	if( block->east && block->north ) DaoxTerrain_MakeBottomPoint( self, cell->corners[2] );
+	if( block->east && block->south ) DaoxTerrain_MakeBottomPoint( self, cell->corners[1] );
+	if( block->west && block->north ) DaoxTerrain_MakeBottomPoint( self, cell->corners[3] );
+	if( block->west && block->south ) DaoxTerrain_MakeBottomPoint( self, cell->corners[0] );
 
-	DaoxTerrain_ComputeNormals( self, block->patchTree );
+	DaoxTerrain_ComputeNormals( self, block->cellTree );
 }
 void DaoxTerrain_Rebuild( DaoxTerrain *self )
 {
@@ -525,7 +526,6 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self )
 	float large = width, small = length;
 	double xstride, ystride;
 	DList *pointList = self->pointList;
-	DaoxTerrainPatch *patch = self->patchTree;
 	DaoxTerrainPoint *first, *base;
 	DaoxTerrainPoint *corners[4];
 	DaoxTerrainBlock *west = NULL;
@@ -552,7 +552,7 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self )
 	printf( "xnum = %i, ynum = %i; %g %g\n", xnum, ynum, width/xnum, length/ynum );
 
 	DaoxTerrain_FreeBlocks( self );
-	printf( "Patch Cache: %i\n", self->patchCache->size );
+	printf( "Cell Cache: %i\n", self->cellCache->size );
 	
 	if( self->heightmap == NULL ) return;
 
@@ -572,12 +572,12 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self )
 			if( i ) west = self->blocks->items.pTerrainBlock[ (i-1)*ynum + j ];
 			if( j ) south = (DaoxTerrainBlock*) DList_Back( self->blocks );
 			if( west ){
-				corners[0] = west->patchTree->corners[1];
-				corners[3] = west->patchTree->corners[2];
+				corners[0] = west->cellTree->corners[1];
+				corners[3] = west->cellTree->corners[2];
 			}
 			if( south ){
-				corners[0] = south->patchTree->corners[3];
-				corners[1] = south->patchTree->corners[2];
+				corners[0] = south->cellTree->corners[3];
+				corners[1] = south->cellTree->corners[2];
 			}
 			if( corners[0] == NULL ){
 				corners[0] = DaoxTerrain_MakePoint( self, x1, y1 );
@@ -605,18 +605,17 @@ void DaoxTerrain_Rebuild( DaoxTerrain *self )
 	}
 	for(i=0; i<self->blocks->size; ++i){
 		DaoxTerrainBlock *block = (DaoxTerrainBlock*) self->blocks->items.pVoid[i];
-		DaoxTerrain_Refine( self, block->patchTree );
+		DaoxTerrain_Refine( self, block->cellTree );
 	}
 	for(i=0; i<self->blocks->size; ++i){
 		DaoxTerrainBlock *block = (DaoxTerrainBlock*) self->blocks->items.pVoid[i];
-		DaoxTerrain_UpdatePointNeighbors( self, block->patchTree );
+		DaoxTerrain_UpdatePointNeighbors( self, block->cellTree );
 	}
 	for(i=0; i<self->blocks->size; ++i){
 		DaoxTerrainBlock *block = (DaoxTerrainBlock*) self->blocks->items.pVoid[i];
 		DaoxTerrain_FinalizeBlock( self, block );
 	}
 
-	printf( "tree: %p\n", self->patchTree );
 	/* Making base corners: */
 	for(i=0; i<pointList->size; ++i){
 		DaoxTerrainPoint *point = (DaoxTerrainPoint*) pointList->items.pVoid[i];
@@ -652,86 +651,86 @@ static void DaoxTerrain_MakeBaseTriangle2( DaoxTerrain *self, DaoxTerrainPoint *
 	DaoxTerrain_TryActivatePoint( self, second );
 	DaoxTerrain_MakeTriangle( self, center, second, first );
 }
-static int DaoxTerrain_PatchVisible( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
+static int DaoxTerrain_CellVisible( DaoxTerrain *self, DaoxTerrainCell *cell, DaoxViewFrustum *frustum )
 {
 	DaoxOBBox3D obbox;
 	DaoxMatrix4D terrainToWorld = DaoxSceneNode_GetWorldTransform( & self->base );
 	float margin = 1.0; // XXX:
 
 	if( frustum == NULL ) return 1;
-	if( DaoxTerrainPatch_Size( patch ) < 0.01*(self->width + self->length) ) return 1;
+	if( DaoxTerrainCell_Size( cell ) < 0.01*(self->width + self->length) ) return 1;
 
-	obbox.C = patch->center->pos;
-	obbox.O = patch->corners[0]->pos;
-	obbox.X = patch->corners[1]->pos;
-	obbox.Y = patch->corners[3]->pos;
-	obbox.Z = patch->corners[0]->pos;
-	obbox.O.z += patch->minHeight - margin;
-	obbox.X.z += patch->minHeight - margin;
-	obbox.Y.z += patch->minHeight - margin;
-	obbox.Z.z += patch->maxHeight + margin;
-	obbox.C.z += 0.5*(patch->minHeight + patch->maxHeight);
+	obbox.C = cell->center->pos;
+	obbox.O = cell->corners[0]->pos;
+	obbox.X = cell->corners[1]->pos;
+	obbox.Y = cell->corners[3]->pos;
+	obbox.Z = cell->corners[0]->pos;
+	obbox.O.z += cell->minHeight - margin;
+	obbox.X.z += cell->minHeight - margin;
+	obbox.Y.z += cell->minHeight - margin;
+	obbox.Z.z += cell->maxHeight + margin;
+	obbox.C.z += 0.5*(cell->minHeight + cell->maxHeight);
 	obbox.R = DaoxVector3D_Dist( & obbox.O, & obbox.C );
 	obbox = DaoxOBBox3D_Transform( & obbox, & terrainToWorld );
 	return DaoxViewFrustum_Visible( frustum, & obbox );
 }
-static int DaoxTerrain_PatchHasFineView( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
+static int DaoxTerrain_CellHasFineView( DaoxTerrain *self, DaoxTerrainCell *cell, DaoxViewFrustum *frustum )
 {
 	DaoxMatrix4D toWorld = DaoxSceneNode_GetWorldTransform( & self->base );
-	DaoxVector3D P0 = DaoxMatrix4D_MulVector( & toWorld, & patch->corners[0]->pos, 1.0 );
+	DaoxVector3D P0 = DaoxMatrix4D_MulVector( & toWorld, & cell->corners[0]->pos, 1.0 );
 	float mindist, viewDiff, viewHeight;
 	int i;
 
 	if( frustum == NULL ) return 0;
 	mindist = DaoxVector3D_Dist( & P0, & frustum->cameraPosition );
 	for(i=1; i<3; ++i){
-		DaoxVector3D P = DaoxMatrix4D_MulVector( & toWorld, & patch->corners[i]->pos, 1.0 );
+		DaoxVector3D P = DaoxMatrix4D_MulVector( & toWorld, & cell->corners[i]->pos, 1.0 );
 		float dist = DaoxVector3D_Dist( & P, & frustum->cameraPosition );
 		if( dist < mindist ) mindist = dist;
 	}
 	if( mindist <= frustum->near ) return 0;
 
-	viewDiff = patch->maxHeight - patch->minHeight;
+	viewDiff = cell->maxHeight - cell->minHeight;
 	viewDiff = frustum->ratio * frustum->near * viewDiff / mindist;
 	viewHeight = frustum->ratio * frustum->near * self->height / mindist;
 	return viewDiff < 3.0 && viewDiff < 0.1 * viewHeight;
 }
-static void DaoxTerrain_ActivateVertices( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
+static void DaoxTerrain_ActivateVertices( DaoxTerrain *self, DaoxTerrainCell *cell, DaoxViewFrustum *frustum )
 {
 	int i;
 
-	patch->visible = DaoxTerrain_PatchVisible( self, patch, frustum ) >= 0;
-	if( ! patch->visible ){
+	cell->visible = DaoxTerrain_CellVisible( self, cell, frustum ) >= 0;
+	if( ! cell->visible ){
 		/* For building coarse but complete mesh: */
-		for(i=0; i<4; ++i) DaoxTerrain_TryActivatePoint( self, patch->corners[i] );
+		for(i=0; i<4; ++i) DaoxTerrain_TryActivatePoint( self, cell->corners[i] );
 		return;
 	}
 
-	DaoxTerrain_TryActivatePoint( self, patch->center );
-	for(i=0; i<4; ++i) DaoxTerrain_TryActivatePoint( self, patch->corners[i] );
+	DaoxTerrain_TryActivatePoint( self, cell->center );
+	for(i=0; i<4; ++i) DaoxTerrain_TryActivatePoint( self, cell->corners[i] );
 
-	patch->smooth = DaoxTerrain_PatchHasFineView( self, patch, frustum );
-	if( patch->subs[0] == NULL || patch->smooth ) return;
+	cell->smooth = DaoxTerrain_CellHasFineView( self, cell, frustum );
+	if( cell->subcells[0] == NULL || cell->smooth ) return;
 
-	for(i=0; i<4; ++i) DaoxTerrain_ActivateVertices( self, patch->subs[i], frustum );
+	for(i=0; i<4; ++i) DaoxTerrain_ActivateVertices( self, cell->subcells[i], frustum );
 }
-static void DaoxTerrain_GenerateTriangles( DaoxTerrain *self, DaoxTerrainPatch *patch, DaoxViewFrustum *frustum )
+static void DaoxTerrain_GenerateTriangles( DaoxTerrain *self, DaoxTerrainCell *cell, DaoxViewFrustum *frustum )
 {
-	int i, level = patch->center->level;
+	int i, level = cell->center->level;
 
-	if( ! patch->visible ){
+	if( ! cell->visible ){
 		/* For building coarse but complete mesh: */
-		DaoxTerrain_MakeTriangle( self, patch->corners[0], patch->corners[1], patch->corners[2] );
-		DaoxTerrain_MakeTriangle( self, patch->corners[0], patch->corners[2], patch->corners[3] );
+		DaoxTerrain_MakeTriangle( self, cell->corners[0], cell->corners[1], cell->corners[2] );
+		DaoxTerrain_MakeTriangle( self, cell->corners[0], cell->corners[2], cell->corners[3] );
 		return;
 	}
-	if( patch->subs[0] == NULL || patch->smooth ){
+	if( cell->subcells[0] == NULL || cell->smooth ){
 		int active1, active2, active3, active4;
 		DaoxTerrainPoint *first, *second = NULL;
-		DaoxTerrainPoint *east = patch->center->east;
-		DaoxTerrainPoint *west = patch->center->west;
-		DaoxTerrainPoint *south = patch->center->south;
-		DaoxTerrainPoint *north = patch->center->north;
+		DaoxTerrainPoint *east = cell->center->east;
+		DaoxTerrainPoint *west = cell->center->west;
+		DaoxTerrainPoint *south = cell->center->south;
+		DaoxTerrainPoint *north = cell->center->north;
 
 		while( east && east->level != level ) east = east->east;
 		while( west && west->level != level ) west = west->west;
@@ -743,43 +742,43 @@ static void DaoxTerrain_GenerateTriangles( DaoxTerrain *self, DaoxTerrainPatch *
 		active4 = north && north->index > 0;
 
 		if( active1 == 0 && active2 == 0 && active3 == 0 && active4 == 0 ){
-			DaoxTerrain_MakeTriangle( self, patch->corners[0], patch->corners[1], patch->corners[2] );
-			DaoxTerrain_MakeTriangle( self, patch->corners[0], patch->corners[2], patch->corners[3] );
+			DaoxTerrain_MakeTriangle( self, cell->corners[0], cell->corners[1], cell->corners[2] );
+			DaoxTerrain_MakeTriangle( self, cell->corners[0], cell->corners[2], cell->corners[3] );
 			return;
 		}
 
-		for(first = patch->corners[0]; first != patch->corners[1]; first = second){
+		for(first = cell->corners[0]; first != cell->corners[1]; first = second){
 			second = first->east;
 			while( second->index == 0 ) second = second->east;
-			DaoxTerrain_MakeTriangle( self, patch->center, first, second );
+			DaoxTerrain_MakeTriangle( self, cell->center, first, second );
 		}
-		for(first = patch->corners[1]; first != patch->corners[2]; first = second){
+		for(first = cell->corners[1]; first != cell->corners[2]; first = second){
 			second = first->north;
 			while( second->index == 0 ) second = second->north;
-			DaoxTerrain_MakeTriangle( self, patch->center, first, second );
+			DaoxTerrain_MakeTriangle( self, cell->center, first, second );
 		}
-		for(first = patch->corners[2]; first != patch->corners[3]; first = second){
+		for(first = cell->corners[2]; first != cell->corners[3]; first = second){
 			second = first->west;
 			while( second->index == 0 ) second = second->west;
-			DaoxTerrain_MakeTriangle( self, patch->center, first, second );
+			DaoxTerrain_MakeTriangle( self, cell->center, first, second );
 		}
-		for(first = patch->corners[3]; first != patch->corners[0]; first = second){
+		for(first = cell->corners[3]; first != cell->corners[0]; first = second){
 			second = first->south;
 			while( second->index == 0 ) second = second->south;
-			DaoxTerrain_MakeTriangle( self, patch->center, first, second );
+			DaoxTerrain_MakeTriangle( self, cell->center, first, second );
 		}
 		return;
 	}
-	for(i=0; i<4; ++i) DaoxTerrain_GenerateTriangles( self, patch->subs[i], frustum );
+	for(i=0; i<4; ++i) DaoxTerrain_GenerateTriangles( self, cell->subcells[i], frustum );
 }
 static void DaoxTerrain_MakeDepthMesh( DaoxTerrain *self, DaoxTerrainBlock *block )
 {
-	DaoxTerrainPatch *patch = block->patchTree;
+	DaoxTerrainCell *cell = block->cellTree;
 	DaoxTerrainPoint *baseCenter = block->baseCenter;
-	DaoxTerrainPoint *corner0 = patch->corners[0];
-	DaoxTerrainPoint *corner1 = patch->corners[1];
-	DaoxTerrainPoint *corner2 = patch->corners[2];
-	DaoxTerrainPoint *corner3 = patch->corners[3];
+	DaoxTerrainPoint *corner0 = cell->corners[0];
+	DaoxTerrainPoint *corner1 = cell->corners[1];
+	DaoxTerrainPoint *corner2 = cell->corners[2];
+	DaoxTerrainPoint *corner3 = cell->corners[3];
 	DaoxTerrainPoint *first;
 
 
@@ -788,7 +787,7 @@ static void DaoxTerrain_MakeDepthMesh( DaoxTerrain *self, DaoxTerrainBlock *bloc
 	if( block->south ){
 		DaoxTerrain_MakeBaseTriangle2( self, corner2->bottom, corner3->bottom, baseCenter );
 	}else{
-		for(first = patch->corners[0]; first != patch->corners[1]; ){
+		for(first = cell->corners[0]; first != cell->corners[1]; ){
 			DaoxTerrainPoint *second = first->east;
 			while( second->index == 0 ) second = second->east;
 			DaoxTerrain_MakeBaseTriangle( self, first, second, baseCenter );
@@ -798,7 +797,7 @@ static void DaoxTerrain_MakeDepthMesh( DaoxTerrain *self, DaoxTerrainBlock *bloc
 	if( block->east ){
 		DaoxTerrain_MakeBaseTriangle2( self, corner3->bottom, corner0->bottom, baseCenter );
 	}else{
-		for(first = patch->corners[1]; first != patch->corners[2]; ){
+		for(first = cell->corners[1]; first != cell->corners[2]; ){
 			DaoxTerrainPoint *second = first->north;
 			while( second->index == 0 ) second = second->north;
 			DaoxTerrain_MakeBaseTriangle( self, first, second, baseCenter );
@@ -808,7 +807,7 @@ static void DaoxTerrain_MakeDepthMesh( DaoxTerrain *self, DaoxTerrainBlock *bloc
 	if( block->north ){
 		DaoxTerrain_MakeBaseTriangle2( self, corner0->bottom, corner1->bottom, baseCenter );
 	}else{
-		for(first = patch->corners[2]; first != patch->corners[3]; ){
+		for(first = cell->corners[2]; first != cell->corners[3]; ){
 			DaoxTerrainPoint *second = first->west;
 			while( second->index == 0 ) second = second->west;
 			DaoxTerrain_MakeBaseTriangle( self, first, second, baseCenter );
@@ -818,7 +817,7 @@ static void DaoxTerrain_MakeDepthMesh( DaoxTerrain *self, DaoxTerrainBlock *bloc
 	if( block->west ){
 		DaoxTerrain_MakeBaseTriangle2( self, corner1->bottom, corner2->bottom, baseCenter );
 	}else{
-		for(first = patch->corners[3]; first != patch->corners[0]; ){
+		for(first = cell->corners[3]; first != cell->corners[0]; ){
 			DaoxTerrainPoint *second = first->south;
 			while( second->index == 0 ) second = second->south;
 			DaoxTerrain_MakeBaseTriangle( self, first, second, baseCenter );
@@ -841,11 +840,11 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum )
 
 	for(i=0; i<self->blocks->size; ++i){
 		DaoxTerrainBlock *block = (DaoxTerrainBlock*) self->blocks->items.pVoid[i];
-		DaoxTerrain_ActivateVertices( self, block->patchTree, frustum );
+		DaoxTerrain_ActivateVertices( self, block->cellTree, frustum );
 	}
 	for(i=0; i<self->blocks->size; ++i){
 		DaoxTerrainBlock *block = (DaoxTerrainBlock*) self->blocks->items.pVoid[i];
-		DaoxTerrain_GenerateTriangles( self, block->patchTree, frustum );
+		DaoxTerrain_GenerateTriangles( self, block->cellTree, frustum );
 	}
 	for(i=0; i<self->blocks->size; ++i){
 		DaoxTerrainBlock *block = (DaoxTerrainBlock*) self->blocks->items.pVoid[i];

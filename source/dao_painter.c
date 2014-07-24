@@ -166,7 +166,7 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 	DaoxCanvasState *state = item->state;
 	float resolution = DaoxCanvas_Scale( canvas );
 	float scale = item->magnitude;
-	float stroke = state->strokeWidth * scale / (resolution + 1E-16);
+	float stroke = state->strokeWidth / (resolution + 1E-16);
 	int i, fill = item->path != NULL;
 	int fillVertexCount = 0;
 	int fillVertexCount2 = 0;
@@ -508,6 +508,7 @@ void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D view
 	camera.fovAngle = 90.0;
 	camera.nearPlane = 0.01*W;
 	camera.farPlane = W;
+
 
 	/*
 	// For DaoxPainter_PaintCanvasImage() when rendering to big image,

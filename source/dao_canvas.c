@@ -581,7 +581,7 @@ void DaoxCanvasRect_Set( DaoxCanvasRect *self, float x1, float y1, float x2, flo
 void DaoxCanvasCircle_Set( DaoxCanvasCircle *self, float x, float y, float r )
 {
 	assert( self->ctype == daox_type_canvas_circle );
-	self->magnitude = r;
+	self->magnitude = r / UNIT;
 	DaoxCanvasNode_ResetTransform( self );
 	self->translation.x = x;
 	self->translation.y = y;
@@ -769,14 +769,19 @@ DaoxCanvasState* DaoxCanvas_GetCurrentState( DaoxCanvas *self )
 }
 DaoxCanvasState* DaoxCanvas_GetOrPushState( DaoxCanvas *self )
 {
-	if( self->states->size == 0 ) DaoxCanvas_PushState( self );
+	if( self->states->size == 0 ) DaoxCanvas_PushState( self, 0 );
 	return DaoxCanvas_GetCurrentState( self );
 }
-DaoxCanvasState* DaoxCanvas_PushState( DaoxCanvas *self )
+DaoxCanvasState* DaoxCanvas_PushState( DaoxCanvas *self, int index )
 {
 	DaoxCanvasState *prev = DaoxCanvas_GetCurrentState( self );
-	DaoxCanvasState *state = DaoxCanvasState_New();
-	if( prev ) DaoxCanvasState_Copy( state, prev );
+	DaoxCanvasState *state = NULL;
+	if( index >=0 && index < self->states->size ){
+		state = (DaoxCanvasState*) self->states->items.pVoid[index];
+	}else{
+		state = DaoxCanvasState_New();
+		if( prev ) DaoxCanvasState_Copy( state, prev );
+	}
 	DList_PushBack( self->states, state );
 	return state;
 }
@@ -878,7 +883,7 @@ DaoxCanvasRect* DaoxCanvas_AddRect( DaoxCanvas *self, float x1, float y1, float 
 		}else{
 			DaoxPath_MoveTo( path, 0.0, 0.0 );
 			DaoxPath_LineTo( path, UNIT, 0.0 );
-			DaoxPath_LineTo( path, 0.0, r );
+			DaoxPath_LineTo( path, 0.0, r*UNIT );
 			DaoxPath_LineTo( path, -UNIT, 0.0 );
 		}
 		DaoxPath_Close( path );
@@ -983,7 +988,7 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 	rotation.y = sin( angle );
 	charRotation = rotation;
 
-	state = DaoxCanvas_PushState( self );
+	state = DaoxCanvas_PushState( self, -1 );
 	DaoxCanvasState_SetParentItem( state, textItem );
 
 	offset = x;
@@ -1011,10 +1016,16 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 		chitem->magnitude = scale;
 
 		if( textPath ){
+			float len1, len2, dist;
 			float p = 0.0, adv = 0.5 * (scale * advance + width);
 			DaoxPathSegment seg1 = DaoxPath_LocateByDistance( textPath, offset+adv, &p );
 			DaoxPathSegment seg2 = DaoxPath_LocateByDistance( textPath, offset, &p );
 			if( seg1.bezier == 0 ) seg1 = seg2;
+			len1 = DaoxVector2D_Dist( seg1.P1, seg1.P2 );
+			len2 = DaoxVector2D_Dist( seg2.P1, seg2.P2 );
+			dist = DaoxVector2D_Dist( seg1.P2, seg2.P1 );
+			/* In case the segments are from different components: */
+			if( dist < 1E-3 * (len1 + len2)  ) seg1 = seg2;
 			if( seg2.bezier ){
 				float dx = seg1.P2.x - seg1.P1.x;
 				float dy = seg1.P2.y - seg1.P1.y;
@@ -1696,7 +1707,9 @@ static void CANVAS_AddPath( DaoProcess *proc, DaoValue *p[], int N )
 static void CANVAS_PushState( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
-	DaoxCanvasState *state = DaoxCanvas_PushState( self );
+	DaoxCanvasState *state;
+	int index = N > 1 ? p[1]->xInteger.value : -1;
+	state = DaoxCanvas_PushState( self, index );
 	DaoProcess_PutValue( proc, (DaoValue*) state );
 }
 static void CANVAS_PopState( DaoProcess *proc, DaoValue *p[], int N )
@@ -1822,6 +1835,7 @@ static DaoFuncItem DaoxCanvasMeths[]=
 	{ CANVAS_SetBackground,  "SetBackground( self: Canvas, red: float, green: float, blue: float, alpha = 1F ) => Canvas" },
 
 	{ CANVAS_PushState,   "PushState( self: Canvas ) => CanvasState" },
+	{ CANVAS_PushState,   "PushState( self: Canvas, index: int ) => invar<CanvasState>" },
 
 	{ CANVAS_PopState,    "PopState( self: Canvas )" },
 

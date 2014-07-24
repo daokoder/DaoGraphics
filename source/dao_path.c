@@ -1067,7 +1067,7 @@ void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxMatrix3D *transfor
 void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff )
 {
 	DaoxPathComponent *com;
-	printf( "DaoxPath_Refine: %15f %15f %i\n", maxlen, maxdiff, self->first->first->bezier );
+	//printf( "DaoxPath_Refine: %15f %15f %i\n", maxlen, maxdiff, self->first->first->bezier );
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
 		DaoxPathComponent_Refine( com, maxlen, maxdiff );
@@ -1339,7 +1339,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
 	}
-	printf( "Before intersection refinement: %i\n", (int)segments->size );
+	//printf( "Before intersection refinement: %i\n", (int)segments->size );
 	for(i=0; i<segments->size; ++i){
 		DaoxPathSegment *S1 = (DaoxPathSegment*) segments->items.pVoid[i];
 		DaoxOBBox2D *box = DArray_Push( boxes );
@@ -1347,7 +1347,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		if( S1 == NULL || S1->bezier != 3 ) continue;
 		DaoxPathSegment_TryDivideLoop( S1, i, segments );
 	}
-	printf( "Before intersection refinement: %i\n", (int)segments->size );
+	//printf( "Before intersection refinement: %i\n", (int)segments->size );
 	for(i=0; i<segments->size; ++i){
 		DaoxPathSegment *S1 = (DaoxPathSegment*) segments->items.pVoid[i];
 		DaoxOBBox2D *B1 = (DaoxOBBox2D*) DArray_Get( boxes, i );
@@ -1390,9 +1390,9 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		if( segments->items.pVoid[i] == NULL ) continue;
 	}
 #if 0
-#endif
 	printf( "After intersection refinement: %i\n", (int)segments->size );
 	fflush( stdout );
+#endif
 	segments->size = 0;
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
@@ -1406,7 +1406,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		} while( seg && seg != com->refined.first );
 		DaoxTriangulator_CloseContour( triangulator );
 	}
-	printf( "DaoxPath_Segment 2: %i\n", (int) triangulator->vertices->size );
+	//printf( "DaoxPath_Segment 2: %i\n", (int) triangulator->vertices->size );
 	DaoxTriangulator_Triangulate( triangulator );
 	/* Check local convexness with triangulation to handle possible presence of holes: */
 	for(i=0; i<triangulator->triangles->size; ++i){
@@ -1479,7 +1479,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		} while( seg && seg != com->refined.first );
 	}
 	DaoxOBBox2D_ResetBox( & self->obbox, points->data.vectors2d, points->size );
-	printf( "DaoxPath_Preprocess: %i %i\n", self->mesh->points->size, self->mesh->patches->size );
+	//printf( "DaoxPath_Preprocess: %i %i\n", self->mesh->points->size, self->mesh->patches->size );
 	//self->mesh->patches->size = 0;
 
 	DArray_Delete( boxes );
@@ -1929,7 +1929,7 @@ void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width,
 		}
 	}
 	DArray_Delete( segments );
-	printf( "DaoxPath_ComputeStroke: %i\n", strokes->points->size );
+	//printf( "DaoxPath_ComputeStroke: %i\n", strokes->points->size );
 }
 DaoxPathMesh* DaoxPath_GetStrokes( DaoxPath *self, float width, int cap, int junction, int refine )
 {

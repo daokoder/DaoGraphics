@@ -238,6 +238,14 @@ double DaoxVector3D_Norm2( DaoxVector3D *self )
 	norm2 += self->z * self->z;
 	return norm2;
 }
+DaoxVector3D DaoxVector3D_Mean( DaoxVector3D A, DaoxVector3D B )
+{
+	DaoxVector3D point;
+	point.x = 0.5 * (A.x + B.x);
+	point.y = 0.5 * (A.y + B.y);
+	point.z = 0.5 * (A.z + B.z);
+	return point;
+}
 DaoxVector3D DaoxVector3D_Interpolate( DaoxVector3D A, DaoxVector3D B, float t )
 {
 	DaoxVector3D point;

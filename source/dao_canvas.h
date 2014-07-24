@@ -293,7 +293,7 @@ DAO_DLL void DaoxCanvas_SetViewport( DaoxCanvas *self, float left, float right, 
 DAO_DLL float DaoxCanvas_Scale( DaoxCanvas *self );
 DAO_DLL void DaoxCanvas_SetBackground( DaoxCanvas *self, DaoxColor color );
 
-DAO_DLL DaoxCanvasState* DaoxCanvas_PushState( DaoxCanvas *self );
+DAO_DLL DaoxCanvasState* DaoxCanvas_PushState( DaoxCanvas *self, int index );
 DAO_DLL void DaoxCanvas_PopState( DaoxCanvas *self );
 
 DAO_DLL void DaoxCanvas_SetStrokeWidth( DaoxCanvas *self, float width );

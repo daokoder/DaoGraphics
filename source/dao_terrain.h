@@ -41,16 +41,16 @@
 // 
 //
 // 2. Terrain texturing:
-// -- Classify terrain patches based on its slope and smoothness;
+// -- Classify terrain cells based on its slope and smoothness;
 // -- Support multiple textures for terrain;
 // -- Support texture blending based on terrain types;
 //    DaoxVertex::tan can be used to store terrain types and blending factors;
 */
 
 
-typedef struct DaoxTerrainPoint DaoxTerrainPoint;
-typedef struct DaoxTerrainPatch DaoxTerrainPatch;
-typedef struct DaoxTerrainBlock DaoxTerrainBlock;
+typedef struct DaoxTerrainPoint  DaoxTerrainPoint;
+typedef struct DaoxTerrainCell   DaoxTerrainCell;
+typedef struct DaoxTerrainBlock  DaoxTerrainBlock;
 
 struct DaoxTerrainPoint
 {
@@ -70,16 +70,19 @@ struct DaoxTerrainPoint
 
 
 /*
-// Indexing of vertex corners and sub patches:
-//    3-----------2
-//    |     |     |
-//    |     |     |
-//    Y-----C-----|
-//    |     |__|__|
-//    |     |  |  |
-//    O-----X-----1
+// Indexing of vertex corners and sub cells:
+//
+//    3---------------2
+//    |       |       |
+//    |   1   |   0   |
+//    |       |       |
+//    Y-------+-------|
+//    |       |   |   |
+//    |   2   |---3---|
+//    |       |   |   |
+//    O-------X-------1
 */
-struct DaoxTerrainPatch
+struct DaoxTerrainCell
 {
 	uchar_t  visible;
 	uchar_t  smooth;
@@ -88,12 +91,12 @@ struct DaoxTerrainPatch
 
 	DaoxTerrainPoint  *center;
 	DaoxTerrainPoint  *corners[4];
-	DaoxTerrainPatch  *subs[4];
+	DaoxTerrainCell   *subcells[4];
 };
 
 struct DaoxTerrainBlock
 {
-	DaoxTerrainPatch  *patchTree;
+	DaoxTerrainCell   *cellTree;
 	DaoxTerrainPoint  *baseCenter;
 
 	DaoxTerrainBlock  *east;
@@ -115,15 +118,12 @@ struct DaoxTerrain
 	DList   *vertices;
 	DArray  *triangles;
 
-	DaoxTerrainPatch  *patchTree;
-	DaoxTerrainPoint  *baseCenter;
-
 	DaoxImage     *heightmap;
 	DaoxMaterial  *material;
 
 	DList   *pointList;
 	DList   *pointCache;
-	DList   *patchCache;
+	DList   *cellCache;
 };
 extern DaoType *daox_type_terrain;
 
@@ -133,7 +133,7 @@ void DaoxTerrain_Delete( DaoxTerrain *self );
 void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float height );
 void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap );
 void DaoxTerrain_SetMaterial( DaoxTerrain *self, DaoxMaterial *material );
-void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainPatch *patch );
+void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainCell *cell );
 void DaoxTerrain_Rebuild( DaoxTerrain *self );
 void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 

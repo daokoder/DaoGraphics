@@ -383,8 +383,6 @@ static void GLUT_SetGraphics( DaoProcess *proc, DaoValue *p[], int N )
 static void GLUT_Paint( DaoProcess *proc, DaoValue *p[], int N )
 {
 	GLUT_SetGraphics( proc, p, N );
-	DaoxCanvas_SetViewport( daox_current_canvas,
-			-window_width/2, window_width/2, -window_height/2, window_height/2 );
 	glutMainLoop();
 }
 static void GLUT_Render( DaoProcess *proc, DaoValue *p[], int N )

@@ -149,6 +149,7 @@ DaoxVector3D  DaoxVector3D_Mul( DaoxVector3D *self, DaoxVector3D *other );
 DaoxVector3D  DaoxVector3D_Scale( DaoxVector3D *self, double scale );
 DaoxVector3D  DaoxVector3D_Cross( DaoxVector3D *self, DaoxVector3D *other );
 DaoxVector3D  DaoxVector3D_Normalize( DaoxVector3D *self );
+DaoxVector3D  DaoxVector3D_Mean( DaoxVector3D A, DaoxVector3D B );
 DaoxVector3D  DaoxVector3D_Interpolate( DaoxVector3D A, DaoxVector3D B, float t );
 DaoxVector3D  DaoxVector3D_ProjectToPlane( DaoxVector3D *self, DaoxVector3D *planeNorm );
 

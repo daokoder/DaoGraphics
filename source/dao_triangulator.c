@@ -225,7 +225,7 @@ void DaoxTriangulator_InitContourOrientation( DaoxTriangulator *self )
 		C = points[vmax->prev->index];
 		dir = DaoxTriangle_Area( A, B, C ) > 0.0 ? DAOX_COUNTER_CW : DAOX_CLOCKWISE;
 
-		printf( "contour = %i  dir = %i\n", (int)vmax->contour, dir );
+		//printf( "contour = %i  dir = %i\n", (int)vmax->contour, dir );
 
 		vertex = start;
 		do {
