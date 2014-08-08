@@ -195,16 +195,10 @@ DaoxDrawTask* DaoxRenderer_MakeDrawTask( DaoxRenderer *self )
 
 void DaoxRenderer_PrepareMeshChunk( DaoxRenderer *self, DaoxMeshChunk *chunk, DaoxDrawTask *task )
 {
-	DaoxVector3D normal;
 	DaoxOBBox3D obbox;
 	daoint i, m, check;
-	float angle;
 
 	if( chunk->triangles->size == 0 ) return;
-
-	normal = DaoxMatrix4D_MulVector( & task->matrix, & chunk->normal, 0.0 );
-	angle = DaoxVector3D_Angle( & normal, & self->frustum.viewDirection );
-	if( (chunk->angle + angle) < 0.5*M_PI ) return; /* Not facing to the camera; */
 
 	obbox = DaoxOBBox3D_Transform( & chunk->obbox, & task->matrix );
 	check = DaoxViewFrustum_Visible( & self->frustum, & obbox );

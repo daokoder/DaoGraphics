@@ -46,8 +46,6 @@ typedef struct DaoxMeshUnit   DaoxMeshUnit;
 
 struct DaoxMeshChunk
 {
-	float           angle;      /* max angle between triangle norms and the average one; */
-	DaoxVector3D    normal;     /* average normal vector (local); */
 	DaoxOBBox3D     obbox;      /* with local coordinates in the mesh; */
 	DArray         *triangles;  /* <int>: with triangle indices in DaoxMeshUnit; */
 
