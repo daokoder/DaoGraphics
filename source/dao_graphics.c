@@ -259,7 +259,7 @@ static void LIGHT_New( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxLightMeths[]=
 {
 	{ LIGHT_New,
-		"Light( litype: enum<ambient,point,directional,spot>, red =1F, green =1F, blue =1F )"
+		"Light( litype: enum<ambient,point,directional,spot>, red =1.0, green =1.0, blue =1.0 )"
 	},
 	{ NULL, NULL }
 };
@@ -362,9 +362,9 @@ static DaoFuncItem DaoxSceneMeths[] =
 {
 	{ SCENE_New,         "Scene()" },
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
-	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1F, ylen = 1F, zlen = 1F ) => Model" },
+	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1.0, ylen = 1.0, zlen = 1.0 ) => Model" },
 	{ SCENE_AddTerrain,
-		"AddTerrain( self: Scene, heightmap: Image, width = 1F, length = 1F, height = 1F )"
+		"AddTerrain( self: Scene, heightmap: Image, width = 1.0, length = 1.0, height = 1.0 )"
 			"=> Terrain"
 	},
 	{ NULL, NULL }

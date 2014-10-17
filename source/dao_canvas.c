@@ -1211,7 +1211,7 @@ static void LINE_Set( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxCanvasLineMeths[]=
 {
-	{ LINE_Set, "Set( self: CanvasLine, x1 = 0F, y1 = 0F, x2 = 1F, y2 = 1F ) => CanvasLine" },
+	{ LINE_Set, "Set( self: CanvasLine, x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 ) => CanvasLine" },
 	{ NULL, NULL }
 };
 
@@ -1246,7 +1246,7 @@ static void RECT_Set( DaoProcess *proc, DaoValue *p[], int N )
 #endif
 static DaoFuncItem DaoxCanvasRectMeths[]=
 {
-	//{ RECT_Set,   "Set( self: CanvasRect, x1 = 0F, y1 = 0F, x2 = 1F, y2 = 1F ) => CanvasRect" },
+	//{ RECT_Set,   "Set( self: CanvasRect, x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 ) => CanvasRect" },
 	{ NULL, NULL }
 };
 
@@ -1277,7 +1277,7 @@ static void CIRCLE_Set( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxCanvasCircleMeths[]=
 {
-	{ CIRCLE_Set,  "Set( self: CanvasCircle, cx = 0F, cy = 0F, r = 1F ) => CanvasCircle" },
+	{ CIRCLE_Set,  "Set( self: CanvasCircle, cx = 0.0, cy = 0.0, r = 1.0 ) => CanvasCircle" },
 	{ NULL, NULL }
 };
 
@@ -1309,7 +1309,7 @@ static void ELLIPSE_Set( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxCanvasEllipseMeths[]=
 {
-	{ ELLIPSE_Set,  "Set( self: CanvasEllipse, cx = 0F, cy = 0F, rx = 1F, ry = 1F ) => CanvasEllipse" },
+	{ ELLIPSE_Set,  "Set( self: CanvasEllipse, cx = 0.0, cy = 0.0, rx = 1.0, ry = 1.0 ) => CanvasEllipse" },
 	{ NULL, NULL }
 };
 
@@ -1832,7 +1832,7 @@ static DaoFuncItem DaoxCanvasMeths[]=
 
 	{ CANVAS_GetViewport,   "GetViewport( self: Canvas ) => tuple<left:float,right:float,bottom:float,top:float>" },
 
-	{ CANVAS_SetBackground,  "SetBackground( self: Canvas, red: float, green: float, blue: float, alpha = 1F ) => Canvas" },
+	{ CANVAS_SetBackground,  "SetBackground( self: Canvas, red: float, green: float, blue: float, alpha = 1.0 ) => Canvas" },
 
 	{ CANVAS_PushState,   "PushState( self: Canvas ) => CanvasState" },
 	{ CANVAS_PushState,   "PushState( self: Canvas, index: int ) => invar<CanvasState>" },
@@ -1843,7 +1843,7 @@ static DaoFuncItem DaoxCanvasMeths[]=
 	{ CANVAS_AddCircle,    "AddCircle( self: Canvas, x: float, y: float, r: float ) => CanvasCircle" },
 	{ CANVAS_AddLine,   "AddLine( self: Canvas, x1: float, y1: float, x2: float, y2: float ) => CanvasLine" },
 
-	{ CANVAS_AddRect,   "AddRect( self: Canvas, x1: float, y1: float, x2: float, y2: float, rx = 0F, ry = 0F ) => CanvasRect" },
+	{ CANVAS_AddRect,   "AddRect( self: Canvas, x1: float, y1: float, x2: float, y2: float, rx = 0.0, ry = 0.0 ) => CanvasRect" },
 
 
 	{ CANVAS_AddEllipse,   "AddEllipse( self: Canvas, x: float, y: float, rx: float, ry: float ) => CanvasEllipse" },
@@ -1860,9 +1860,9 @@ static DaoFuncItem DaoxCanvasMeths[]=
 	{ CANVAS_Test,         "Test( self: Canvas )" },
 #endif
 	{ CANVAS_AddPath,      "AddPath( self: Canvas, path: Path ) => CanvasPath" },
-	{ CANVAS_AddText,      "AddText( self: Canvas, text: string, x: float, y: float, degrees = 0F ) => CanvasText" },
+	{ CANVAS_AddText,      "AddText( self: Canvas, text: string, x: float, y: float, degrees = 0.0 ) => CanvasText" },
 
-	{ CANVAS_AddText2,     "AddText( self: Canvas, text: string, path: Path, degrees = 0F ) => CanvasText" },
+	{ CANVAS_AddText2,     "AddText( self: Canvas, text: string, path: Path, degrees = 0.0 ) => CanvasText" },
 	{ NULL, NULL }
 };
 
@@ -1877,16 +1877,16 @@ DaoTypeBase DaoxCanvas_Typer =
 
 static DaoFuncItem DaoxCanvasStateMeths[]=
 {
-	{ STATE_SetStrokeWidth,  "SetStrokeWidth( self: CanvasState, width = 1F ) => CanvasState" },
+	{ STATE_SetStrokeWidth,  "SetStrokeWidth( self: CanvasState, width = 1.0 ) => CanvasState" },
 
-	{ STATE_SetStrokeColor,  "SetStrokeColor( self: CanvasState, red: float, green: float, blue: float, alpha = 1F ) => CanvasState" },
+	{ STATE_SetStrokeColor,  "SetStrokeColor( self: CanvasState, red: float, green: float, blue: float, alpha = 1.0 ) => CanvasState" },
 
-	{ STATE_SetFillColor,  "SetFillColor( self: CanvasState, red: float, green: float, blue: float, alpha = 1F ) => CanvasState" },
+	{ STATE_SetFillColor,  "SetFillColor( self: CanvasState, red: float, green: float, blue: float, alpha = 1.0 ) => CanvasState" },
 
 	{ STATE_SetLineCap, "SetLineCap( self: CanvasState, cap: enum<none,flat,sharp,round> = $none ) => CanvasState" },
 	{ STATE_SetJunction, "SetJunction( self: CanvasState, junction: enum<none,flat,sharp,round> = $sharp ) => CanvasState" },
 
-	{ STATE_SetDash, "SetDashPattern( self: CanvasState, pattern = [3F,2F] ) => CanvasState" },
+	{ STATE_SetDash, "SetDashPattern( self: CanvasState, pattern = [3.0,2.0] ) => CanvasState" },
 
 	{ STATE_SetStrokeGradient, "SetStrokeGradient( self: CanvasState ) => ColorGradient" },
 
@@ -1896,7 +1896,7 @@ static DaoFuncItem DaoxCanvasStateMeths[]=
 
 	//{ STATE_SetPathGradient,   "SetPathGradient( self: CanvasState ) => PathGradient" },
 
-	{ STATE_SetFont,      "SetFont( self: CanvasState, font: Font, size = 12F ) => CanvasState" },
+	{ STATE_SetFont,      "SetFont( self: CanvasState, font: Font, size = 12.0 ) => CanvasState" },
 	{ STATE_SetParentItem,   "SetParentItem( self: CanvasState, item: CanvasNode )" },
 	{ NULL, NULL }
 };
@@ -1962,7 +1962,7 @@ DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoFont_OnLoad( vmSpace, ns );
 	DaoImage_OnLoad( vmSpace, ns );
 
-	DaoNamespace_TypeDefine( ns, "tuple<red:float,green:float,blue:float,alpha:float>", "Color" );
+	DaoNamespace_DefineType( ns, "tuple<red:float,green:float,blue:float,alpha:float>", "Color" );
 
 	daox_type_color_gradient = DaoNamespace_WrapType( ns, & DaoxColorGradient_Typer, 0 );
 	daox_type_linear_gradient = DaoNamespace_WrapType( ns, & DaoxLinearGradient_Typer, 0 );

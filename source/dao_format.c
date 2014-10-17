@@ -76,7 +76,7 @@ static DaoxMeshUnit* DaoxObjParser_ConstructMeshUnit( DaoxObjParser *self, DaoxM
 	DaoxVertex vertex;
 	DaoxVector3D vector;
 	DaoxMeshUnit *unit = DaoxMesh_AddUnit( mesh );
-	complex16 buffer = {0.0, 0.0};
+	dao_complex buffer = {0.0, 0.0};
 	uint_t *quadints = (uint_t*) & buffer;
 	daoint i, j, k, N = self->flist->size;
 	int tcount = 0;
@@ -199,7 +199,7 @@ int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *
 				if( tok->type < DTOK_DIGITS_DEC ) goto InvalidFormat;
 				if( tok->type > DTOK_NUMBER_SCI ) goto InvalidFormat;
 				if( k >= 3 ) goto InvalidFormat;
-				numbers[k++] = DaoToken_ToDouble( tok );
+				numbers[k++] = DaoToken_ToFloat( tok );
 			}
 			switch( ctype ){
 			case 0 : color = & material->ambient; break;
@@ -268,7 +268,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 	DArray *vlist = parser->vlist;
 	DArray *vtlist = parser->vtlist;
 	DArray *vnlist = parser->vnlist;
-	complex16 com = {0.0, 0.0};
+	dao_complex com = {0.0, 0.0};
 	uint_t *integers = (uint_t*) & com;
 	double numbers[4] = {0.0};
 	daoint vcount = 0, vtcount = 0, vncount = 0;
@@ -299,7 +299,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 				if( tok->type < DTOK_DIGITS_DEC ) goto InvalidFormat;
 				if( tok->type > DTOK_NUMBER_SCI ) goto InvalidFormat;
 				if( k >= 4 ) goto InvalidFormat;
-				numbers[k++] = sign * DaoToken_ToDouble( tok );
+				numbers[k++] = sign * DaoToken_ToFloat( tok );
 			}
 			vector.x = numbers[0];
 			vector.y = numbers[1];
@@ -316,7 +316,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 				if( tok->type < DTOK_DIGITS_DEC ) goto InvalidFormat;
 				if( tok->type > DTOK_NUMBER_SCI ) goto InvalidFormat;
 				if( k >= 3 ) goto InvalidFormat;
-				numbers[k++] = sign * DaoToken_ToDouble( tok );
+				numbers[k++] = sign * DaoToken_ToFloat( tok );
 			}
 			vector.x = numbers[0];
 			vector.y = numbers[1];
@@ -333,7 +333,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 				if( tok->type < DTOK_DIGITS_DEC ) goto InvalidFormat;
 				if( tok->type > DTOK_NUMBER_SCI ) goto InvalidFormat;
 				if( k >= 3 ) goto InvalidFormat;
-				numbers[k++] = sign * DaoToken_ToDouble( tok );
+				numbers[k++] = sign * DaoToken_ToFloat( tok );
 			}
 			vector.x = numbers[0];
 			vector.y = numbers[1];

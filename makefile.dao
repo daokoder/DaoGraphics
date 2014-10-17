@@ -61,6 +61,7 @@ project.UseImportLibrary( daovm )
 project.UseSharedLibrary( opengl )
 if( glut != none ) project.UseSharedLibrary( glut )
 
+project.SetTargetPath( "../../lib/dao/modules" )
 
 project_objs = project.AddObjects( project_sources, project_headers )
 project_dll  = project.AddSharedLibrary( "dao_graphics", project_objs )
@@ -68,5 +69,5 @@ project_lib  = project.AddStaticLibrary( "dao_graphics", project_objs )
 
 
 project.GenerateFinder( $TRUE );
-project.Install( daovm.GetPath( "MOD-PATH" ), project_dll );
-project.Install( daovm.GetPath( "MOD-PATH" ), project_lib );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );
+project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_lib );
