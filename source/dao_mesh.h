@@ -68,7 +68,7 @@ struct DaoxMeshUnit
 	DaoxMesh        *mesh;
 	DaoxMeshChunk   *tree;
 	DaoxMaterial    *material;
-	DArray          *vertices;  /* <DaoxVector3D>: local coordinates; */
+	DArray          *vertices;  /* <DaoxVertex>: local coordinates; */
 	DArray          *triangles; /* <DaoxTriangle>: local coordinates (for face norms); */
 	DaoxOBBox3D      obbox;     /* local coordinates; */
 	uint_t           index;     /* unit index in the mesh; */

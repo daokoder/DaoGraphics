@@ -139,4 +139,49 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 
 
+
+typedef struct DaoxHexTriangle DaoxHexTriangle;
+typedef struct DaoxHexUnit     DaoxHexUnit;
+typedef struct DaoxHexTerrain  DaoxHexTerrain;
+
+struct DaoxHexTriangle
+{
+	int  vertices[3];
+
+	DaoxHexTriangle  *subs[4];
+};
+
+struct DaoxHexUnit
+{
+	DaoxVector2D      center;
+	DaoxOBBox3D       obbox;     /* local coordinates; */
+	DaoxHexTriangle  *roots[6];
+	DArray           *vertices;  /* <DaoxVector3D>: local coordinates; */
+	DArray           *triangles; /* <DaoxTriangle>: local coordinates (for face norms); */
+};
+
+struct DaoxHexTerrain
+{
+	DaoxSceneNode  base;
+
+	DaoxImage  *heightmap;
+
+	DList   *tiles; /* column major; */
+
+	int    rows;
+	int    columns;
+	float  radius;
+	float  height;
+	float  depth;
+};
+extern DaoType *daox_type_hexterrain;
+
+DaoxHexTerrain* DaoxHexTerrain_New();
+void DaoxHexTerrain_Delete( DaoxHexTerrain *self );
+
+void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int rows, int cols, float height );
+void DaoxHexTerrain_SetHeightmap( DaoxHexTerrain *self, DaoxImage *heightmap );
+void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self );
+
+
 #endif
