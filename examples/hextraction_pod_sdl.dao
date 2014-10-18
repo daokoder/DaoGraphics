@@ -1,0 +1,92 @@
+# Adapted from SDL library:
+
+load os
+load sdl
+load graphics
+load example_utility
+
+const WINDOW_WIDTH  = 960
+const WINDOW_HEIGHT = 640
+
+var resource = Graphics::Resource()
+
+routine LoadScene()
+{
+	scene = resource.LoadObjFile( "../media/hextraction_pod/hextraction_pod.obj" )
+
+	# light types not supported yet!
+	light = Graphics::Light( $spot, 0.3, 0.3, 0.3 )
+	light.Move( 800, 500, 400 )
+	scene.AddNode( light );
+
+	light = Graphics::Light( $spot, 0.2, 0.2, 0.2 )
+	light.Move( 0, 800, 0 )
+	scene.AddNode( light );
+
+	camera = Graphics::Camera()
+	camera.Move( 800, 800, 800 )
+	camera.LookAt( 0, 300, 0 );
+	camera.SetFarPlane( 50000 );
+	camera.SetFOV( 60 );
+	camera.Orient( $Y );
+	scene.AddNode( camera );
+	return scene, camera
+}
+
+# Call this instead of exit(), so we can clean up SDL: atexit() is evil. 
+routine quit( rc :int )
+{
+	os.exit(rc);
+}
+routine main()
+{
+
+	SDL_Init(SDL_INIT_VIDEO);
+	
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 8);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
+
+	window = SDL_CreateWindow( "test", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL );
+	if( window == none ) quit(2);
+
+	renderer = SDL_CreateRenderer( window, 0, SDL_WINDOW_OPENGL );
+	if( renderer == none ) quit(2);
+
+	var (scene, camera) = LoadScene()
+	var dao_renderer = Graphics::Renderer( WINDOW_WIDTH, WINDOW_HEIGHT );
+	dao_renderer.SetCurrentCamera( camera )
+
+	# Main render loop 
+	event = SDL_Event();
+	done = 0;
+	timestamp = 0;
+	while (!done) {
+		# Check for events 
+		if( SDL_PollEvent(event) == 0 ) skip;
+		if( event.type == SDL_KEYDOWN ){
+			switch( event.key.keysym.sym ){
+			case SDLK_LEFT  : MoveCameraByDirection( camera, $left );
+			case SDLK_RIGHT : MoveCameraByDirection( camera, $right );
+			case SDLK_UP    : MoveCameraByDirection( camera, $up );
+			case SDLK_DOWN  : MoveCameraByDirection( camera, $down );
+			case SDLK_PLUS  : ZoomCamera( camera, $in )
+			case SDLK_MINUS : ZoomCamera( camera, $out )
+			case SDLK_EQUALS : if( event.key.keysym.mod & KMOD_LSHIFT ) ZoomCamera( camera, $in )
+			}
+		}
+		if( timestamp ){
+			if( event.key.keysym.sym == SDLK_ESCAPE ) break;
+			#if( event.type != SDL_MOUSEMOTION or event.motion.timestamp == timestamp ) skip;
+		}
+
+		timestamp = event.motion.timestamp;
+		dao_renderer.Render( scene )
+		SDL_RenderPresent( renderer );
+	}
+	quit(0);
+}

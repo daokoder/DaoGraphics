@@ -103,7 +103,6 @@ static void MAT_SetColor( DaoProcess *proc, DaoValue *p[], int N )
 		color.red   = value->values[0]->xFloat.value;
 		color.green = value->values[1]->xFloat.value;
 		color.blue  = value->values[2]->xFloat.value;
-		printf( ">>>>>>>>>>>> %i %f\n", param->values[0]->xEnum.value, color.green );
 		switch( param->values[0]->xEnum.value ){
 		case 0: self->ambient  = color; break;
 		case 1: self->diffuse  = color; break;
@@ -154,10 +153,19 @@ static void SNODE_MoveBy( DaoProcess *proc, DaoValue *p[], int N )
 	float dz = p[3]->xFloat.value;
 	DaoxSceneNode_MoveByXYZ( self, dx, dy, dz );
 }
+static void SNODE_Trans( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxSceneNode *self = (DaoxSceneNode*) p[0];
+	DaoTuple *res = DaoProcess_PutTuple( proc, 3 );
+	res->values[0]->xFloat.value = self->translation.x;
+	res->values[1]->xFloat.value = self->translation.y;
+	res->values[2]->xFloat.value = self->translation.z;
+}
 static DaoFuncItem DaoxSceneNodeMeths[]=
 {
 	{ SNODE_Move,    "Move( self: SceneNode, x: float, y: float, z: float )" },
 	{ SNODE_MoveBy,  "MoveBy( self: SceneNode, dx: float, dy: float, dz: float )" },
+	{ SNODE_Trans,   ".translation( self: SceneNode ) => tuple<x:float,y:float,z:float>" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxSceneNode_Typer =
@@ -225,6 +233,19 @@ static void CAM_SetFarPlane( DaoProcess *proc, DaoValue *p[], int N )
 	float dist = p[1]->xFloat.value;
 	self->farPlane = dist;
 }
+static void CAM_FocusPos( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCamera *self = (DaoxCamera*) p[0];
+	DaoTuple *res = DaoProcess_PutTuple( proc, 3 );
+	res->values[0]->xFloat.value = self->viewTarget.x;
+	res->values[1]->xFloat.value = self->viewTarget.y;
+	res->values[2]->xFloat.value = self->viewTarget.z;
+}
+static void CAM_FOV( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCamera *self = (DaoxCamera*) p[0];
+	DaoProcess_PutFloat( proc, self->fovAngle );
+}
 static DaoFuncItem DaoxCameraMeths[]=
 {
 	{ CAM_New,     "Camera()" },
@@ -236,6 +257,8 @@ static DaoFuncItem DaoxCameraMeths[]=
 	{ CAM_SetFOV,  "SetFOV( self: Camera, angle: float )" },
 	{ CAM_SetNearPlane,  "SetNearPlane( self: Camera, dist: float )" },
 	{ CAM_SetFarPlane,   "SetFarPlane( self: Camera, dist: float )" },
+	{ CAM_FocusPos, ".focus( self: Camera ) => tuple<x:float,y:float,z:float>" },
+	{ CAM_FOV, ".fov( self: Camera ) => float" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxCamera_Typer =
@@ -391,10 +414,18 @@ static void PAINTER_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
 	int height = p[4]->xInteger.value;
 	DaoxPainter_PaintCanvasImage( self, canvas, canvas->viewport, image, width, height );
 }
+static void PAINTER_Paint( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxPainter *self = (DaoxPainter*) p[0];
+	DaoxCanvas *canvas = (DaoxCanvas*) p[1];
+	DaoxCanvas_UpdateScene( canvas );
+	DaoxPainter_Paint( self, canvas, canvas->viewport );
+}
 static DaoFuncItem DaoxPainterMeths[]=
 {
 	{ PAINTER_New,            "Painter()" },
 	{ PAINTER_RenderToImage,  "RenderToImage( self: Painter, canvas: Canvas, image: Image, width: int, height: int )" },
+	{ PAINTER_Paint,  "Paint( self: Painter, canvas: Canvas )" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxPainter_Typer =
@@ -408,6 +439,8 @@ DaoTypeBase DaoxPainter_Typer =
 static void RENDR_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxRenderer *self = DaoxRenderer_New();
+	self->targetWidth  = p[0]->xInteger.value;
+	self->targetHeight = p[1]->xInteger.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void RENDR_SetCurrentCamera( DaoProcess *proc, DaoValue *p[], int N )
@@ -430,12 +463,19 @@ static void RENDR_Enable( DaoProcess *proc, DaoValue *p[], int N )
 	case 1 : self->showAxis = 1; break;
 	}
 }
+static void RENDR_Render( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxRenderer *self = (DaoxRenderer*) p[0];
+	DaoxScene *scene = (DaoxScene*) p[1];
+	DaoxRenderer_Render( self, scene, NULL );
+}
 static DaoFuncItem DaoxRendererMeths[]=
 {
-	{ RENDR_New,         "Renderer()" },
+	{ RENDR_New,         "Renderer( width = 300, height = 200 )" },
 	{ RENDR_SetCurrentCamera,  "SetCurrentCamera( self: Renderer, camera: Camera )" },
 	{ RENDR_GetCurrentCamera,  "GetCurrentCamera( self: Renderer ) => Camera" },
 	{ RENDR_Enable,  "Enable( self: Renderer, what: enum<none,axis> )" },
+	{ RENDR_Render,  "Render( self: Renderer, scene: Scene )" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxRenderer_Typer =
