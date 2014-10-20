@@ -114,6 +114,7 @@ struct DaoxVector2D
 };
 
 DaoxVector2D DaoxVector2D_XY( float x, float y );
+DaoxVector2D DaoxVector2D_Vector3D( DaoxVector3D x );
 DaoxVector2D DaoxVector2D_Add( DaoxVector2D *self, DaoxVector2D *other );
 DaoxVector2D DaoxVector2D_Sub( DaoxVector2D *self, DaoxVector2D *other );
 DaoxVector2D DaoxVector2D_Scale( DaoxVector2D *self, double scale );

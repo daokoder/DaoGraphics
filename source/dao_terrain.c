@@ -859,26 +859,40 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum )
 
 
 
-DaoType *daox_type_hexterrain = NULL;
+
+DaoxHexPoint* DaoxHexPoint_New( float x, float y )
+{
+	DaoxHexPoint *self = (DaoxHexPoint*) dao_calloc( 1, sizeof(DaoxHexPoint) );
+	self->pos.x = x;
+	self->pos.y = y;
+	return self;
+}
+DaoxHexBorder* DaoxHexBorder_New( DaoxHexPoint *start, DaoxHexPoint *end )
+{
+	DaoxHexBorder *self = (DaoxHexBorder*) dao_calloc( 1, sizeof(DaoxHexBorder) );
+	self->start = start;
+	self->end = end;
+	return self;
+}
 
 DaoxHexTriangle* DaoxHexTriangle_New()
 {
 	DaoxHexTriangle *self = (DaoxHexTriangle*) dao_calloc( 1, sizeof(DaoxHexTriangle) );
 	return self;
 }
-void DaoxHexTriangle_DeleteSubs( DaoxHexTriangle *self );
+void DaoxHexTriangle_DeleteSplits( DaoxHexTriangle *self );
 void DaoxHexTriangle_Delete( DaoxHexTriangle *self )
 {
-	DaoxHexTriangle_DeleteSubs( self );
+	DaoxHexTriangle_DeleteSplits( self );
 	dao_free( self );
 }
-void DaoxHexTriangle_DeleteSubs( DaoxHexTriangle *self )
+void DaoxHexTriangle_DeleteSplits( DaoxHexTriangle *self )
 {
 	int i;
 	for(i=0; i<4; ++i){
-		if( self->subs[i] ){
-			DaoxHexTriangle_Delete( self->subs[i] );
-			self->subs[i] = NULL;
+		if( self->splits[i] ){
+			DaoxHexTriangle_Delete( self->splits[i] );
+			self->splits[i] = NULL;
 		}
 	}
 }
@@ -886,49 +900,38 @@ void DaoxHexTriangle_DeleteSubs( DaoxHexTriangle *self )
 DaoxHexUnit* DaoxHexUnit_New()
 {
 	DaoxHexUnit *self = (DaoxHexUnit*) dao_calloc( 1, sizeof(DaoxHexUnit) );
-	self->vertices = DArray_New( sizeof(DaoxVector3D) );
-	self->triangles = DArray_New( sizeof(DaoxTriangle) );
 	return self;
 }
 void DaoxHexUnit_Delete( DaoxHexUnit *self )
 {
 	int i;
 	for(i=0; i<6; ++i){
-		if( self->roots[i] ) DaoxHexTriangle_Delete( self->roots[i] );
+		if( self->splits[i] ) DaoxHexTriangle_Delete( self->splits[i] );
 	}
-	DArray_Delete( self->vertices );
-	DArray_Delete( self->triangles );
 	dao_free( self );
 }
 
-/*
-//        ........._____.......
-//       |        /     \
-//       |  _____/       \_____
-//       | /     \       /
-//       |/       \_____/
-//       |\       /     \
-//       | \_____/       \_____
-//       | /     \       /
-//       |/       \_____/
-//       |\       /     \
-//       |.\_____/.......\_____
-*/
 
 DaoxHexTerrain* DaoxHexTerrain_New()
 {
 	DaoxHexTerrain *self = (DaoxHexTerrain*) dao_calloc( 1, sizeof(DaoxHexTerrain) );
-	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_terrain );
+	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_hexterrain );
 	self->tiles = DList_New(0);
+	self->borders = DList_New(0);
+	self->points = DList_New(0);
+	self->mesh = DaoxMesh_New();
+	GC_IncRC( self->mesh );
 	self->rows = 1;
 	self->columns = 1;
-	self->radius = 1.0;
+	self->radius = 5.0;
 	self->height = 1.0;
 	self->depth = 1.0;
+	self->buffer = DList_New(0);
 	return self;
 }
 void DaoxHexTerrain_Delete( DaoxHexTerrain *self )
 {
+	GC_DecRC( self->mesh );
 }
 
 void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int rows, int cols, float height )
@@ -944,8 +947,8 @@ void DaoxHexTerrain_SetHeightmap( DaoxHexTerrain *self, DaoxImage *heightmap )
 float DaoxHexTerrain_GetPixel( DaoxHexTerrain *self, float x, float y )
 {
 	float sin60 = sin( M_PI / 3.0 );
-	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius;
-	float length = self->rows * 2.0 * self->radius * sin60 + self->radius * sin60;
+	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius + EPSILON + 1;
+	float length = self->rows * 2.0 * self->radius * sin60 + self->radius * sin60 + EPSILON + 1;
 	return DaoxImage_GetPixel( self->heightmap, width, length, x, y );
 }
 float DaoxHexTerrain_GetHeight( DaoxHexTerrain *self, float x, float y )
@@ -957,111 +960,396 @@ void DaoxHexTerrain_FindMinMaxPixel( DaoxHexTerrain *self, DaoxVector2D points[3
 {
 	DaoxVector2D center = {0.0, 0.0};
 	DaoxVector2D points2[3];
+	DaoxVector2D points3[3];
 	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius;
-	float len = DaoxVector2D_Dist( points[0], points[1] );
+	float z, len = DaoxVector2D_Dist( points[0], points[1] );
 	int i;
 
 	if( len * self->heightmap->width / width < 1.0 ) return;
+	if( (*max - *min) > 0.1 * self->height && (*max - *min) > 0.05 * self->radius ) return;
 	for(i=0; i<3; ++i){
-		center.x += points[i].x;
-		center.y += points[i].y;
+		points2[i] = DaoxVector2D_Interpolate( points[i], points[(i+1)%3], 0.5 );
+		z = DaoxHexTerrain_GetHeight( self, points2[i].x, points2[i].y );
+		if( z < *min ) *min = z;
+		if( z > *max ) *max = z;
 	}
-	center.x /= 3.0;
-	center.y /= 3.0;
+	DaoxHexTerrain_FindMinMaxPixel( self, points2, min, max );
 	for(i=0; i<3; ++i){
-		*points2 = *points;
-		points2[i] = center;
-		DaoxHexTerrain_FindMinMaxPixel( self, points2, min, max );
+		memcpy( points3, points2, 3*sizeof(DaoxVector2D) );
+		points3[i] = points[(i+2)%3];
+		DaoxHexTerrain_FindMinMaxPixel( self, points3, min, max );
+	}
+}
+void DaoxHexTerrain_Split( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTriangle *triangle )
+{
+	int i;
+	for(i=0; i<4; ++i){
+		if( triangle->splits[i] == NULL ) triangle->splits[i] = DaoxHexTriangle_New();
+	}
+	for(i=0; i<3; ++i){
+		DaoxHexPoint *mid = NULL;
+		DaoxHexBorder *border = triangle->borders[i];
+		int dir = triangle->points[i] == border->start;
+
+		if( border->left ){
+			DaoxHexBorder *left = border->left;
+			mid = left->start == border->start ? left->end : left->start;
+		}else{
+			mid = DaoxHexPoint_New(0.0,0.0);
+			mid->pos = DaoxVector3D_Interpolate( border->start->pos, border->end->pos, 0.5 );
+			mid->pos.z = DaoxHexTerrain_GetHeight( self, mid->pos.x, mid->pos.y );
+			border->left = DaoxHexBorder_New( border->start, mid );
+			border->right = DaoxHexBorder_New( mid, border->end );
+		}
+		triangle->splits[0]->points[i] = mid;
+		triangle->splits[i+1]->points[0] = triangle->points[i];
+		triangle->splits[i+1]->points[1] = mid;
+		triangle->splits[i+1]->borders[0] = dir ? border->left : border->right;
+		triangle->splits[i==2?1:i+2]->points[0] = triangle->points[(i+1)%3];
+		triangle->splits[i==2?1:i+2]->points[2] = mid;
+		triangle->splits[i==2?1:i+2]->borders[2] = dir ? border->right : border->left;
+	}
+	for(i=0; i<3; ++i){
+		DaoxHexTriangle *mid = triangle->splits[0];
+		DaoxHexBorder *border = DaoxHexBorder_New( mid->points[i], mid->points[(i+1)%3] );
+		mid->borders[i] = border;
+		triangle->splits[i==2?1:i+2]->borders[1] = border;
 	}
 }
 void DaoxHexTerrain_Refine( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTriangle *triangle )
 {
-	DaoxVector3D *vertices = unit->vertices->data.vectors3d;
-	DaoxVector3D *center;
 	DaoxVector2D points[3];
 	float min = self->height;
 	float max = 0.0;
 	int i, id;
 	for(i=0; i<3; ++i){
-		float z = vertices[triangle->vertices[i]].z;
-		points[i].x = vertices[triangle->vertices[i]].x;
-		points[i].y = vertices[triangle->vertices[i]].y;
+		float z = triangle->points[i]->pos.z;
+		points[i].x = triangle->points[i]->pos.x;
+		points[i].y = triangle->points[i]->pos.y;
 		if( z < min ) min = z;
 		if( z > max ) max = z;
 	}
 	DaoxHexTerrain_FindMinMaxPixel( self, points, & min, & max );
-	if( (max - min) < 0.1 * self->height ){
-		DaoxHexTriangle_DeleteSubs( triangle );
+	if( (max - min) < 0.1 * self->height || (max - min) < 0.05 * self->radius ){
+#if 0
+		DaoxTriangle *t = (DaoxTriangle*) DArray_Push( unit->mesh->triangles );
+		t->index[0] = triangle->vertices[0];
+		t->index[1] = triangle->vertices[1];
+		t->index[2] = triangle->vertices[2];
+#endif
+		DaoxHexTriangle_DeleteSplits( triangle );
 		return;
 	}
-	id = unit->vertices->size;
-	DArray_Reset( unit->vertices, unit->vertices->size + 3 );
-	vertices = unit->vertices->data.vectors3d;
-	for(i=0; i<3; ++i){
-		int vi = triangle->vertices[i];
-		int vj = triangle->vertices[(i+1)%3];
-		vertices[id].x = 0.5 * (vertices[vi].x + vertices[vj].x);
-		vertices[id].y = 0.5 * (vertices[vi].y + vertices[vj].y);
-		vertices[id].z = DaoxHexTerrain_GetHeight( self, vertices[id].x, vertices[id].y );
-	}
-	for(i=0; i<4; ++i){
-		if( triangle->subs[i] == NULL ) triangle->subs[i] = DaoxHexTriangle_New();
-	}
-	triangle->subs[0]->vertices[0] = id;
-	triangle->subs[0]->vertices[1] = id+1;
-	triangle->subs[0]->vertices[2] = id+2;
-	for(i=0; i<3; ++i){
-		int vi = triangle->vertices[i];
-		int vj = id + i;
-		int vk = id + (i+2)%3;
-		triangle->subs[i+1]->vertices[0] = triangle->vertices[i];
-		triangle->subs[i+1]->vertices[1] = id + i;
-		triangle->subs[i+1]->vertices[2] = id + (i+2)%3;
-	}
-	for(i=0; i<4; ++i) DaoxHexTerrain_Refine( self, unit, triangle->subs[i] );
+	DaoxHexTerrain_Split( self, unit, triangle );
+	//for(i=0; i<2; ++i) DaoxHexTerrain_Refine( self, unit, triangle->splits[i] );
+	for(i=0; i<4; ++i) DaoxHexTerrain_Refine( self, unit, triangle->splits[i] );
 }
 void DaoxHexTerrain_RebuildUnit( DaoxHexTerrain *self, DaoxHexUnit *unit )
 {
 	int i;
+	DaoxHexBorder *spokes[6];
+
 	for(i=0; i<6; ++i){
-		if( unit->roots[i] ) continue;
-		unit->roots[i] = DaoxHexTriangle_New();
+		if( unit->neighbors[i] ){
+			unit->borders[i] = unit->neighbors[i]->borders[(i+3)%6];
+		}
 	}
-	unit->vertices->size = unit->triangles->size = 0;
-	DArray_Reset( unit->vertices, 7 );
-	unit->vertices->data.vectors3d[0].x = unit->center.x;
-	unit->vertices->data.vectors3d[0].y = unit->center.y;
 	for(i=0; i<6; ++i){
-		DaoxVector3D *v = unit->vertices->data.vectors3d + i + 1;
-		float angle = i * M_PI / 3.0;
-		v->x = unit->center.x + self->radius * cos( angle );
-		v->y = unit->center.y + self->radius * sin( angle );
-		unit->roots[i]->vertices[0] = 0;
-		unit->roots[i]->vertices[1] = i+1;
-		unit->roots[i]->vertices[2] = (i+2)%6;
+		float x1 = unit->center->pos.x + self->radius * cos( i*M_PI/3.0 );
+		float y1 = unit->center->pos.y + self->radius * sin( i*M_PI/3.0 );
+		float x2 = unit->center->pos.x + self->radius * cos( (i+1)*M_PI/3.0 );
+		float y2 = unit->center->pos.y + self->radius * sin( (i+1)*M_PI/3.0 );
+		DaoxVector2D p1 = DaoxVector2D_XY( x1, y1 );
+		DaoxVector2D p2 = DaoxVector2D_XY( x2, y2 );
+		DaoxHexBorder *prev = unit->borders[(i+5)%6];
+		DaoxHexBorder *next = unit->borders[(i+1)%6];
+		DaoxHexPoint *start = NULL;
+		DaoxHexPoint *end = NULL;
+		if( unit->borders[i] ) continue;
+		if( prev ){
+			DaoxVector2D q1 = DaoxVector2D_Vector3D( prev->start->pos );
+			DaoxVector2D q2 = DaoxVector2D_Vector3D( prev->end->pos );
+			double d1 = DaoxVector2D_Dist( q1, p1 );
+			double d2 = DaoxVector2D_Dist( q2, p1 );
+			start = d1 < d2 ? prev->start : prev->end;
+		}
+		if( next ){
+			DaoxVector2D q1 = DaoxVector2D_Vector3D( next->start->pos );
+			DaoxVector2D q2 = DaoxVector2D_Vector3D( next->end->pos );
+			double d1 = DaoxVector2D_Dist( q1, p2 );
+			double d2 = DaoxVector2D_Dist( q2, p2 );
+			end = d1 < d2 ? next->start : next->end;
+		}
+		if( start == NULL ){
+			start = DaoxHexPoint_New( x1, y1 );
+			start->pos.z = DaoxHexTerrain_GetHeight( self, x1, y1 );
+		}
+		if( end == NULL ){
+			end = DaoxHexPoint_New( x2, y2 );
+			end->pos.z = DaoxHexTerrain_GetHeight( self, x2, y2 );
+		}
+		unit->borders[i] = DaoxHexBorder_New( start, end );
 	}
-	for(i=0; i<7; ++i){
-		DaoxVector3D *v = unit->vertices->data.vectors3d + i;
-		v->z = DaoxHexTerrain_GetHeight( self, v->x, v->y );
+	for(i=0; i<6; ++i){
+		DaoxHexBorder *border = unit->borders[i];
+		float x1 = unit->center->pos.x + self->radius * cos( i*M_PI/3.0 );
+		float y1 = unit->center->pos.y + self->radius * sin( i*M_PI/3.0 );
+		DaoxVector2D p1 = DaoxVector2D_XY( x1, y1 );
+		DaoxVector2D q1 = DaoxVector2D_Vector3D( border->start->pos );
+		DaoxVector2D q2 = DaoxVector2D_Vector3D( border->end->pos );
+
+		double d1 = DaoxVector2D_Dist( q1, p1 );
+		double d2 = DaoxVector2D_Dist( q2, p1 );
+		DaoxHexPoint *start = d1 < d2 ? border->start : border->end;
+
+		spokes[i] = DaoxHexBorder_New( unit->center, start );
 	}
-	for(i=0; i<6; ++i) DaoxHexTerrain_Refine( self, unit, unit->roots[i] );
+
+	for(i=0; i<6; ++i){
+		DaoxHexTriangle *triangle = unit->splits[i];
+		if( triangle == NULL ) unit->splits[i] = triangle = DaoxHexTriangle_New();
+		triangle->borders[0] = spokes[i];
+		triangle->borders[1] = unit->borders[i];
+		triangle->borders[2] = spokes[(i+1)%6];
+		triangle->points[0] = unit->center;
+		triangle->points[1] = spokes[i]->end;
+		triangle->points[2] = spokes[(i+1)%6]->end;
+	}
+	for(i=0; i<6; ++i) DaoxHexTerrain_Refine( self, unit, unit->splits[i] );
+}
+int DaoxHexBorder_CountPoints( DaoxHexBorder *self )
+{
+	int k = 0;
+	if( self->left ){
+		k += DaoxHexBorder_CountPoints( self->left );
+		k += DaoxHexBorder_CountPoints( self->right );
+		return k + 1;
+	}
+	return 0;
+}
+void DaoxHexTerrain_Adjust( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTriangle *triangle )
+{
+	int i, k = 0, divs = 0;
+	if( triangle->splits[0] != NULL ){
+		for(i=0; i<4; ++i) DaoxHexTerrain_Adjust( self, unit, triangle->splits[i] );
+		return;
+	}
+	for(i=0; i<3; ++i){
+		if( triangle->borders[i]->left != NULL ){
+			divs += 1;
+			k = i;
+		}
+	}
+	if( divs >= 2 ){
+		DaoxHexTerrain_Split( self, unit, triangle );
+		self->changes += 1;
+	}else if( divs == 1 ){
+		int count = DaoxHexBorder_CountPoints( triangle->borders[k] );
+		if( count >= 3 ){
+			DaoxHexTerrain_Split( self, unit, triangle );
+			self->changes += 1;
+		}
+	}
+}
+void DaoxHexTerrain_AdjustUnit( DaoxHexTerrain *self, DaoxHexUnit *unit )
+{
+	int i;
+	for(i=0; i<6; ++i) DaoxHexTerrain_Adjust( self, unit, unit->splits[i] );
+}
+void DaoxHexUnit_ResetVertices( DaoxHexUnit *unit, DaoxHexBorder *border )
+{
+	if( border->left ){
+		DaoxHexUnit_ResetVertices( unit, border->left );
+		DaoxHexUnit_ResetVertices( unit, border->right );
+		return;
+	}
+	border->start->id = border->end->id = 0;
+}
+void DaoxHexTerrain_ResetVertices( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTriangle *triangle )
+{
+	int i;
+	if( triangle->splits[0] != NULL ){
+		for(i=0; i<4; ++i) DaoxHexTerrain_ResetVertices( self, unit, triangle->splits[i] );
+		return;
+	}
+	/*
+	// Borders should be used to export vertices, because they may belong to
+	// triangles from other tiles.
+	*/
+	for(i=0; i<3; ++i){
+		DaoxHexUnit_ResetVertices( unit, triangle->borders[i] );
+	}
+}
+void DaoxHexUnit_ExportVertices( DaoxHexUnit *unit, DaoxHexBorder *border )
+{
+	if( border->left ){
+		DaoxHexUnit_ExportVertices( unit, border->left );
+		DaoxHexUnit_ExportVertices( unit, border->right );
+		return;
+	}
+	if( border->start->id == 0 ){
+		DaoxVertex *vertex = (DaoxVertex*) DArray_Push( unit->mesh->vertices );
+		vertex->pos = border->start->pos;
+		border->start->id = unit->mesh->vertices->size;
+	}
+	if( border->end->id == 0 ){
+		DaoxVertex *vertex = (DaoxVertex*) DArray_Push( unit->mesh->vertices );
+		vertex->pos = border->end->pos;
+		border->end->id = unit->mesh->vertices->size;
+	}
+}
+void DaoxHexTerrain_ExportVertices( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTriangle *triangle )
+{
+	int i;
+	if( triangle->splits[0] != NULL ){
+		for(i=0; i<4; ++i) DaoxHexTerrain_ExportVertices( self, unit, triangle->splits[i] );
+		return;
+	}
+	/*
+	// Borders should be used to export vertices, because they may belong to
+	// triangles from other tiles.
+	*/
+	for(i=0; i<3; ++i){
+		DaoxHexUnit_ExportVertices( unit, triangle->borders[i] );
+	}
+}
+void DaoxHexBorder_GetPoints( DaoxHexBorder *self, DList *points )
+{
+	if( self->left ){
+		DaoxHexBorder_GetPoints( self->left, points );
+		DaoxHexBorder_GetPoints( self->right, points );
+		return;
+	}
+	DList_Append( points, self->end );
+}
+void DaoxHexUnit_AddTriangles( DaoxHexUnit *self, DaoxHexPoint *start, DList *points )
+{
+	DaoxTriangle *mt;
+	int i;
+	for(i=1; i<points->size; ++i){
+		DaoxHexPoint *p1 = (DaoxHexPoint*) points->items.pVoid[i-1];
+		DaoxHexPoint *p2 = (DaoxHexPoint*) points->items.pVoid[i];
+		mt = (DaoxTriangle*) DArray_Push( self->mesh->triangles );
+		if( start->id <= 0 || start->id > 9999 ) printf( "invalid index %i!\n", start->id );
+		if( p1->id <= 0 || p1->id > 9999 ) printf( "invalid index %i!\n", p1->id );
+		if( p2->id <= 0 || p2->id > 9999 ) printf( "invalid index %i!\n", p2->id );
+		mt->index[0] = start->id - 1;
+		mt->index[1] = p1->id - 1;
+		mt->index[2] = p2->id - 1;
+	}
+}
+void DaoxHexTerrain_ExportTriangles( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTriangle *triangle )
+{
+	DaoxTriangle *mt;
+	int i, k = 0, divs = 0;
+	if( triangle->splits[0] != NULL ){
+		for(i=0; i<4; ++i) DaoxHexTerrain_ExportTriangles( self, unit, triangle->splits[i] );
+		return;
+	}
+	for(i=0; i<3; ++i){
+		if( triangle->borders[i]->left != NULL ){
+			divs += 1;
+			k = i;
+		}
+	}
+	if( divs >= 2 ){
+		printf( "WARNING: NOT SUPPOSED TO HAPPEND!\n" );
+		DaoxHexTerrain_Split( self, unit, triangle );
+		DaoxHexTerrain_ExportTriangles( self, unit, triangle );
+		return;
+	}else if( divs == 1 ){
+		self->buffer->size = 0;
+		DList_Append( self->buffer, triangle->borders[k]->start );
+		DaoxHexBorder_GetPoints( triangle->borders[k], self->buffer );
+		DaoxHexUnit_AddTriangles( unit, triangle->points[(k+2)%3], self->buffer );
+		return;
+	}
+	mt = (DaoxTriangle*) DArray_Push( unit->mesh->triangles );
+	for(i=0; i<3; ++i){
+		DaoxHexPoint *p2 = triangle->points[i];
+		if( p2->id <= 0 || p2->id > 9999 ) printf( "invalid index %i!\n", p2->id );
+		mt->index[i] = triangle->points[i]->id - 1;
+	}
+}
+void DaoxHexTerrain_BuildMesh( DaoxHexTerrain *self, DaoxHexUnit *unit )
+{
+	int i;
+	unit->mesh->vertices->size = unit->mesh->triangles->size = 0;
+	for(i=0; i<6; ++i) DaoxHexTerrain_ResetVertices( self, unit, unit->splits[i] );
+	for(i=0; i<6; ++i) DaoxHexTerrain_ExportVertices( self, unit, unit->splits[i] );
+	for(i=0; i<6; ++i) DaoxHexTerrain_ExportTriangles( self, unit, unit->splits[i] );
+	printf( "vertices: %i\n", unit->mesh->vertices->size );
+	printf( "triangles: %i\n", unit->mesh->triangles->size );
+
 }
 void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self )
 {
 	float cos60 = 0.5;
 	float sin60 = sin( M_PI / 3.0 );
-	int i, j, count = self->rows * self->columns;
-	while( self->tiles->size < count ) DList_Append( self->tiles, DaoxHexUnit_New() );
+	int i, j, k, count = self->rows * self->columns;
+	printf( "DaoxHexTerrain_Rebuild\n" );
+	while( self->tiles->size < count ){
+		DaoxHexUnit *unit = DaoxHexUnit_New();
+		unit->center = DaoxHexPoint_New(0.0,0.0);
+		unit->mesh = DaoxMesh_AddUnit( self->mesh );
+		DList_Append( self->tiles, unit );
+	}
 	while( self->tiles->size > count ){
 		DaoxHexUnit *unit = (DaoxHexUnit*) DList_PopBack( self->tiles );
 		DaoxHexUnit_Delete( unit );
 	}
 	for(i=0; i<count; ++i){
 		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
-		int column = i / self->columns;
-		int row = i = column * self->columns;
-		unit->center.x = column * self->radius * (1.0 + cos60) + self->radius;
-		unit->center.y = self->radius * sin60 * (2.0 * row + 1.0 + column % 2);
+		int column = i / self->rows;
+		int row = i - column * self->rows;
+
+		unit->center->pos.x = column * self->radius * (1.0 + cos60) + self->radius;
+		unit->center->pos.y = self->radius * sin60 * (2.0 * row + 1.0 + column % 2);
+		unit->center->pos.z = DaoxHexTerrain_GetHeight( self, unit->center->pos.x, unit->center->pos.y );
+
+		for(j=0; j<6; ++j) unit->neighbors[j] = NULL;
+		if( row ){
+			k = column * self->rows + row - 1;
+			unit->neighbors[4] = (DaoxHexUnit*) self->tiles->items.pVoid[k];
+			unit->neighbors[4]->neighbors[1] = unit;
+		}
+		if( column && (column % 2) == 1 ){
+			k = (column-1) * self->rows + row;
+			unit->neighbors[3] = (DaoxHexUnit*) self->tiles->items.pVoid[k];
+			unit->neighbors[3]->neighbors[0] = unit;
+			if( (row+1) < self->rows ){
+				k = (column-1) * self->rows + row + 1;
+				unit->neighbors[2] = (DaoxHexUnit*) self->tiles->items.pVoid[k];
+				unit->neighbors[2]->neighbors[5] = unit;
+			}
+		}else if( column && (column % 2) == 0 ){
+			k = (column-1) * self->rows + row;
+			unit->neighbors[2] = (DaoxHexUnit*) self->tiles->items.pVoid[k];
+			unit->neighbors[2]->neighbors[5] = unit;
+			if( row ){
+				k = (column-1) * self->rows + row - 1;
+				unit->neighbors[3] = (DaoxHexUnit*) self->tiles->items.pVoid[k];
+				unit->neighbors[3]->neighbors[0] = unit;
+			}
+		}
 		DaoxHexTerrain_RebuildUnit( self, unit );
 	}
+	self->changes = 1;
+	while( self->changes ){
+		self->changes = 0;
+		for(i=0; i<count; ++i){
+			DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
+			DaoxHexTerrain_AdjustUnit( self, unit );
+		}
+		printf( "adjust: %i\n", self->changes );
+	}
+	for(i=0; i<count; ++i){
+		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
+		DaoxHexTerrain_BuildMesh( self, unit );
+	}
+	printf( "DaoxHexTerrain_Rebuild %i %i\n", count, self->mesh->units->size );
+	DaoxMesh_UpdateNormTangents( self->mesh, 1, 0 );
+	DaoxMesh_UpdateTree( self->mesh, 1024 );
+	DaoxMesh_ResetBoundingBox( self->mesh );
+	self->base.obbox = self->mesh->obbox;
 }

@@ -38,7 +38,7 @@ DaoType *daox_type_image = NULL;
 
 DaoxImage* DaoxImage_New()
 {
-	DaoxImage *self = (DaoxImage*) calloc( 1, sizeof(DaoxImage) );
+	DaoxImage *self = (DaoxImage*) dao_calloc( 1, sizeof(DaoxImage) );
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_image );
 	return self;
 }
@@ -180,7 +180,7 @@ int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
 	unsigned ret = lodepng_decode32_file( & buffer, & width, & height, file );
 
 	if( ret ){
-		if( buffer ) free( buffer );
+		if( buffer ) dao_free( buffer );
 		return 0;
 	}
 	self->depth = DAOX_IMAGE_BIT32;
@@ -192,7 +192,7 @@ int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
 		uchar_t *src = buffer + i * width * pixelBytes;
 		memcpy( dest, src, width*pixelBytes*sizeof(uchar_t) );
 	}
-	free( buffer );
+	dao_free( buffer );
 	return 1;
 }
 int DaoxImage_SavePNG( DaoxImage *self, const char *file )

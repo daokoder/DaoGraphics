@@ -73,7 +73,7 @@ ulong_t daox_tt_ulong( uchar_t *data )
 
 DaoxFont* DaoxFont_New()
 {
-	DaoxFont *self = (DaoxFont*) calloc( 1, sizeof(DaoxFont) );
+	DaoxFont *self = (DaoxFont*) dao_calloc( 1, sizeof(DaoxFont) );
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_font );
 	self->buffer = DString_New(0);
 	self->glyphs = DMap_New(0,0);
@@ -87,7 +87,7 @@ void DaoxFont_Delete( DaoxFont *self )
 	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
 		DaoxGlyph_Delete( (DaoxGlyph*) it->value.pVoid );
 	}
-	if( self->points ) free( self->points );
+	if( self->points ) dao_free( self->points );
 	DMap_Delete( self->glyphs );
 	DMap_Delete( self->glyphs2 );
 	DString_Delete( self->buffer );
@@ -371,7 +371,7 @@ int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
 	printf( "pointCount = %i\n", pointCount );
 
 	/* load flags and coordinates into the self->points: */
-	self->points = (DaoxGlyphPoint*) realloc( self->points, pointCount*sizeof(DaoxGlyphPoint) );
+	self->points = (DaoxGlyphPoint*) dao_realloc( self->points, pointCount*sizeof(DaoxGlyphPoint) );
 
 	for(i=0; i<pointCount; ++i){
 		if( flagCount == 0 ){
@@ -504,7 +504,7 @@ DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, size_t ch )
 
 DaoxGlyph* DaoxGlyph_New()
 {
-	DaoxGlyph *self = (DaoxGlyph*) calloc(1,sizeof(DaoxGlyph));
+	DaoxGlyph *self = (DaoxGlyph*) dao_calloc(1,sizeof(DaoxGlyph));
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_glyph );
 	self->codepoint = 0;
 	self->shape = DaoxPath_New();
@@ -515,7 +515,7 @@ void DaoxGlyph_Delete( DaoxGlyph *self )
 {
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoGC_DecRC( (DaoValue*) self->shape );
-	free( self );
+	dao_free( self );
 }
 
 

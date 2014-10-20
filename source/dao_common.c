@@ -131,6 +131,13 @@ DaoxVector2D DaoxVector2D_XY( float x, float y )
 	point.y = y;
 	return point;
 }
+DaoxVector2D DaoxVector2D_Vector3D( DaoxVector3D x )
+{
+	DaoxVector2D point;
+	point.x = x.x;
+	point.y = x.y;
+	return point;
+}
 DaoxVector2D DaoxVector2D_Interpolate( DaoxVector2D A, DaoxVector2D B, float t )
 {
 	DaoxVector2D point;

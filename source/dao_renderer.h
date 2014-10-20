@@ -56,6 +56,7 @@ struct DaoxRenderer
 	DAO_CSTRUCT_COMMON;
 
 	uchar_t  showAxis;
+	uchar_t  showMesh;
 	uint_t   targetWidth;
 	uint_t   targetHeight;
 
@@ -77,6 +78,7 @@ struct DaoxRenderer
 	DList   *staticTasks;
 
 	DList   *terrains;
+	DList   *hexTerrains;
 	DList   *canvases;
 	DList   *taskCache;
 	DMap    *map;

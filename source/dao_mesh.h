@@ -54,8 +54,6 @@ struct DaoxMeshChunk
 	DaoxMeshChunk  *left;
 	DaoxMeshChunk  *right;
 };
-extern DaoType *daox_type_mesh_unit;
-
 DaoxMeshChunk* DaoxMeshChunk_New( DaoxMeshUnit *unit );
 void DaoxMeshChunk_Delete( DaoxMeshChunk *self );
 
@@ -73,6 +71,8 @@ struct DaoxMeshUnit
 	DaoxOBBox3D      obbox;     /* local coordinates; */
 	uint_t           index;     /* unit index in the mesh; */
 };
+extern DaoType *daox_type_mesh_unit;
+
 DaoxMeshUnit* DaoxMeshUnit_New();
 void DaoxMeshUnit_Delete( DaoxMeshUnit *self );
 

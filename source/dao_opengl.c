@@ -591,7 +591,7 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings )
 		fprintf(stderr, "Failed to create shader of type %i\n", type );
 		return;
 	}
-	sources = (const GLchar**) malloc( n*sizeof(GLchar*) );
+	sources = (const GLchar**) dao_malloc( n*sizeof(GLchar*) );
 	for(i=0; i<n; ++i){
 		sources[i] = (const GLchar*) DString_GetData( strings->items.pString[i] );
 		if( i == 0 ) sources[i] += 2; /* skip //; */
@@ -599,7 +599,7 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings )
 
 	glShaderSource( shader, n, sources, NULL );
 	glCompileShader( shader );
-	free( sources );
+	dao_free( sources );
 
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 	if( !shader_ok ){

@@ -339,6 +339,23 @@ DaoTypeBase DaoxTerrain_Typer =
 
 
 
+static DaoFuncItem DaoxHexTerrainMeths[]=
+{
+	{ TERRAIN_SetMaterial,
+		"SetMaterial( self: Terrain, material: Material, which: enum<first,second> = $first )"
+	},
+	{ NULL, NULL }
+};
+DaoTypeBase DaoxHexTerrain_Typer =
+{
+	"HexTerrain", NULL, NULL, (DaoFuncItem*) DaoxHexTerrainMeths,
+	{ & DaoxModel_Typer, 0 }, {0},
+	(FuncPtrDel)DaoxHexTerrain_Delete, NULL
+};
+
+
+
+
 static void SCENE_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxScene *self = DaoxScene_New();
@@ -381,6 +398,23 @@ static void SCENE_AddTerrain( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
+static void SCENE_AddHexTerrain( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoxImage *heightmap = (DaoxImage*) p[1];
+	DaoxHexTerrain *terrain = DaoxHexTerrain_New();
+	int rows = p[2]->xInteger.value;
+	int cols = p[3]->xInteger.value;
+	float radius = p[4]->xFloat.value;
+	float height = p[5]->xFloat.value;
+
+	DaoxHexTerrain_SetHeightmap( terrain, heightmap );
+	DaoxHexTerrain_SetSize( terrain, rows, cols, height );
+	terrain->radius = radius;
+	DaoxHexTerrain_Rebuild( terrain );
+	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
+	DaoProcess_PutValue( proc, (DaoValue*) terrain );
+}
 static DaoFuncItem DaoxSceneMeths[] =
 {
 	{ SCENE_New,         "Scene()" },
@@ -389,6 +423,10 @@ static DaoFuncItem DaoxSceneMeths[] =
 	{ SCENE_AddTerrain,
 		"AddTerrain( self: Scene, heightmap: Image, width = 1.0, length = 1.0, height = 1.0 )"
 			"=> Terrain"
+	},
+	{ SCENE_AddHexTerrain,
+		"AddHexTerrain( self: Scene, heightmap: Image, rows = 1, columns = 1, radius = 1.0, height = 1.0 )"
+			"=> HexTerrain"
 	},
 	{ NULL, NULL }
 };
@@ -418,7 +456,6 @@ static void PAINTER_Paint( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxPainter *self = (DaoxPainter*) p[0];
 	DaoxCanvas *canvas = (DaoxCanvas*) p[1];
-	DaoxCanvas_UpdateScene( canvas );
 	DaoxPainter_Paint( self, canvas, canvas->viewport );
 }
 static DaoFuncItem DaoxPainterMeths[]=
@@ -458,9 +495,10 @@ static void RENDR_GetCurrentCamera( DaoProcess *proc, DaoValue *p[], int N )
 static void RENDR_Enable( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxRenderer *self = (DaoxRenderer*) p[0];
+	int bl = p[2]->xBoolean.value;
 	switch( p[1]->xEnum.value ){
-	case 0 : self->showAxis = 0; break;
-	case 1 : self->showAxis = 1; break;
+	case 0 : self->showAxis = bl; break;
+	case 1 : self->showMesh = bl; break;
 	}
 }
 static void RENDR_Render( DaoProcess *proc, DaoValue *p[], int N )
@@ -474,7 +512,7 @@ static DaoFuncItem DaoxRendererMeths[]=
 	{ RENDR_New,         "Renderer( width = 300, height = 200 )" },
 	{ RENDR_SetCurrentCamera,  "SetCurrentCamera( self: Renderer, camera: Camera )" },
 	{ RENDR_GetCurrentCamera,  "GetCurrentCamera( self: Renderer ) => Camera" },
-	{ RENDR_Enable,  "Enable( self: Renderer, what: enum<none,axis> )" },
+	{ RENDR_Enable,  "Enable( self: Renderer, what: enum<axis>, bl = true )" },
 	{ RENDR_Render,  "Render( self: Renderer, scene: Scene )" },
 	{ NULL, NULL }
 };
@@ -524,6 +562,7 @@ DaoType *daox_type_camera = NULL;
 DaoType *daox_type_light = NULL;
 DaoType *daox_type_model = NULL;
 DaoType *daox_type_terrain = NULL;
+DaoType *daox_type_hexterrain = NULL;
 DaoType *daox_type_scene = NULL;
 DaoType *daox_type_painter = NULL;
 DaoType *daox_type_renderer = NULL;
@@ -551,6 +590,7 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_light = DaoNamespace_WrapType( ns, & DaoxLight_Typer, 0 );
 	daox_type_model = DaoNamespace_WrapType( ns, & DaoxModel_Typer, 0 );
 	daox_type_terrain = DaoNamespace_WrapType( ns, & DaoxTerrain_Typer, 0 );
+	daox_type_hexterrain = DaoNamespace_WrapType( ns, & DaoxHexTerrain_Typer, 0 );
 	daox_type_scene = DaoNamespace_WrapType( ns, & DaoxScene_Typer, 0 );
 	daox_type_painter = DaoNamespace_WrapType( ns, & DaoxPainter_Typer, 0 );
 	daox_type_renderer = DaoNamespace_WrapType( ns, & DaoxRenderer_Typer, 0 );

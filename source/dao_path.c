@@ -166,7 +166,7 @@ int DaoxLine_Intersect( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C, DaoxVect
 
 DaoxPathMesh* DaoxPathMesh_New()
 {
-	DaoxPathMesh *self = (DaoxPathMesh*) calloc(1,sizeof(DaoxPathMesh));
+	DaoxPathMesh *self = (DaoxPathMesh*) dao_calloc(1,sizeof(DaoxPathMesh));
 	self->points    = DArray_New( sizeof(DaoxVector3D) );
 	self->triangles = DArray_New( sizeof(DaoxTriangle) );
 	self->patches   = DArray_New( sizeof(DaoxTexturedPoint) );
@@ -177,7 +177,7 @@ void DaoxPathMesh_Delete( DaoxPathMesh *self )
 	DArray_Delete( self->points );
 	DArray_Delete( self->triangles );
 	DArray_Delete( self->patches );
-	free( self );
+	dao_free( self );
 }
 void DaoxPathMesh_Reset( DaoxPathMesh *self )
 {
@@ -192,7 +192,7 @@ void DaoxPathMesh_Reset( DaoxPathMesh *self )
 
 DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component )
 {
-	DaoxPathSegment* self = (DaoxPathSegment*) calloc(1,sizeof(DaoxPathSegment));
+	DaoxPathSegment* self = (DaoxPathSegment*) dao_calloc(1,sizeof(DaoxPathSegment));
 	self->convexness = 1; /* need for refinement of open path; */
 	return self;
 }
@@ -205,7 +205,7 @@ void DaoxPathSegment_Delete( DaoxPathSegment *self )
 
 DaoxPathComponent* DaoxPathComponent_New( DaoxPath *path )
 {
-	DaoxPathComponent* self = (DaoxPathComponent*) calloc(1,sizeof(DaoxPathComponent));
+	DaoxPathComponent* self = (DaoxPathComponent*) dao_calloc(1,sizeof(DaoxPathComponent));
 	self->first = self->last = DaoxPathSegment_New( self );
 	self->first->subStart = 1;
 	self->first->subEnd = 1;
@@ -261,7 +261,7 @@ void DaoxPathComponent_Delete( DaoxPathComponent *self )
 
 DaoxPath* DaoxPath_New()
 {
-	DaoxPath *self = (DaoxPath*) calloc(1,sizeof(DaoxPath));
+	DaoxPath *self = (DaoxPath*) dao_calloc(1,sizeof(DaoxPath));
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_path );
 	self->first = self->last = DaoxPathComponent_New( self );
 	self->mesh = DaoxPathMesh_New();
@@ -287,7 +287,7 @@ void DaoxPath_Delete( DaoxPath *self )
 		DaoxPathSegment_Delete( segment );
 	}
 	DaoxPathMesh_Delete( self->mesh );
-	free( self );
+	dao_free( self );
 }
 DaoxPathComponent* DaoxPath_PushComponent( DaoxPath *self )
 {

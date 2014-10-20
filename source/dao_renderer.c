@@ -66,6 +66,7 @@ DaoxRenderer* DaoxRenderer_New()
 	self->staticTasks = DList_New(0);
 	self->taskCache = DList_New(0);
 	self->terrains = DList_New( DAO_DATA_VALUE );
+	self->hexTerrains = DList_New( DAO_DATA_VALUE );
 	self->canvases = DList_New( DAO_DATA_VALUE );
 	self->map = DMap_New(0,0);
 
@@ -136,6 +137,7 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 	DList_Delete( self->dynamicTasks );
 	DList_Delete( self->staticTasks );
 	DList_Delete( self->terrains );
+	DList_Delete( self->hexTerrains );
 	DList_Delete( self->canvases );
 	DMap_Delete( self->map );
 	GC_DecRC( self->axisMesh );
@@ -230,7 +232,7 @@ void DaoxRenderer_PrepareModel( DaoxRenderer *self, DaoxModel *model, DaoxMatrix
 	for(i=0; i<mesh->units->size; ++i){
 		DaoxMeshUnit *unit = mesh->units->items.pMeshUnit[i];
 		int currentCount = 0;
-		if( unit->tree == NULL ) return;
+		if( unit->tree == NULL ) continue;
 		it = DMap_Find( self->map, unit->material );
 		if( it ){
 			task = (DaoxDrawTask*) it->value.pVoid;
@@ -243,9 +245,9 @@ void DaoxRenderer_PrepareModel( DaoxRenderer *self, DaoxModel *model, DaoxMatrix
 			DMap_Insert( self->map, task->material, task );
 		}
 		DaoxRenderer_PrepareMeshChunk( self, unit->tree, task );
-		if( task->tcount > currentCount ){
 			DList_Append( & task->units, unit );
 			task->vcount += unit->vertices->size;
+		if( task->tcount > currentCount ){ // XXX: 
 		}
 	}
 }
@@ -263,7 +265,7 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 	DaoxOBBox3D obbox;
 	daoint i;
 
-	if( ctype != daox_type_model && ctype != daox_type_canvas ) goto PrepareChildren;
+	if( ctype != daox_type_model && ctype != daox_type_hexterrain && ctype != daox_type_canvas ) goto PrepareChildren;
 
 	// 1. Transform view frustum to object coordinates;
 	objectToWorld = DaoxSceneNode_GetWorldTransform( node );
@@ -721,7 +723,11 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.5, 0.5, 0.5, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	//glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	if( self->showMesh ){
+		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	}else{
+		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	}
 
 	glUseProgram( self->shader.program );
 

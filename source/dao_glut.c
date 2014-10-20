@@ -192,6 +192,10 @@ void DaoxCanvas_glutKeyboard( unsigned char key, int x, int y )
 {
 	if( key == '+' ||  key == '-' ){
 		if( daox_current_renderer ) DaoxScene_Zoom( key == '+' );
+	}else if( key == '\t' ){
+		if( daox_current_renderer ){
+			daox_current_renderer->showMesh = ! daox_current_renderer->showMesh;
+		}
 	}
 	if( daox_current_canvas == NULL ) return;
 	if( DaoCstruct_CallKeyboardMethod( (DaoCstruct*) daox_current_canvas, "OnKeyboard", key, x, y ) ) return;

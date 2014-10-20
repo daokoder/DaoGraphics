@@ -140,39 +140,85 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 
 
+/*
+//           ________
+//          /\      /\
+//         /  \ 1  /  \
+//        / 2  \  /  0 \
+//       /______\/______\
+//       \      /\      /
+//        \ 3  /  \  5 /
+//         \  / 4  \  /
+//          \/______\/
+//
+//       .........____......
+//       :       /    \
+//       :  ____/      \____
+//       : /    \      /
+//       :/      \____/
+//       :\      /\  /\
+//       : \____/__\/__\____
+//       : /    \  /\  /
+//       :/      \/__\/
+//       :\      /    \
+//       :.\____/......\____
+*/
+
+typedef struct DaoxHexPoint    DaoxHexPoint;
+typedef struct DaoxHexBorder   DaoxHexBorder;
 typedef struct DaoxHexTriangle DaoxHexTriangle;
 typedef struct DaoxHexUnit     DaoxHexUnit;
 typedef struct DaoxHexTerrain  DaoxHexTerrain;
 
+struct DaoxHexPoint
+{
+	int           id;
+	DaoxVector3D  pos;
+};
+
+struct DaoxHexBorder
+{
+	DaoxHexPoint   *start;
+	DaoxHexPoint   *end;
+	DaoxHexBorder  *left;
+	DaoxHexBorder  *right;
+};
+
 struct DaoxHexTriangle
 {
-	int  vertices[3];
-
-	DaoxHexTriangle  *subs[4];
+	DaoxHexPoint     *points[3];
+	DaoxHexBorder    *borders[3];
+	DaoxHexTriangle  *splits[4];
 };
 
 struct DaoxHexUnit
 {
-	DaoxVector2D      center;
-	DaoxOBBox3D       obbox;     /* local coordinates; */
-	DaoxHexTriangle  *roots[6];
-	DArray           *vertices;  /* <DaoxVector3D>: local coordinates; */
-	DArray           *triangles; /* <DaoxTriangle>: local coordinates (for face norms); */
+	DaoxHexPoint     *center;
+	DaoxHexTriangle  *splits[6];
+	DaoxHexBorder    *borders[6];
+	DaoxHexUnit      *neighbors[6];
+	DaoxMeshUnit     *mesh;
 };
 
 struct DaoxHexTerrain
 {
 	DaoxSceneNode  base;
+	DaoxMesh      *mesh;
 
 	DaoxImage  *heightmap;
 
+	DList   *points;
+	DList   *borders;
 	DList   *tiles; /* column major; */
 
 	int    rows;
 	int    columns;
+	int    changes;
 	float  radius;
 	float  height;
 	float  depth;
+
+	DList  *buffer;
 };
 extern DaoType *daox_type_hexterrain;
 
