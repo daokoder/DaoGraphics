@@ -357,11 +357,33 @@ static void HexTerrain_GetTile( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pValue[index];
 	DaoProcess_PutValue( proc, (DaoValue*) unit->mesh );
 }
+static void HexTerrain_SetTileType( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHexTerrain *self = (DaoxHexTerrain*) p[0];
+	int row = p[1]->xInteger.value;
+	int col = p[2]->xInteger.value;
+	int type = p[3]->xInteger.value;
+	int index = col * self->rows + row;
+	DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pValue[index];
+	unit->type = type;
+}
+static void HexTerrain_SetTextures( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHexTerrain *self = (DaoxHexTerrain*) p[0];
+	DaoList *textures = (DaoList*) p[1];
+	DList_Assign( self->textures, textures->value );
+}
 
 static DaoFuncItem DaoxHexTerrainMeths[]=
 {
 	{ HexTerrain_GetTile,
 		"GetTile( self: HexTerrain, row: int, column: int ) => MeshUnit"
+	},
+	{ HexTerrain_SetTileType,
+		"SetTileType( self: HexTerrain, row: int, column: int, type: int )"
+	},
+	{ HexTerrain_SetTextures,
+		"SetTextures( self: HexTerrain, textures: list<Texture> )"
 	},
 	{ TERRAIN_SetMaterial,
 		"SetMaterial( self: Terrain, material: Material, which: enum<first,second> = $first )"

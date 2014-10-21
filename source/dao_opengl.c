@@ -334,6 +334,7 @@ static const char *const daox_fragment_shader3d_150 =
 uniform int  vectorGraphics;\n\
 uniform int  terrainTileType; // 0: none; 1: square; 2: hexagon; \n\
 uniform int  lightCount;\n\
+uniform int  tileTextureCount;\n\
 uniform vec4 ambientColor;\n\
 uniform vec4 diffuseColor;\n\
 uniform vec4 specularColor;\n\
@@ -342,7 +343,13 @@ uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
 uniform vec3 cameraPosition;\n\
 uniform mat4 modelMatrix;\n\
-uniform sampler2D terrainTextures[64]; \n\
+uniform sampler2D tileTexture0;\n\
+uniform sampler2D tileTexture1;\n\
+uniform sampler2D tileTexture2;\n\
+uniform sampler2D tileTexture3;\n\
+uniform sampler2D tileTexture4;\n\
+uniform sampler2D tileTexture5;\n\
+uniform sampler2D tileTexture6;\n\
 \n\
 in  vec3 varPosition;\n\
 in  vec3 varNormal;\n\
@@ -354,6 +361,7 @@ in  float pathOffset; \n\
 out vec4 fragColor;\n\
 \n\
 vec3 worldPosition;\n\
+int hasColorTexture2 = hasColorTexture;\n\
 \n\
 vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 {\n\
@@ -408,6 +416,11 @@ vec2 hexagonVertices[6] = vec2[6]\n\
 float hexagonTextureScale = 0.4;\n\
 \n\
 \n\
+vec4 GetDefaultTextureColor( vec2 tex )\n\
+{\n\
+	if( tileTextureCount > 0 ) return texture( tileTexture0, tex );\n\
+	return texture( colorTexture, tex );\n\
+}\n\
 \n\
 \n\
 vec4 HexLocateTex( vec2 tex )\n\
@@ -441,6 +454,28 @@ vec4 HexLocateTex( vec2 tex )\n\
 	return vec4( imin, min, Q.x, Q.y );\n\
 }\n\
 \n\
+vec4 BlendTerrainTextures( vec4 texColor, vec2 tex )\n\
+{\n\
+	if( terrainTileType != 2 ) return texColor;\n\
+	\n\
+	vec4 test = HexLocateTex( tex );\n\
+	float max = 0.05;\n\
+	if( test.y < max ){ \n\
+		vec2 tex2 = vec2(test[2], test[3]);\n\
+		vec4 texColor2 = texColor;\n\
+		if( test.x == 0 ) texColor2 = texture( tileTexture1, tex2 );\n\
+		if( test.x == 1 ) texColor2 = texture( tileTexture2, tex2 );\n\
+		if( test.x == 2 ) texColor2 = texture( tileTexture3, tex2 );\n\
+		if( test.x == 3 ) texColor2 = texture( tileTexture4, tex2 );\n\
+		if( test.x == 4 ) texColor2 = texture( tileTexture5, tex2 );\n\
+		if( test.x == 5 ) texColor2 = texture( tileTexture6, tex2 );\n\
+		float factor = 0.5 + 0.5 * test.y / max;\n\
+		float alpha = texColor[3];\n\
+		texColor = factor * texColor + (1.0 - factor) * texColor2;\n\
+		texColor[3] = alpha;\n\
+	}\n\
+	return texColor;\n\
+}\n\
 \n\
 \n\
 \n\
@@ -451,23 +486,15 @@ void main(void)\n\
 {\n\
 	vec4 texColor = diffuseColor;\n\
 	worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
-	if( hasColorTexture > 0 ){\n\
-		texColor = texture( colorTexture, varTexCoord );\n\
-	}\n\
-	if( terrainTileType == 2 ){ \n\
-		vec4 test = HexLocateTex( varTexCoord );\n\
-		float max = 0.05;\n\
-		if( test.y < max ){ \n\
-			vec2 tex2 = vec2(test[2], test[3]);\n\
-			vec4 texColor2 = texture( colorTexture, tex2 );\n\
-			float factor = 0.5 + 0.5 * test.y / max;\n\
-			float alpha = texColor[3];\n\
-			texColor = factor * texColor + (1.0 - factor) * texColor2;\n\
-			texColor[3] = alpha;\n\
+	if( tileTextureCount > 0 ) hasColorTexture2 = 1;\n\
+	if( hasColorTexture2 > 0 ){\n\
+		texColor = GetDefaultTextureColor( varTexCoord );\n\
+		if( terrainTileType == 2 ){ \n\
+			texColor = BlendTerrainTextures( texColor, varTexCoord );\n\
 		}\n\
 	}\n\
 	fragColor = ComputeAllLights( texColor );\n\
-	if( hasColorTexture > 0 ){\n\
+	if( hasColorTexture2 > 0 ){\n\
 		if( texColor[3] < 0.9 ) discard;\n\
 		fragColor[3] = texColor[3];\n\
 	}\n\
@@ -612,6 +639,15 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.colorTexture = glGetUniformLocation(self->program, "colorTexture");
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
 	self->uniforms.terrainTileType = glGetUniformLocation(self->program, "terrainTileType");
+	self->uniforms.tileTextureCount = glGetUniformLocation(self->program, "tileTextureCount");
+	self->uniforms.tileTextures[0] = glGetUniformLocation(self->program, "tileTexture0");
+	self->uniforms.tileTextures[1] = glGetUniformLocation(self->program, "tileTexture1");
+	self->uniforms.tileTextures[2] = glGetUniformLocation(self->program, "tileTexture2");
+	self->uniforms.tileTextures[3] = glGetUniformLocation(self->program, "tileTexture3");
+	self->uniforms.tileTextures[4] = glGetUniformLocation(self->program, "tileTexture4");
+	self->uniforms.tileTextures[5] = glGetUniformLocation(self->program, "tileTexture5");
+	self->uniforms.tileTextures[6] = glGetUniformLocation(self->program, "tileTexture6");
+
 	//self->uniforms.material = glGetUniformBlockIndex(self->program, "material");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.normal = glGetAttribLocation(self->program, "normal");

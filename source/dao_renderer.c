@@ -193,6 +193,8 @@ DaoxDrawTask* DaoxRenderer_MakeDrawTask( DaoxRenderer *self )
 	task->units.size = 0;
 	task->chunks.size = 0;
 	task->material = NULL;
+	task->hexTile = NULL;
+	task->hexTerrain = NULL;
 	return task;
 }
 
@@ -244,9 +246,39 @@ void DaoxRenderer_PrepareModel( DaoxRenderer *self, DaoxModel *model, DaoxMatrix
 			task->material = unit->material;
 			DList_Append( self->dynamicTasks, task );
 			DMap_Insert( self->map, task->material, task );
-			if( model->base.ctype == daox_type_hexterrain ) task->terrainTileType = 2;
 		}
 		DaoxRenderer_PrepareMeshChunk( self, unit->tree, task );
+			DList_Append( & task->units, unit );
+			task->vcount += unit->vertices->size;
+		if( task->tcount > currentCount ){ // XXX: 
+		}
+	}
+}
+void DaoxRenderer_PrepareHexTerrain( DaoxRenderer *self, DaoxHexTerrain *terrain, DaoxMatrix4D *objectToWorld )
+{
+	DaoxMesh *mesh = terrain->mesh;
+	DaoxDrawTask *task = NULL;
+	DaoxVertex *vertex;
+	DNode *it;
+	daoint i;
+
+	//printf( "DaoxRenderer_PrepareModel:\n" );
+	for(i=0; i<terrain->tiles->size; ++i){
+		DaoxHexUnit *tile = (DaoxHexUnit*) terrain->tiles->items.pVoid[i];
+		DaoxMeshUnit *unit = tile->mesh;
+		int currentCount = 0;
+		if( unit->tree == NULL ) continue;
+
+		task = DaoxRenderer_MakeDrawTask( self );
+		task->matrix = *objectToWorld;
+		task->material = unit->material;
+		DList_Append( self->dynamicTasks, task );
+		task->terrainTileType = 2;
+		task->hexTile = tile;
+		task->hexTerrain = terrain;
+
+		DaoxRenderer_PrepareMeshChunk( self, unit->tree, task );
+
 			DList_Append( & task->units, unit );
 			task->vcount += unit->vertices->size;
 		if( task->tcount > currentCount ){ // XXX: 
@@ -286,7 +318,11 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 		return;
 	}
 
-	DaoxRenderer_PrepareModel( self, model, & objectToWorld );
+	if( ctype == daox_type_hexterrain ){
+		DaoxRenderer_PrepareHexTerrain( self, (DaoxHexTerrain*) node, & objectToWorld );
+	}else{
+		DaoxRenderer_PrepareModel( self, model, & objectToWorld );
+	}
 
 PrepareChildren:
 	for(i=0; i<node->children->size; ++i){
@@ -547,8 +583,10 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	daoint K = drawtask->offset * sizeof(GLint);
 	daoint M = drawtask->tcount;
 	GLfloat matrix[16] = {0};
+	int tileTextureCount = 0;
 	int hasColorTexture = 0;
 	int hasBumpTexture = 0;
+	int i;
 
 	if( drawtask->shape == GL_TRIANGLES ){
 		K *= 3;
@@ -563,6 +601,25 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
 	glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
 	glUniform1i( self->shader.uniforms.terrainTileType, drawtask->terrainTileType );
+
+	if( drawtask->hexTile && drawtask->hexTerrain->textures->size ){
+		DaoxTexture **textures = (DaoxTexture**) drawtask->hexTerrain->textures->items.pValue;
+		DaoxTexture *texture = textures[drawtask->hexTile->type];
+		tileTextureCount = 7;
+		DaoxTexture_glInitTexture( texture );
+		glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture->tid);
+		glUniform1i(self->shader.uniforms.tileTextures[0], DAOX_TILE_TEXTURE0 );
+		for(i=0; i<6; ++i){
+			DaoxHexUnit *neighbor = drawtask->hexTile->neighbors[i];
+			DaoxTexture *texture = textures[neighbor ? neighbor->type : drawtask->hexTile->type];
+			DaoxTexture_glInitTexture( texture );
+			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE0 + i + 1);
+			glBindTexture(GL_TEXTURE_2D, texture->tid);
+			glUniform1i(self->shader.uniforms.tileTextures[i+1], DAOX_TILE_TEXTURE0 + i + 1 );
+		}
+	}
+	glUniform1i( self->shader.uniforms.tileTextureCount, tileTextureCount );
 
 	if( material != NULL ) colorTexture = material->texture1;
 	if( colorTexture ){
@@ -742,6 +799,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform1i(self->shader.uniforms.gradientStops, 0 );
 	glUniform1f(self->shader.uniforms.gradientRadius, 0 );
 	glUniform1i(self->shader.uniforms.terrainTileType, 0 );
+	glUniform1i(self->shader.uniforms.tileTextureCount, 0 );
 
 	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER);
 	glBindTexture(GL_TEXTURE_1D, self->shader.textures.gradientSampler);

@@ -31,6 +31,7 @@
 
 #include "dao_scene.h"
 #include "dao_opengl.h"
+#include "dao_terrain.h"
 
 
 typedef struct DaoxDrawTask DaoxDrawTask; 
@@ -48,6 +49,8 @@ struct DaoxDrawTask
 	DList          chunks;
 	DaoxMatrix4D   matrix;   /* Object to world matrix; */
 	DaoxMaterial  *material;
+	DaoxHexUnit   *hexTile;
+	DaoxHexTerrain *hexTerrain;
 };
 
 

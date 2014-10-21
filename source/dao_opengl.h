@@ -65,7 +65,14 @@ typedef struct DaoxBuffer       DaoxBuffer;
 enum DaoxSamplerID
 {
 	DAOX_DASH_SAMPLER = 2 ,
-	DAOX_GRADIENT_SAMPLER
+	DAOX_GRADIENT_SAMPLER ,
+	DAOX_TILE_TEXTURE0 ,
+	DAOX_TILE_TEXTURE1 ,
+	DAOX_TILE_TEXTURE2 ,
+	DAOX_TILE_TEXTURE3 ,
+	DAOX_TILE_TEXTURE4 ,
+	DAOX_TILE_TEXTURE5 ,
+	DAOX_TILE_TEXTURE6
 };
 
 
@@ -138,6 +145,8 @@ struct DaoxShader
 		uint_t  gradientRadius;
 		uint_t  gradientSampler;
 		uint_t  terrainTileType;
+		uint_t  tileTextureCount;
+		uint_t  tileTextures[7];
 	} uniforms;
 
 	struct {
