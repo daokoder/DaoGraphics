@@ -174,6 +174,7 @@ struct DaoxHexPoint
 {
 	int           id;
 	DaoxVector3D  pos;
+	DaoxVector3D  norm;
 };
 
 struct DaoxHexBorder
