@@ -332,6 +332,7 @@ void main(void)\n\
 static const char *const daox_fragment_shader3d_150 =
 "//#version 150\n\
 uniform int  vectorGraphics;\n\
+uniform int  terrainTileType; // 0: none; 1: square; 2: hexagon; \n\
 uniform int  lightCount;\n\
 uniform vec4 ambientColor;\n\
 uniform vec4 diffuseColor;\n\
@@ -341,6 +342,7 @@ uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
 uniform vec3 cameraPosition;\n\
 uniform mat4 modelMatrix;\n\
+uniform sampler2D terrainTextures[64]; \n\
 \n\
 in  vec3 varPosition;\n\
 in  vec3 varNormal;\n\
@@ -359,7 +361,7 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 	vec3 normal = normalize( varNormal );\n\
 	vec3 tangent = normalize( varTangent );\n\
 	vec3 binormal = cross( normal, tangent );\n\
-	if( hasBumpTexture > 0 ){\n\
+	if( hasBumpTexture > 0 && terrainTileType == 0 ){\n\
 		float ldx = dot( lightDir, tangent );\n\
 		float ldy = dot( lightDir, binormal );\n\
 		float ldz = dot( lightDir, normal );\n\
@@ -393,12 +395,76 @@ vec4 ComputeAllLights( vec4 texColor )\n\
 	return vertexColor;\n\
 }\n\
 \n\
+\n\
+vec2 hexagonVertices[6] = vec2[6]\n\
+(\n\
+	vec2(  1.0,  0.0 ),\n\
+	vec2(  0.5,  0.86602540 ),\n\
+	vec2( -0.5,  0.86602540 ),\n\
+	vec2( -1.0,  0.0 ),\n\
+	vec2( -0.5, -0.86602540 ),\n\
+	vec2(  0.5, -0.86602540 )\n\
+);\n\
+float hexagonTextureScale = 0.4;\n\
+\n\
+\n\
+\n\
+\n\
+vec4 HexLocateTex( vec2 tex )\n\
+{\n\
+	vec2 C = vec2(0.5, 0.5);\n\
+	vec2 P = (tex - C) / hexagonTextureScale; // To unit space; \n\
+	vec2 Q = vec2(0.0, 0.0);\n\
+	float min = 1.0;\n\
+	int imin = 0;\n\
+	for(int i=0; i<6; ++i){\n\
+		vec2 A = hexagonVertices[i];\n\
+		vec2 B = hexagonVertices[(i+1)%6];\n\
+		vec2 AB = B - A;\n\
+		vec2 AP = P - A;\n\
+		vec2 AP2 = dot( AB, AP ) * AB;\n\
+		vec2 D = AP - AP2;\n\
+		float d = sqrt( D.x * D.x + D.y * D.y );\n\
+		if( d < min ){\n\
+			min = d;\n\
+			imin = i;\n\
+		}\n\
+	}\n\
+	if( imin == 0 ) Q = P + (hexagonVertices[4] - hexagonVertices[0]);\n\
+	if( imin == 1 ) Q = P + (hexagonVertices[5] - hexagonVertices[1]);\n\
+	if( imin == 2 ) Q = P + (hexagonVertices[0] - hexagonVertices[2]);\n\
+	if( imin == 3 ) Q = P + (hexagonVertices[0] - hexagonVertices[4]);\n\
+	if( imin == 4 ) Q = P + (hexagonVertices[1] - hexagonVertices[5]);\n\
+	if( imin == 5 ) Q = P + (hexagonVertices[2] - hexagonVertices[0]);\n\
+	min *= hexagonTextureScale;\n\
+	Q = hexagonTextureScale * Q + C;\n\
+	return vec4( imin, min, Q.x, Q.y );\n\
+}\n\
+\n\
+\n\
+\n\
+\n\
+\n\
+\n\
+\n\
 void main(void)\n\
 {\n\
 	vec4 texColor = diffuseColor;\n\
 	worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
 	if( hasColorTexture > 0 ){\n\
 		texColor = texture( colorTexture, varTexCoord );\n\
+	}\n\
+	if( terrainTileType == 2 ){ \n\
+		vec4 test = HexLocateTex( varTexCoord );\n\
+		float max = 0.05;\n\
+		if( test.y < max ){ \n\
+			vec2 tex2 = vec2(test[2], test[3]);\n\
+			vec4 texColor2 = texture( colorTexture, tex2 );\n\
+			float factor = 0.5 + 0.5 * test.y / max;\n\
+			float alpha = texColor[3];\n\
+			texColor = factor * texColor + (1.0 - factor) * texColor2;\n\
+			texColor[3] = alpha;\n\
+		}\n\
 	}\n\
 	fragColor = ComputeAllLights( texColor );\n\
 	if( hasColorTexture > 0 ){\n\
@@ -545,6 +611,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.hasBumpTexture = glGetUniformLocation(self->program, "hasBumpTexture");
 	self->uniforms.colorTexture = glGetUniformLocation(self->program, "colorTexture");
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
+	self->uniforms.terrainTileType = glGetUniformLocation(self->program, "terrainTileType");
 	//self->uniforms.material = glGetUniformBlockIndex(self->program, "material");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.normal = glGetAttribLocation(self->program, "normal");

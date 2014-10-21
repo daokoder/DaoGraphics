@@ -141,6 +141,7 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 
 /*
+// Indexing:
 //           ________
 //          /\      /\
 //         /  \ 1  /  \
@@ -151,6 +152,7 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 //         \  / 4  \  /
 //          \/______\/
 //
+// Tile arrangment:
 //       .........____......
 //       :       /    \
 //       :  ____/      \____
@@ -162,6 +164,21 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 //       :/      \/__\/
 //       :\      /    \
 //       :.\____/......\____
+//
+// Texture coordinates:
+//            __________
+//           /\        /\
+//          /  \      /  \
+//         /    \    /    \
+//        /      \  /      \
+//       /        \/        \
+//   0.1,0.5---0.5,0.5---0.9,0.5
+//       \        /\        /
+//        \      /  \      /
+//         \    /    \    /
+//          \  /      \  /
+//           \/________\/
+//
 */
 
 typedef struct DaoxHexPoint    DaoxHexPoint;
@@ -175,6 +192,7 @@ struct DaoxHexPoint
 	int           id;
 	DaoxVector3D  pos;
 	DaoxVector3D  norm;
+	DaoxVector2D  tex;
 };
 
 struct DaoxHexBorder
@@ -194,9 +212,11 @@ struct DaoxHexTriangle
 
 struct DaoxHexUnit
 {
+	int               type;
 	DaoxHexPoint     *center;
 	DaoxHexTriangle  *splits[6];
 	DaoxHexBorder    *borders[6];
+	DaoxHexBorder    *spokes[6];
 	DaoxHexUnit      *neighbors[6];
 	DaoxMeshUnit     *mesh;
 };
@@ -207,10 +227,10 @@ struct DaoxHexTerrain
 	DaoxMesh      *mesh;
 
 	DaoxImage  *heightmap;
-
-	DList   *points;
-	DList   *borders;
-	DList   *tiles; /* column major; */
+	DList      *textures;
+	DList      *points;
+	DList      *borders;
+	DList      *tiles; /* column major; */
 
 	int    rows;
 	int    columns;

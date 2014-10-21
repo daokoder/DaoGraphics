@@ -137,6 +137,7 @@ struct DaoxShader
 		uint_t  gradientPoint2;
 		uint_t  gradientRadius;
 		uint_t  gradientSampler;
+		uint_t  terrainTileType;
 	} uniforms;
 
 	struct {

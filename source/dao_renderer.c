@@ -189,6 +189,7 @@ DaoxDrawTask* DaoxRenderer_MakeDrawTask( DaoxRenderer *self )
 	task->shape = 0;
 	task->tcount = 0;
 	task->vcount = 0;
+	task->terrainTileType = 0;
 	task->units.size = 0;
 	task->chunks.size = 0;
 	task->material = NULL;
@@ -243,6 +244,7 @@ void DaoxRenderer_PrepareModel( DaoxRenderer *self, DaoxModel *model, DaoxMatrix
 			task->material = unit->material;
 			DList_Append( self->dynamicTasks, task );
 			DMap_Insert( self->map, task->material, task );
+			if( model->base.ctype == daox_type_hexterrain ) task->terrainTileType = 2;
 		}
 		DaoxRenderer_PrepareMeshChunk( self, unit->tree, task );
 			DList_Append( & task->units, unit );
@@ -560,6 +562,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	glUniform4fv( self->shader.uniforms.diffuseColor, 1, & diffuse.red );
 	glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
 	glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
+	glUniform1i( self->shader.uniforms.terrainTileType, drawtask->terrainTileType );
 
 	if( material != NULL ) colorTexture = material->texture1;
 	if( colorTexture ){
@@ -738,6 +741,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform1i(self->shader.uniforms.gradientType, 0 );
 	glUniform1i(self->shader.uniforms.gradientStops, 0 );
 	glUniform1f(self->shader.uniforms.gradientRadius, 0 );
+	glUniform1i(self->shader.uniforms.terrainTileType, 0 );
 
 	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER);
 	glBindTexture(GL_TEXTURE_1D, self->shader.textures.gradientSampler);

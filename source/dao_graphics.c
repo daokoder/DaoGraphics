@@ -37,8 +37,18 @@
 DaoVmSpace *__daoVmSpace = NULL;
 
 
+static void MeshUnit_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxMeshUnit *self = (DaoxMeshUnit*) p[0];
+	DaoxMaterial *mat = (DaoxMaterial*) p[1];
+	DaoxMeshUnit_SetMaterial( self, mat );
+}
+
 static DaoFuncItem DaoxMeshUnitMeths[]=
 {
+	{ MeshUnit_SetMaterial,
+		"SetMaterial( self: MeshUnit, material: Material )"
+	},
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxMeshUnit_Typer =
@@ -338,9 +348,21 @@ DaoTypeBase DaoxTerrain_Typer =
 
 
 
+static void HexTerrain_GetTile( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxHexTerrain *self = (DaoxHexTerrain*) p[0];
+	int row = p[1]->xInteger.value;
+	int col = p[2]->xInteger.value;
+	int index = col * self->rows + row;
+	DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pValue[index];
+	DaoProcess_PutValue( proc, (DaoValue*) unit->mesh );
+}
 
 static DaoFuncItem DaoxHexTerrainMeths[]=
 {
+	{ HexTerrain_GetTile,
+		"GetTile( self: HexTerrain, row: int, column: int ) => MeshUnit"
+	},
 	{ TERRAIN_SetMaterial,
 		"SetMaterial( self: Terrain, material: Material, which: enum<first,second> = $first )"
 	},
