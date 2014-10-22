@@ -248,9 +248,9 @@ void DaoxRenderer_PrepareModel( DaoxRenderer *self, DaoxModel *model, DaoxMatrix
 			DMap_Insert( self->map, task->material, task );
 		}
 		DaoxRenderer_PrepareMeshChunk( self, unit->tree, task );
+		if( task->tcount > currentCount ){
 			DList_Append( & task->units, unit );
 			task->vcount += unit->vertices->size;
-		if( task->tcount > currentCount ){ // XXX: 
 		}
 	}
 }
@@ -279,9 +279,9 @@ void DaoxRenderer_PrepareHexTerrain( DaoxRenderer *self, DaoxHexTerrain *terrain
 
 		DaoxRenderer_PrepareMeshChunk( self, unit->tree, task );
 
+		if( task->tcount > currentCount ){
 			DList_Append( & task->units, unit );
 			task->vcount += unit->vertices->size;
-		if( task->tcount > currentCount ){ // XXX: 
 		}
 	}
 }
@@ -457,7 +457,8 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self )
 		DMap_Reset( self->map );
 		for(j=0; j<units->size; ++j){
 			DaoxMeshUnit *unit = units->items.pMeshUnit[j];
-			DMap_Insert( self->map, unit, (void*)(size_t) vertexCount );
+			int vertexOffset = self->buffer.vertexOffset + vertexCount;
+			DMap_Insert( self->map, unit, (void*)(size_t) vertexOffset );
 			for(k=0; k<unit->vertices->size; ++k){
 				DaoxVertex *vertex = unit->vertices->data.vertices + k;
 				DaoGLVertex3D *glvertex = glvertices + vertexCount + k;

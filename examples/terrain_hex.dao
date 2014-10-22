@@ -43,8 +43,8 @@ for( i = 0 : % texImages - 1 ){
 
 camera = Graphics::Camera()
 
-rows = 3;
-columns = 3;
+rows = 23;
+columns = 23;
 radius = 2.0;
 height = rows*radius/8;
 

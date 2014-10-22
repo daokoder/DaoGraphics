@@ -804,6 +804,11 @@ void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxCanvasState *state )
 
 
 
+/*
+// Buffer Object Streaming:
+// Server-side multi-buffering (buffer re-specification/orphaning)
+// https://www.opengl.org/wiki/Buffer_Object_Streaming
+*/
 
 void DaoxBuffer_Init( DaoxBuffer *self )
 {
@@ -923,7 +928,7 @@ void* DaoxBuffer_MapVertices( DaoxBuffer *self, int count )
 		DaoxBuffer_SetVertexBufferAttributes( self );
 		self->vertexOffset = 0;
 	}
-	return glMapBufferRange( GL_ARRAY_BUFFER, self->vertexOffset*self->vertexSize, dataSize, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT );
+	return glMapBufferRange( GL_ARRAY_BUFFER, self->vertexOffset*self->vertexSize, dataSize, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT|GL_MAP_INVALIDATE_BUFFER_BIT );
 }
 DaoGLVertex2D* DaoxBuffer_MapVertices2D( DaoxBuffer *self, int count )
 {
@@ -946,7 +951,7 @@ DaoGLTriangle* DaoxBuffer_MapTriangles( DaoxBuffer *self, int count )
 		glBufferData( GL_ELEMENT_ARRAY_BUFFER, self->triangleCapacity*self->triangleSize, NULL, GL_STREAM_DRAW );
 		self->triangleOffset = 0;
 	}
-	return (DaoGLTriangle*) glMapBufferRange( GL_ELEMENT_ARRAY_BUFFER, self->triangleOffset*self->triangleSize, dataSize, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT );
+	return (DaoGLTriangle*) glMapBufferRange( GL_ELEMENT_ARRAY_BUFFER, self->triangleOffset*self->triangleSize, dataSize, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT|GL_MAP_INVALIDATE_BUFFER_BIT );
 }
 
 

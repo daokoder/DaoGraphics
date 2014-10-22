@@ -541,7 +541,7 @@ static DaoFuncItem DaoxRendererMeths[]=
 	{ RENDR_New,         "Renderer( width = 300, height = 200 )" },
 	{ RENDR_SetCurrentCamera,  "SetCurrentCamera( self: Renderer, camera: Camera )" },
 	{ RENDR_GetCurrentCamera,  "GetCurrentCamera( self: Renderer ) => Camera" },
-	{ RENDR_Enable,  "Enable( self: Renderer, what: enum<axis>, bl = true )" },
+	{ RENDR_Enable,  "Enable( self: Renderer, what: enum<axis,mesh>, bl = true )" },
 	{ RENDR_Render,  "Render( self: Renderer, scene: Scene )" },
 	{ NULL, NULL }
 };
