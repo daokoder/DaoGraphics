@@ -1296,7 +1296,51 @@ void DaoxAABBox2D_Print( DaoxAABBox2D *self )
 }
 
 
+void DaoxVertex_UpdateNormalTangent( DaoxVertex *A, DaoxVertex *B, DaoxVertex *C, int donormal, int dotangent )
+{
+	DaoxVertex *vertices[3];
+	DaoxVector3D AB = DaoxVector3D_Sub( & B->pos, & A->pos );
+	DaoxVector3D AC = DaoxVector3D_Sub( & C->pos, & A->pos );
+	DaoxVector2D ABT = DaoxVector2D_Sub( & B->tex, & A->tex );
+	DaoxVector2D ACT = DaoxVector2D_Sub( & C->tex, & A->tex );
+	DaoxVector3D facenorm = DaoxVector3D_Cross( & AB, & AC );
+	DaoxVector3D tangent = { 1.0, 1.0, 1.0 };
+	float denominator = ABT.x * ACT.y - ABT.y * ACT.x;
+	int i, j;
 
+	vertices[0] = A;
+	vertices[1] = B;
+	vertices[2] = C;
+	facenorm = DaoxVector3D_Normalize( & facenorm );
+	if( fabs( denominator ) > EPSILON ){
+		tangent.x = AB.x * ACT.y - AC.x * ABT.y;
+		tangent.y = AB.y * ACT.y - AC.y * ABT.y;
+		tangent.z = AB.z * ACT.y - AC.z * ABT.y;
+		tangent = DaoxVector3D_Normalize( & tangent );
+	}
+
+	for(j=0; j<3; ++j){
+		DaoxVertex *vertex = vertices[j];
+		DaoxVector3D *norm = & vertex->norm;
+		DaoxVector3D *tan = & vertex->tan;
+		if( donormal ){
+			norm->x += facenorm.x;
+			norm->y += facenorm.y;
+			norm->z += facenorm.z;
+		}
+		if( dotangent ){
+			DaoxVector3D tangent2 = tangent;
+			if( donormal == 0 ){  /* Adjust tangent according to the supplied normal: */
+				DaoxVector3D binorm = DaoxVector3D_Cross( & facenorm, & tangent );
+				tangent2 = DaoxVector3D_Cross( & binorm, norm );;
+				tangent2 = DaoxVector3D_Normalize( & tangent2 );
+			}
+			tan->x += tangent2.x;
+			tan->y += tangent2.y;
+			tan->z += tangent2.z;
+		}
+	}
+}
 
 
 DaoxVector2D* DArray_PushVector2D( DArray *self, DaoxVector2D *vector2d )

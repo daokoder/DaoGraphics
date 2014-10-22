@@ -189,10 +189,11 @@ typedef struct DaoxHexTerrain  DaoxHexTerrain;
 
 struct DaoxHexPoint
 {
-	int           id;
 	DaoxVector3D  pos;
 	DaoxVector3D  norm;
+	DaoxVector3D  tan;
 	DaoxVector2D  tex;
+	int           id;
 };
 
 struct DaoxHexBorder
@@ -227,7 +228,6 @@ struct DaoxHexTerrain
 	DaoxMesh      *mesh;
 
 	DaoxImage  *heightmap;
-	DList      *textures;
 	DList      *points;
 	DList      *borders;
 	DList      *tiles; /* column major; */
@@ -238,6 +238,7 @@ struct DaoxHexTerrain
 	float  radius;
 	float  height;
 	float  depth;
+	float  textureScale;
 
 	DList  *buffer;
 };

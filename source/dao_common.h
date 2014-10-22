@@ -332,6 +332,8 @@ struct DaoxVertex
 	DaoxVector2D  tex;
 };
 
+void DaoxVertex_UpdateNormalTangent( DaoxVertex *A, DaoxVertex *B, DaoxVertex *C, int donormal, int dotangent );
+
 
 
 struct DaoxTriangle

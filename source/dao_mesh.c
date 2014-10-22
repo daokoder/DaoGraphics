@@ -124,46 +124,10 @@ void DaoxMeshUnit_UpdateNormTangents( DaoxMeshUnit *self, int donormal, int dota
 	}
 	for(i=0; i<self->triangles->size; ++i){
 		DaoxTriangle triangle = self->triangles->data.triangles[i];
-		DaoxVertex VA = self->vertices->data.vertices[ triangle.index[0] ];
-		DaoxVertex VB = self->vertices->data.vertices[ triangle.index[1] ];
-		DaoxVertex VC = self->vertices->data.vertices[ triangle.index[2] ];
-		DaoxVector3D AB = DaoxVector3D_Sub( & VB.pos, & VA.pos );
-		DaoxVector3D AC = DaoxVector3D_Sub( & VC.pos, & VA.pos );
-		DaoxVector2D ABT = DaoxVector2D_Sub( & VB.tex, & VA.tex );
-		DaoxVector2D ACT = DaoxVector2D_Sub( & VC.tex, & VA.tex );
-		DaoxVector3D facenorm = DaoxVector3D_Cross( & AB, & AC );
-		DaoxVector3D tangent = { 1.0, 1.0, 1.0 };
-		float denominator = ABT.x * ACT.y - ABT.y * ACT.x;
-
-		facenorm = DaoxVector3D_Normalize( & facenorm );
-		if( fabs( denominator ) > EPSILON ){
-			tangent.x = AB.x * ACT.y - AC.x * ABT.y;
-			tangent.y = AB.y * ACT.y - AC.y * ABT.y;
-			tangent.z = AB.z * ACT.y - AC.z * ABT.y;
-			tangent = DaoxVector3D_Normalize( & tangent );
-		}
-
-		for(j=0; j<3; ++j){
-			DaoxVertex *vertex = & self->vertices->data.vertices[ triangle.index[j] ];
-			DaoxVector3D *norm = & vertex->norm;
-			DaoxVector3D *tan = & vertex->tan;
-			if( donormal ){
-				norm->x += facenorm.x;
-				norm->y += facenorm.y;
-				norm->z += facenorm.z;
-			}
-			if( dotangent ){
-				DaoxVector3D tangent2 = tangent;
-				if( donormal == 0 ){  /* Adjust tangent according to the supplied normal: */
-					DaoxVector3D binorm = DaoxVector3D_Cross( & facenorm, & tangent );
-					tangent2 = DaoxVector3D_Cross( & binorm, norm );;
-					tangent2 = DaoxVector3D_Normalize( & tangent2 );
-				}
-				tan->x += tangent2.x;
-				tan->y += tangent2.y;
-				tan->z += tangent2.z;
-			}
-		}
+		DaoxVertex *VA = & self->vertices->data.vertices[ triangle.index[0] ];
+		DaoxVertex *VB = & self->vertices->data.vertices[ triangle.index[1] ];
+		DaoxVertex *VC = & self->vertices->data.vertices[ triangle.index[2] ];
+		DaoxVertex_UpdateNormalTangent( VA, VB, VC, donormal, dotangent );
 	}
 	for(i=0; i<self->vertices->size; ++i){
 		DaoxVertex *vertex = & self->vertices->data.vertices[i];

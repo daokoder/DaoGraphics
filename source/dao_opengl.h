@@ -146,6 +146,7 @@ struct DaoxShader
 		uint_t  gradientSampler;
 		uint_t  terrainTileType;
 		uint_t  tileTextureCount;
+		uint_t  tileTextureScale;
 		uint_t  tileTextures[7];
 	} uniforms;
 

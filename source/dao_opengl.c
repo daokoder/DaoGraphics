@@ -334,7 +334,6 @@ static const char *const daox_fragment_shader3d_150 =
 uniform int  vectorGraphics;\n\
 uniform int  terrainTileType; // 0: none; 1: square; 2: hexagon; \n\
 uniform int  lightCount;\n\
-uniform int  tileTextureCount;\n\
 uniform vec4 ambientColor;\n\
 uniform vec4 diffuseColor;\n\
 uniform vec4 specularColor;\n\
@@ -343,6 +342,9 @@ uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
 uniform vec3 cameraPosition;\n\
 uniform mat4 modelMatrix;\n\
+\n\
+uniform int   tileTextureCount;\n\
+uniform float tileTextureScale;\n\
 uniform sampler2D tileTexture0;\n\
 uniform sampler2D tileTexture1;\n\
 uniform sampler2D tileTexture2;\n\
@@ -361,6 +363,8 @@ in  float pathOffset; \n\
 out vec4 fragColor;\n\
 \n\
 vec3 worldPosition;\n\
+vec4 tileTextureInfo = vec4(0.0,0.0,0.0,0.0);\n\
+float tileBlendingWidth = 0.05;\n\
 int hasColorTexture2 = hasColorTexture;\n\
 \n\
 vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
@@ -369,7 +373,7 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 	vec3 normal = normalize( varNormal );\n\
 	vec3 tangent = normalize( varTangent );\n\
 	vec3 binormal = cross( normal, tangent );\n\
-	if( hasBumpTexture > 0 && terrainTileType == 0 ){\n\
+	if( hasBumpTexture > 0 ){\n\
 		float ldx = dot( lightDir, tangent );\n\
 		float ldy = dot( lightDir, binormal );\n\
 		float ldz = dot( lightDir, normal );\n\
@@ -404,6 +408,9 @@ vec4 ComputeAllLights( vec4 texColor )\n\
 }\n\
 \n\
 \n\
+// texture coordinate offset from the center in unit space:\n\
+float hexagonTextureRatio = 0.4;\n\
+\n\
 vec2 hexagonVertices[6] = vec2[6]\n\
 (\n\
 	vec2(  1.0,  0.0 ),\n\
@@ -413,7 +420,6 @@ vec2 hexagonVertices[6] = vec2[6]\n\
 	vec2( -0.5, -0.86602540 ),\n\
 	vec2(  0.5, -0.86602540 )\n\
 );\n\
-float hexagonTextureScale = 0.4;\n\
 \n\
 \n\
 vec4 GetDefaultTextureColor( vec2 tex )\n\
@@ -425,8 +431,9 @@ vec4 GetDefaultTextureColor( vec2 tex )\n\
 \n\
 vec4 HexLocateTex( vec2 tex )\n\
 {\n\
+	tex = tex / tileTextureScale;\n\
 	vec2 C = vec2(0.5, 0.5);\n\
-	vec2 P = (tex - C) / hexagonTextureScale; // To unit space; \n\
+	vec2 P = (tex - C) / hexagonTextureRatio; // To unit space; \n\
 	vec2 Q = vec2(0.0, 0.0);\n\
 	float min = 1.0;\n\
 	int imin = 0;\n\
@@ -449,8 +456,9 @@ vec4 HexLocateTex( vec2 tex )\n\
 	if( imin == 3 ) Q = P + (hexagonVertices[0] - hexagonVertices[4]);\n\
 	if( imin == 4 ) Q = P + (hexagonVertices[1] - hexagonVertices[5]);\n\
 	if( imin == 5 ) Q = P + (hexagonVertices[2] - hexagonVertices[0]);\n\
-	min *= hexagonTextureScale;\n\
-	Q = hexagonTextureScale * Q + C;\n\
+	min *= hexagonTextureRatio;\n\
+	Q = hexagonTextureRatio * Q + C;\n\
+	Q *= tileTextureScale;\n\
 	return vec4( imin, min, Q.x, Q.y );\n\
 }\n\
 \n\
@@ -458,18 +466,16 @@ vec4 BlendTerrainTextures( vec4 texColor, vec2 tex )\n\
 {\n\
 	if( terrainTileType != 2 ) return texColor;\n\
 	\n\
-	vec4 test = HexLocateTex( tex );\n\
-	float max = 0.05;\n\
-	if( test.y < max ){ \n\
-		vec2 tex2 = vec2(test[2], test[3]);\n\
+	if( tileTextureInfo.y < tileBlendingWidth ){ \n\
+		vec2 tex2 = vec2(tileTextureInfo[2], tileTextureInfo[3]);\n\
 		vec4 texColor2 = texColor;\n\
-		if( test.x == 0 ) texColor2 = texture( tileTexture1, tex2 );\n\
-		if( test.x == 1 ) texColor2 = texture( tileTexture2, tex2 );\n\
-		if( test.x == 2 ) texColor2 = texture( tileTexture3, tex2 );\n\
-		if( test.x == 3 ) texColor2 = texture( tileTexture4, tex2 );\n\
-		if( test.x == 4 ) texColor2 = texture( tileTexture5, tex2 );\n\
-		if( test.x == 5 ) texColor2 = texture( tileTexture6, tex2 );\n\
-		float factor = 0.5 + 0.5 * test.y / max;\n\
+		if( tileTextureInfo.x == 0 ) texColor2 = texture( tileTexture1, tex2 );\n\
+		if( tileTextureInfo.x == 1 ) texColor2 = texture( tileTexture2, tex2 );\n\
+		if( tileTextureInfo.x == 2 ) texColor2 = texture( tileTexture3, tex2 );\n\
+		if( tileTextureInfo.x == 3 ) texColor2 = texture( tileTexture4, tex2 );\n\
+		if( tileTextureInfo.x == 4 ) texColor2 = texture( tileTexture5, tex2 );\n\
+		if( tileTextureInfo.x == 5 ) texColor2 = texture( tileTexture6, tex2 );\n\
+		float factor = 0.5 + 0.5 * tileTextureInfo.y / tileBlendingWidth;\n\
 		float alpha = texColor[3];\n\
 		texColor = factor * texColor + (1.0 - factor) * texColor2;\n\
 		texColor[3] = alpha;\n\
@@ -486,6 +492,7 @@ void main(void)\n\
 {\n\
 	vec4 texColor = diffuseColor;\n\
 	worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
+	if( terrainTileType == 2 ) tileTextureInfo = HexLocateTex( varTexCoord );\n\
 	if( tileTextureCount > 0 ) hasColorTexture2 = 1;\n\
 	if( hasColorTexture2 > 0 ){\n\
 		texColor = GetDefaultTextureColor( varTexCoord );\n\
@@ -640,6 +647,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
 	self->uniforms.terrainTileType = glGetUniformLocation(self->program, "terrainTileType");
 	self->uniforms.tileTextureCount = glGetUniformLocation(self->program, "tileTextureCount");
+	self->uniforms.tileTextureScale = glGetUniformLocation(self->program, "tileTextureScale");
 	self->uniforms.tileTextures[0] = glGetUniformLocation(self->program, "tileTexture0");
 	self->uniforms.tileTextures[1] = glGetUniformLocation(self->program, "tileTexture1");
 	self->uniforms.tileTextures[2] = glGetUniformLocation(self->program, "tileTexture2");
