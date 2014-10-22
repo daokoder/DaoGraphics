@@ -1,0 +1,84 @@
+
+load graphics;
+
+Graphics::glutInit( 900, 600, 'Tank', 15, 1 )
+
+length = 1
+width = 0.1
+
+scene = Graphics::Scene();
+
+heightmap = Graphics::Image();
+
+texImages =
+{
+	"../media/textures/rock_with_algae.png",
+	"../media/textures/cliff_with_grass.png"
+}
+
+bumpImages = 
+{
+	"../media/textures/rock_with_algae_bump.png",
+	"../media/textures/cliff_with_grass_bump.png"
+}
+
+materials = {}
+
+for( i = 0 : % texImages - 1 ){
+	image = Graphics::Image();
+	image2 = Graphics::Image();
+	image.Load( texImages[i] )
+	image2.Load( bumpImages[i] )
+
+	texture = Graphics::Texture();
+	texture2 = Graphics::Texture();
+	texture.SetImage( image );
+	texture2.SetImage( image2 );
+
+	material = Graphics::Material()
+	material.SetTexture( texture, $first )
+	material.SetTexture( texture2, $second )
+	materials.append( material );
+}
+
+camera = Graphics::Camera()
+
+rows = 3;
+columns = 3;
+radius = 2.0;
+height = rows*radius/8;
+
+# Public domain heightmap, downloaded from wikipedia.org:
+heightmap.Load( '../media/heightmap.png' )
+terrain = scene.AddHexTerrain( heightmap, rows, columns, radius, height )
+camera.Move( rows*radius-radius/2, 2*columns*radius+radius, rows*radius )
+camera.LookAt( rows*radius-radius/2, columns*radius+radius, height/2 );
+
+
+for( row = 0 : rows - 1 ){
+	for( col = 0 : columns - 1 ){
+		tile = terrain.GetTile( row, col )
+		tile.SetMaterial( materials[ rand( %materials ) ] )
+	}
+}
+
+camera.SetFarPlane( 10000 );
+camera.Orient( $Z );
+scene.AddNode( camera );
+
+intensity = 1.0;
+
+light1 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
+light2 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
+light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
+light1.Move( 50, 90, 150 )
+light2.Move( 101.5, 61.5, 161.5 )
+light2.Move( 0, 0, -50 )
+scene.AddNode( light1 );
+scene.AddNode( light2 );
+scene.AddNode( light3 );
+
+renderer = Graphics::Renderer();
+renderer.SetCurrentCamera( camera )
+#renderer.Enable( $axis );
+Graphics::glutDisplay( renderer, scene )
