@@ -31,17 +31,7 @@
 #include <assert.h>
 
 #include "dao_scene.h"
-
-
-#if defined(__APPLE__)
-//#  include <OpenGL/gl.h>
-#  include <OpenGL/gl3.h>
-#  include <GLUT/glut.h>
-#else
-//#  include <GL/gl.h>
-#  include <GL/gl3.h>
-#  include <GL/glut.h>
-#endif
+#include "dao_opengl.h"
 
 
 

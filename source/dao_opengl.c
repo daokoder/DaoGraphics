@@ -26,11 +26,6 @@
 */
 
 
-#if defined(__APPLE__)
-#  include <OpenGL/gl.h>
-#else
-#  include <GL/gl.h>
-#endif
 
 #include <string.h>
 #include "dao_opengl.h"
@@ -345,13 +340,18 @@ uniform mat4 modelMatrix;\n\
 \n\
 uniform int   tileTextureCount;\n\
 uniform float tileTextureScale;\n\
-uniform sampler2D tileTexture0;\n\
 uniform sampler2D tileTexture1;\n\
 uniform sampler2D tileTexture2;\n\
 uniform sampler2D tileTexture3;\n\
 uniform sampler2D tileTexture4;\n\
 uniform sampler2D tileTexture5;\n\
 uniform sampler2D tileTexture6;\n\
+uniform sampler2D tileBumpMap1;\n\
+uniform sampler2D tileBumpMap2;\n\
+uniform sampler2D tileBumpMap3;\n\
+uniform sampler2D tileBumpMap4;\n\
+uniform sampler2D tileBumpMap5;\n\
+uniform sampler2D tileBumpMap6;\n\
 \n\
 in  vec3 varPosition;\n\
 in  vec3 varNormal;\n\
@@ -366,46 +366,6 @@ vec3 worldPosition;\n\
 vec4 tileTextureInfo = vec4(0.0,0.0,0.0,0.0);\n\
 float tileBlendingWidth = 0.05;\n\
 int hasColorTexture2 = hasColorTexture;\n\
-\n\
-vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
-{\n\
-	vec3 camDir = normalize( cameraPosition - worldPosition );\n\
-	vec3 normal = normalize( varNormal );\n\
-	vec3 tangent = normalize( varTangent );\n\
-	vec3 binormal = cross( normal, tangent );\n\
-	if( hasBumpTexture > 0 ){\n\
-		float ldx = dot( lightDir, tangent );\n\
-		float ldy = dot( lightDir, binormal );\n\
-		float ldz = dot( lightDir, normal );\n\
-		float cdx = dot( camDir, tangent );\n\
-		float cdy = dot( camDir, binormal );\n\
-		float cdz = dot( camDir, normal );\n\
-		lightDir = normalize( vec3( ldx, ldy, ldz ) );\n\
-		camDir = normalize( vec3( cdx, cdy, cdz ) );\n\
-		normal = vec3( texture( bumpTexture, varTexCoord ) );\n\
-		normal = (normal - 0.5) * 2.0;\n\
-		//normal = normalize( normal );\n\
-	}\n\
-	float cosAngIncidence = dot( normal, lightDir );\n\
-	cosAngIncidence = clamp(cosAngIncidence, 0, 1);\n\
-	vec3 reflection = 0.5*(1 + cosAngIncidence) * normal;\n\
-	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
-	float dotvalue = dot(reflection, camDir);\n\
-	dotvalue = clamp(dotvalue, 0, 1);\n\
-	vertexColor += lightIntensity * texColor;\n\
-	vertexColor += lightIntensity * specularColor * dotvalue;\n\
-	vertexColor += lightIntensity * ambientColor + emissionColor;\n\
-	return vertexColor;\n\
-}\n\
-vec4 ComputeAllLights( vec4 texColor )\n\
-{\n\
-	vec4 vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
-	for(int i=0; i<lightCount; ++i){\n\
-		vec3 lightDir = normalize( lightSource[i] - worldPosition );\n\
-		vertexColor += ComputeLight( lightDir, lightIntensity[i], texColor );\n\
-	}\n\
-	return vertexColor;\n\
-}\n\
 \n\
 \n\
 // texture coordinate offset from the center in unit space:\n\
@@ -422,11 +382,6 @@ vec2 hexagonVertices[6] = vec2[6]\n\
 );\n\
 \n\
 \n\
-vec4 GetDefaultTextureColor( vec2 tex )\n\
-{\n\
-	if( tileTextureCount > 0 ) return texture( tileTexture0, tex );\n\
-	return texture( colorTexture, tex );\n\
-}\n\
 \n\
 \n\
 vec4 HexLocateTex( vec2 tex )\n\
@@ -462,28 +417,102 @@ vec4 HexLocateTex( vec2 tex )\n\
 	return vec4( imin, min, Q.x, Q.y );\n\
 }\n\
 \n\
-vec4 BlendTerrainTextures( vec4 texColor, vec2 tex )\n\
+vec4 BlendTerrainTextures( vec4 texValue, vec2 tex )\n\
 {\n\
-	if( terrainTileType != 2 ) return texColor;\n\
+	if( terrainTileType != 2 ) return texValue;\n\
 	\n\
 	if( tileTextureInfo.y < tileBlendingWidth ){ \n\
 		vec2 tex2 = vec2(tileTextureInfo[2], tileTextureInfo[3]);\n\
-		vec4 texColor2 = texColor;\n\
-		if( tileTextureInfo.x == 0 ) texColor2 = texture( tileTexture1, tex2 );\n\
-		if( tileTextureInfo.x == 1 ) texColor2 = texture( tileTexture2, tex2 );\n\
-		if( tileTextureInfo.x == 2 ) texColor2 = texture( tileTexture3, tex2 );\n\
-		if( tileTextureInfo.x == 3 ) texColor2 = texture( tileTexture4, tex2 );\n\
-		if( tileTextureInfo.x == 4 ) texColor2 = texture( tileTexture5, tex2 );\n\
-		if( tileTextureInfo.x == 5 ) texColor2 = texture( tileTexture6, tex2 );\n\
+		vec4 texValue2 = texValue;\n\
+		if( tileTextureInfo.x == 0 ) texValue2 = texture( tileTexture1, tex2 );\n\
+		if( tileTextureInfo.x == 1 ) texValue2 = texture( tileTexture2, tex2 );\n\
+		if( tileTextureInfo.x == 2 ) texValue2 = texture( tileTexture3, tex2 );\n\
+		if( tileTextureInfo.x == 3 ) texValue2 = texture( tileTexture4, tex2 );\n\
+		if( tileTextureInfo.x == 4 ) texValue2 = texture( tileTexture5, tex2 );\n\
+		if( tileTextureInfo.x == 5 ) texValue2 = texture( tileTexture6, tex2 );\n\
 		float factor = 0.5 + 0.5 * tileTextureInfo.y / tileBlendingWidth;\n\
-		float alpha = texColor[3];\n\
-		texColor = factor * texColor + (1.0 - factor) * texColor2;\n\
-		texColor[3] = alpha;\n\
+		float alpha = texValue[3];\n\
+		texValue = factor * texValue + (1.0 - factor) * texValue2;\n\
+		texValue[3] = alpha;\n\
 	}\n\
-	return texColor;\n\
+	return texValue;\n\
+}\n\
+\n\
+vec4 BlendTerrainBumpMaps( vec4 texValue, vec2 tex )\n\
+{\n\
+	if( terrainTileType != 2 ) return texValue;\n\
+	\n\
+	if( tileTextureInfo.y < tileBlendingWidth ){ \n\
+		vec2 tex2 = vec2(tileTextureInfo[2], tileTextureInfo[3]);\n\
+		vec4 texValue2 = texValue;\n\
+		if( tileTextureInfo.x == 0 ) texValue2 = texture( tileBumpMap1, tex2 );\n\
+		if( tileTextureInfo.x == 1 ) texValue2 = texture( tileBumpMap2, tex2 );\n\
+		if( tileTextureInfo.x == 2 ) texValue2 = texture( tileBumpMap3, tex2 );\n\
+		if( tileTextureInfo.x == 3 ) texValue2 = texture( tileBumpMap4, tex2 );\n\
+		if( tileTextureInfo.x == 4 ) texValue2 = texture( tileBumpMap5, tex2 );\n\
+		if( tileTextureInfo.x == 5 ) texValue2 = texture( tileBumpMap6, tex2 );\n\
+		float factor = 0.5 + 0.5 * tileTextureInfo.y / tileBlendingWidth;\n\
+		float alpha = texValue[3];\n\
+		texValue = factor * texValue + (1.0 - factor) * texValue2;\n\
+		texValue[3] = alpha;\n\
+	}\n\
+	return texValue;\n\
 }\n\
 \n\
 \n\
+\n\
+vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
+{\n\
+	vec3 camDir = normalize( cameraPosition - worldPosition );\n\
+	vec3 normal = normalize( varNormal );\n\
+	vec3 tangent = normalize( varTangent );\n\
+	vec3 binormal = cross( normal, tangent );\n\
+	if( hasBumpTexture > 0 ){\n\
+		float ldx = dot( lightDir, tangent );\n\
+		float ldy = dot( lightDir, binormal );\n\
+		float ldz = dot( lightDir, normal );\n\
+		float cdx = dot( camDir, tangent );\n\
+		float cdy = dot( camDir, binormal );\n\
+		float cdz = dot( camDir, normal );\n\
+		vec3 lightDir2 = normalize( vec3( ldx, ldy, ldz ) );\n\
+		vec3 camDir2 = normalize( vec3( cdx, cdy, cdz ) );\n\
+		vec4 texValue = texture( bumpTexture, varTexCoord );\n\
+		texValue = BlendTerrainBumpMaps( texValue, varTexCoord );\n\
+		\n\
+		vec3 normal2 = vec3( texValue );\n\
+		normal2 = (normal2 - 0.5) * 2.0;\n\
+		if( terrainTileType == 2 && tileTextureInfo.y < tileBlendingWidth ){ \n\
+			float factor = 0.5 + 0.5 * tileTextureInfo.y / tileBlendingWidth;\n\
+			normal = factor * normal2 + (1.0 - factor) * normal;\n\
+			lightDir = factor * lightDir2 + (1.0 - factor) * lightDir;\n\
+			camDir = factor * camDir2 + (1.0 - factor) * camDir;\n\
+		}else{\n\
+			normal = normal2;\n\
+			lightDir = lightDir2;\n\
+			camDir = camDir2;\n\
+		}\n\
+		//normal = normalize( normal );\n\
+	}\n\
+	float cosAngIncidence = dot( normal, lightDir );\n\
+	cosAngIncidence = clamp(cosAngIncidence, 0, 1);\n\
+	vec3 reflection = 0.5*(1 + cosAngIncidence) * normal;\n\
+	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
+	float dotvalue = dot(reflection, camDir);\n\
+	dotvalue = clamp(dotvalue, 0, 1);\n\
+	vertexColor += lightIntensity * texColor;\n\
+	vertexColor += lightIntensity * specularColor * dotvalue;\n\
+	vertexColor += lightIntensity * ambientColor + emissionColor;\n\
+	return vertexColor;\n\
+}\n\
+vec4 ComputeAllLights( vec4 texColor )\n\
+{\n\
+	vec4 vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
+	for(int i=0; i<lightCount; ++i){\n\
+		vec3 lightDir = normalize( lightSource[i] - worldPosition );\n\
+		vertexColor += ComputeLight( lightDir, lightIntensity[i], texColor );\n\
+	}\n\
+	return vertexColor;\n\
+}\n\
 \n\
 \n\
 \n\
@@ -495,7 +524,7 @@ void main(void)\n\
 	if( terrainTileType == 2 ) tileTextureInfo = HexLocateTex( varTexCoord );\n\
 	if( tileTextureCount > 0 ) hasColorTexture2 = 1;\n\
 	if( hasColorTexture2 > 0 ){\n\
-		texColor = GetDefaultTextureColor( varTexCoord );\n\
+		texColor = texture( colorTexture, varTexCoord );\n\
 		if( terrainTileType == 2 ){ \n\
 			texColor = BlendTerrainTextures( texColor, varTexCoord );\n\
 		}\n\
@@ -648,13 +677,18 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.terrainTileType = glGetUniformLocation(self->program, "terrainTileType");
 	self->uniforms.tileTextureCount = glGetUniformLocation(self->program, "tileTextureCount");
 	self->uniforms.tileTextureScale = glGetUniformLocation(self->program, "tileTextureScale");
-	self->uniforms.tileTextures[0] = glGetUniformLocation(self->program, "tileTexture0");
-	self->uniforms.tileTextures[1] = glGetUniformLocation(self->program, "tileTexture1");
-	self->uniforms.tileTextures[2] = glGetUniformLocation(self->program, "tileTexture2");
-	self->uniforms.tileTextures[3] = glGetUniformLocation(self->program, "tileTexture3");
-	self->uniforms.tileTextures[4] = glGetUniformLocation(self->program, "tileTexture4");
-	self->uniforms.tileTextures[5] = glGetUniformLocation(self->program, "tileTexture5");
-	self->uniforms.tileTextures[6] = glGetUniformLocation(self->program, "tileTexture6");
+	self->uniforms.tileTextures[0] = glGetUniformLocation(self->program, "tileTexture1");
+	self->uniforms.tileTextures[1] = glGetUniformLocation(self->program, "tileTexture2");
+	self->uniforms.tileTextures[2] = glGetUniformLocation(self->program, "tileTexture3");
+	self->uniforms.tileTextures[3] = glGetUniformLocation(self->program, "tileTexture4");
+	self->uniforms.tileTextures[4] = glGetUniformLocation(self->program, "tileTexture5");
+	self->uniforms.tileTextures[5] = glGetUniformLocation(self->program, "tileTexture6");
+	self->uniforms.tileBumpMaps[0] = glGetUniformLocation(self->program, "tileBumpMap1");
+	self->uniforms.tileBumpMaps[1] = glGetUniformLocation(self->program, "tileBumpMap2");
+	self->uniforms.tileBumpMaps[2] = glGetUniformLocation(self->program, "tileBumpMap3");
+	self->uniforms.tileBumpMaps[3] = glGetUniformLocation(self->program, "tileBumpMap4");
+	self->uniforms.tileBumpMaps[4] = glGetUniformLocation(self->program, "tileBumpMap5");
+	self->uniforms.tileBumpMaps[5] = glGetUniformLocation(self->program, "tileBumpMap6");
 
 	//self->uniforms.material = glGetUniformBlockIndex(self->program, "material");
 	self->attributes.position = glGetAttribLocation(self->program, "position");

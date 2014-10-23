@@ -66,13 +66,18 @@ enum DaoxSamplerID
 {
 	DAOX_DASH_SAMPLER = 2 ,
 	DAOX_GRADIENT_SAMPLER ,
-	DAOX_TILE_TEXTURE0 ,
 	DAOX_TILE_TEXTURE1 ,
 	DAOX_TILE_TEXTURE2 ,
 	DAOX_TILE_TEXTURE3 ,
 	DAOX_TILE_TEXTURE4 ,
 	DAOX_TILE_TEXTURE5 ,
-	DAOX_TILE_TEXTURE6
+	DAOX_TILE_TEXTURE6 ,
+	DAOX_TILE_BUMPMAP1 ,
+	DAOX_TILE_BUMPMAP2 ,
+	DAOX_TILE_BUMPMAP3 ,
+	DAOX_TILE_BUMPMAP4 ,
+	DAOX_TILE_BUMPMAP5 ,
+	DAOX_TILE_BUMPMAP6
 };
 
 
@@ -147,7 +152,8 @@ struct DaoxShader
 		uint_t  terrainTileType;
 		uint_t  tileTextureCount;
 		uint_t  tileTextureScale;
-		uint_t  tileTextures[7];
+		uint_t  tileTextures[6];
+		uint_t  tileBumpMaps[6];
 	} uniforms;
 
 	struct {

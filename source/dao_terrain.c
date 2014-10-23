@@ -1110,7 +1110,7 @@ void DaoxHexTerrain_Split( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTrian
 		triangle->splits[i==2?1:i+2]->borders[1] = border;
 	}
 }
-void DaoxHexTerrain_FindMinMaxPixel( DaoxHexTerrain *self, DaoxVector2D points[3], float *min, float *max )
+void DaoxHexTerrain_FindMinMaxPixel( DaoxHexTerrain *self, DaoxVector2D points[3], float *min, float *max, DaoxVector3D *planePoint, DaoxVector3D *planeNormal )
 {
 	DaoxVector2D center = {0.0, 0.0};
 	DaoxVector2D points2[3];
@@ -1122,40 +1122,43 @@ void DaoxHexTerrain_FindMinMaxPixel( DaoxHexTerrain *self, DaoxVector2D points[3
 	if( len * self->heightmap->dims[1] / width < 1.0 ) return;
 	if( (*max - *min) > 0.1 * self->height && (*max - *min) > 0.05 * self->radius ) return;
 	for(i=0; i<3; ++i){
+		DaoxVector3D mid;
 		points2[i] = DaoxVector2D_Interpolate( points[i], points[(i+1)%3], 0.5 );
-		z = DaoxHexTerrain_GetHeight( self, points2[i].x, points2[i].y );
+		mid.z = DaoxHexTerrain_GetHeight( self, points2[i].x, points2[i].y ) - planePoint->z;
+		mid.x = points2[i].x - planePoint->x;
+		mid.y = points2[i].y - planePoint->y;
+		z = DaoxVector3D_Dot( & mid, planeNormal );
 		if( z < *min ) *min = z;
 		if( z > *max ) *max = z;
 	}
-	DaoxHexTerrain_FindMinMaxPixel( self, points2, min, max );
+	DaoxHexTerrain_FindMinMaxPixel( self, points2, min, max, planePoint, planeNormal );
 	for(i=0; i<3; ++i){
 		memcpy( points3, points2, 3*sizeof(DaoxVector2D) );
 		points3[i] = points[(i+2)%3];
-		DaoxHexTerrain_FindMinMaxPixel( self, points3, min, max );
+		DaoxHexTerrain_FindMinMaxPixel( self, points3, min, max, planePoint, planeNormal );
 	}
 }
 
 void DaoxHexTerrain_Refine( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTriangle *triangle )
 {
+	DaoxVector3D point0 = triangle->points[0]->pos;
+	DaoxVector3D point1 = triangle->points[1]->pos;
+	DaoxVector3D point2 = triangle->points[2]->pos;
+	DaoxVector3D normal = DaoxTriangle_Normal( & point0, & point1, & point2 );
 	DaoxVector2D points[3];
-	float min = self->height;
+	float len = DaoxVector3D_Dist( & point0, & point1 );
+	float min = 0.0;
 	float max = 0.0;
-	int i, id;
+	int i;
+
 	for(i=0; i<3; ++i){
 		float z = triangle->points[i]->pos.z;
 		points[i].x = triangle->points[i]->pos.x;
 		points[i].y = triangle->points[i]->pos.y;
-		if( z < min ) min = z;
-		if( z > max ) max = z;
 	}
-	DaoxHexTerrain_FindMinMaxPixel( self, points, & min, & max );
-	if( (max - min) < 0.1 * self->height || (max - min) < 0.05 * self->radius ){
-#if 0
-		DaoxTriangle *t = (DaoxTriangle*) DArray_Push( unit->mesh->triangles );
-		t->index[0] = triangle->vertices[0];
-		t->index[1] = triangle->vertices[1];
-		t->index[2] = triangle->vertices[2];
-#endif
+
+	DaoxHexTerrain_FindMinMaxPixel( self, points, & min, & max, & point0, & normal );
+	if( (max - min) < 0.1 * self->height && (max - min) < (0.1 * len + 0.1) ){ // XXX
 		DaoxHexTriangle_DeleteSplits( triangle );
 		return;
 	}
@@ -1224,7 +1227,7 @@ void DaoxHexBorder_GetPoints( DaoxHexBorder *self, DList *points )
 }
 static void DaoxHexTerrain_UpdateNormals( DaoxHexPoint *A, DaoxHexPoint *B, DaoxHexPoint *C )
 {
-	DaoxVertex_UpdateNormalTangent( (DaoxVertex*) A, (DaoxVertex*) B, (DaoxVertex*) C, 0, 1 );
+	DaoxVertex_UpdateNormalTangent( (DaoxVertex*) A, (DaoxVertex*) B, (DaoxVertex*) C, 1, 1 );
 }
 static void DList_Reverse( DList *self )
 {
@@ -1322,6 +1325,7 @@ void DaoxHexUnit_ExportVertices( DaoxHexUnit *unit, DaoxHexBorder *border )
 		DaoxVertex *vertex = (DaoxVertex*) DArray_Push( unit->mesh->vertices );
 		vertex->pos = border->start->pos;
 		vertex->norm = DaoxVector3D_Normalize( & border->start->norm );
+		vertex->tan = DaoxVector3D_Normalize( & border->start->tan );
 		vertex->tex = border->start->tex;
 		border->start->id = unit->mesh->vertices->size;
 	}
@@ -1329,6 +1333,7 @@ void DaoxHexUnit_ExportVertices( DaoxHexUnit *unit, DaoxHexBorder *border )
 		DaoxVertex *vertex = (DaoxVertex*) DArray_Push( unit->mesh->vertices );
 		vertex->pos = border->end->pos;
 		vertex->norm = DaoxVector3D_Normalize( & border->end->norm );
+		vertex->tan = DaoxVector3D_Normalize( & border->end->tan );
 		vertex->tex = border->end->tex;
 		border->end->id = unit->mesh->vertices->size;
 	}

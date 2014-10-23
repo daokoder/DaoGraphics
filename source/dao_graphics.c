@@ -666,7 +666,9 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_renderer = DaoNamespace_WrapType( ns, & DaoxRenderer_Typer, 0 );
 	daox_type_resource = DaoNamespace_WrapType( ns, & DaoxResource_Typer, 0 );
 	DaoVectorGraphics_OnLoad( vmSpace, ns );
+#ifdef DAO_GRAPHICS_USE_GLUT
 	DaoGLUT_OnLoad( vmSpace, ns );
+#endif
 	return 0;
 }
 

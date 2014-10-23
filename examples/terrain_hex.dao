@@ -71,9 +71,9 @@ intensity = 1.0;
 light1 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
 light2 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
 light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
-light1.Move( 50, 90, 150 )
+light1.Move( rows*radius/2, columns*radius, 2*height )
 light2.Move( 101.5, 61.5, 161.5 )
-light2.Move( 0, 0, -50 )
+light2.Move( 0, 0, 2*height )
 scene.AddNode( light1 );
 scene.AddNode( light2 );
 scene.AddNode( light3 );

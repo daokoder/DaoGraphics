@@ -19,7 +19,6 @@ project_headers =
 	"source/dao_png.h" ,
 	"source/dao_format.h" ,
 	"source/dao_opengl.h" ,
-	"source/dao_glut.h" 
 }
 
 project_sources = 
@@ -41,7 +40,6 @@ project_sources =
 	"source/dao_png.c" ,
 	"source/dao_format.c" ,
 	"source/dao_opengl.c" ,
-	"source/dao_glut.c" 
 }
 
 
@@ -55,11 +53,16 @@ opengl = DaoMake::FindPackage( "OpenGL3", $OPTIONAL )
 glut   = DaoMake::FindPackage( "GLUT",   $OPTIONAL )
 
 if( daovm == none or opengl == none ) return
-if( glut == none ) return # TODO: make it optional;
 
 project.UseImportLibrary( daovm )
 project.UseSharedLibrary( opengl )
-if( glut != none ) project.UseSharedLibrary( glut )
+
+if( glut != none ){
+	project_headers.append( "source/dao_glut.h" )
+	project_sources.append( "source/dao_glut.c" )
+	project.UseSharedLibrary( glut )
+	project.AddDefinition( "DAO_GRAPHICS_USE_GLUT" )
+}
 
 project.SetTargetPath( "../../lib/dao/modules" )
 

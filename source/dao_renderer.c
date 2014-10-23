@@ -584,6 +584,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	daoint K = drawtask->offset * sizeof(GLint);
 	daoint M = drawtask->tcount;
 	GLfloat matrix[16] = {0};
+	int terrainTileType = 0;
 	int tileTextureCount = 0;
 	int tileTextureScale = 0;
 	int hasColorTexture = 0;
@@ -602,27 +603,32 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	glUniform4fv( self->shader.uniforms.diffuseColor, 1, & diffuse.red );
 	glUniform4fv( self->shader.uniforms.specularColor, 1, & specular.red );
 	glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
-	glUniform1i( self->shader.uniforms.terrainTileType, drawtask->terrainTileType );
 
-	if( drawtask->hexTile ){
+	if( drawtask->hexTile && drawtask->hexTile->mesh->material && drawtask->hexTile->mesh->material->texture1 ){
 		DaoxTexture *texture0 = drawtask->hexTile->mesh->material->texture1;
+		DaoxTexture *texture0b = drawtask->hexTile->mesh->material->texture2;
+		terrainTileType = drawtask->terrainTileType;
 		tileTextureCount = 7;
-		tileTextureCount =  drawtask->hexTerrain->textureScale;
-		DaoxTexture_glInitTexture( texture0 );
-		glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture0->tid);
-		glUniform1i(self->shader.uniforms.tileTextures[0], DAOX_TILE_TEXTURE0 );
+		tileTextureScale =  drawtask->hexTerrain->textureScale;
 		for(i=0; i<6; ++i){
 			DaoxHexUnit *neighbor = drawtask->hexTile->neighbors[i];
 			DaoxTexture *texturex = neighbor ? neighbor->mesh->material->texture1 : texture0;
+			DaoxTexture *texturexb = neighbor ? neighbor->mesh->material->texture2 : texture0b;
 			DaoxTexture_glInitTexture( texturex );
-			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE0 + i + 1);
+			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE1 + i);
 			glBindTexture(GL_TEXTURE_2D, texturex->tid);
-			glUniform1i(self->shader.uniforms.tileTextures[i+1], DAOX_TILE_TEXTURE0 + i + 1 );
+			glUniform1i(self->shader.uniforms.tileTextures[i], DAOX_TILE_TEXTURE1 + i );
+			if( texturexb ){
+				DaoxTexture_glInitTexture( texturexb );
+				glActiveTexture(GL_TEXTURE0 + DAOX_TILE_BUMPMAP1 + i);
+				glBindTexture(GL_TEXTURE_2D, texturexb->tid);
+				glUniform1i(self->shader.uniforms.tileBumpMaps[i], DAOX_TILE_BUMPMAP1 + i );
+			}
 		}
 	}
+	glUniform1i( self->shader.uniforms.terrainTileType, terrainTileType );
 	glUniform1i( self->shader.uniforms.tileTextureCount, tileTextureCount );
-	glUniform1f( self->shader.uniforms.tileTextureScale, tileTextureCount );
+	glUniform1f( self->shader.uniforms.tileTextureScale, tileTextureScale );
 
 	if( material != NULL ) colorTexture = material->texture1;
 	if( colorTexture ){
