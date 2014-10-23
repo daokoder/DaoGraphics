@@ -71,13 +71,7 @@ enum DaoxSamplerID
 	DAOX_TILE_TEXTURE3 ,
 	DAOX_TILE_TEXTURE4 ,
 	DAOX_TILE_TEXTURE5 ,
-	DAOX_TILE_TEXTURE6 ,
-	DAOX_TILE_BUMPMAP1 ,
-	DAOX_TILE_BUMPMAP2 ,
-	DAOX_TILE_BUMPMAP3 ,
-	DAOX_TILE_BUMPMAP4 ,
-	DAOX_TILE_BUMPMAP5 ,
-	DAOX_TILE_BUMPMAP6
+	DAOX_TILE_TEXTURE6
 };
 
 
@@ -153,7 +147,6 @@ struct DaoxShader
 		uint_t  tileTextureCount;
 		uint_t  tileTextureScale;
 		uint_t  tileTextures[6];
-		uint_t  tileBumpMaps[6];
 	} uniforms;
 
 	struct {

@@ -606,24 +606,16 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 
 	if( drawtask->hexTile && drawtask->hexTile->mesh->material && drawtask->hexTile->mesh->material->texture1 ){
 		DaoxTexture *texture0 = drawtask->hexTile->mesh->material->texture1;
-		DaoxTexture *texture0b = drawtask->hexTile->mesh->material->texture2;
 		terrainTileType = drawtask->terrainTileType;
 		tileTextureCount = 7;
 		tileTextureScale =  drawtask->hexTerrain->textureScale;
 		for(i=0; i<6; ++i){
 			DaoxHexUnit *neighbor = drawtask->hexTile->neighbors[i];
 			DaoxTexture *texturex = neighbor ? neighbor->mesh->material->texture1 : texture0;
-			DaoxTexture *texturexb = neighbor ? neighbor->mesh->material->texture2 : texture0b;
 			DaoxTexture_glInitTexture( texturex );
 			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE1 + i);
 			glBindTexture(GL_TEXTURE_2D, texturex->tid);
 			glUniform1i(self->shader.uniforms.tileTextures[i], DAOX_TILE_TEXTURE1 + i );
-			if( texturexb ){
-				DaoxTexture_glInitTexture( texturexb );
-				glActiveTexture(GL_TEXTURE0 + DAOX_TILE_BUMPMAP1 + i);
-				glBindTexture(GL_TEXTURE_2D, texturexb->tid);
-				glUniform1i(self->shader.uniforms.tileBumpMaps[i], DAOX_TILE_BUMPMAP1 + i );
-			}
 		}
 	}
 	glUniform1i( self->shader.uniforms.terrainTileType, terrainTileType );

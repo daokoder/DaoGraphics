@@ -43,16 +43,16 @@ for( i = 0 : % texImages - 1 ){
 
 camera = Graphics::Camera()
 
-rows = 3;
-columns = 3;
+rows = 5;
+columns = 5;
 radius = 2.0;
-height = rows*radius/8;
+height = sqrt(rows*columns)*radius/8;
 
 # Public domain heightmap, downloaded from wikipedia.org:
 heightmap.Load( '../media/heightmap.png' )
 terrain = scene.AddHexTerrain( heightmap, rows, columns, radius, height )
-camera.Move( rows*radius-radius/2, 2*columns*radius+radius, rows*radius )
-camera.LookAt( rows*radius-radius/2, columns*radius+radius, height/2 );
+camera.Move( columns*radius-radius/2, 2*rows*radius+radius, columns*radius )
+camera.LookAt( columns*radius-radius/2, rows*radius+radius, height/2 );
 
 
 for( row = 0 : rows - 1 ){
@@ -68,15 +68,12 @@ scene.AddNode( camera );
 
 intensity = 1.0;
 
-light1 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
-light2 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
-light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
-light1.Move( rows*radius/2, columns*radius, 2*height )
-light2.Move( 101.5, 61.5, 161.5 )
-light2.Move( 0, 0, 2*height )
+light1 = Graphics::Light( $spot, 0.6*intensity, 0.6*intensity, 0.6*intensity )
+light2 = Graphics::Light( $spot, 0.5*intensity, 0.5*intensity, 0.5*intensity )
+light1.Move( columns*radius+radius, rows*radius+2*radius, 2*height )
+light2.Move( columns*radius-radius, rows*radius-radius, 2*height )
 scene.AddNode( light1 );
 scene.AddNode( light2 );
-scene.AddNode( light3 );
 
 renderer = Graphics::Renderer();
 renderer.SetCurrentCamera( camera )

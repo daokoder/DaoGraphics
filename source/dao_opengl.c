@@ -346,12 +346,6 @@ uniform sampler2D tileTexture3;\n\
 uniform sampler2D tileTexture4;\n\
 uniform sampler2D tileTexture5;\n\
 uniform sampler2D tileTexture6;\n\
-uniform sampler2D tileBumpMap1;\n\
-uniform sampler2D tileBumpMap2;\n\
-uniform sampler2D tileBumpMap3;\n\
-uniform sampler2D tileBumpMap4;\n\
-uniform sampler2D tileBumpMap5;\n\
-uniform sampler2D tileBumpMap6;\n\
 \n\
 in  vec3 varPosition;\n\
 in  vec3 varNormal;\n\
@@ -438,27 +432,6 @@ vec4 BlendTerrainTextures( vec4 texValue, vec2 tex )\n\
 	return texValue;\n\
 }\n\
 \n\
-vec4 BlendTerrainBumpMaps( vec4 texValue, vec2 tex )\n\
-{\n\
-	if( terrainTileType != 2 ) return texValue;\n\
-	\n\
-	if( tileTextureInfo.y < tileBlendingWidth ){ \n\
-		vec2 tex2 = vec2(tileTextureInfo[2], tileTextureInfo[3]);\n\
-		vec4 texValue2 = texValue;\n\
-		if( tileTextureInfo.x == 0 ) texValue2 = texture( tileBumpMap1, tex2 );\n\
-		if( tileTextureInfo.x == 1 ) texValue2 = texture( tileBumpMap2, tex2 );\n\
-		if( tileTextureInfo.x == 2 ) texValue2 = texture( tileBumpMap3, tex2 );\n\
-		if( tileTextureInfo.x == 3 ) texValue2 = texture( tileBumpMap4, tex2 );\n\
-		if( tileTextureInfo.x == 4 ) texValue2 = texture( tileBumpMap5, tex2 );\n\
-		if( tileTextureInfo.x == 5 ) texValue2 = texture( tileBumpMap6, tex2 );\n\
-		float factor = 0.5 + 0.5 * tileTextureInfo.y / tileBlendingWidth;\n\
-		float alpha = texValue[3];\n\
-		texValue = factor * texValue + (1.0 - factor) * texValue2;\n\
-		texValue[3] = alpha;\n\
-	}\n\
-	return texValue;\n\
-}\n\
-\n\
 \n\
 \n\
 vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
@@ -476,10 +449,7 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 		float cdz = dot( camDir, normal );\n\
 		vec3 lightDir2 = normalize( vec3( ldx, ldy, ldz ) );\n\
 		vec3 camDir2 = normalize( vec3( cdx, cdy, cdz ) );\n\
-		vec4 texValue = texture( bumpTexture, varTexCoord );\n\
-		texValue = BlendTerrainBumpMaps( texValue, varTexCoord );\n\
-		\n\
-		vec3 normal2 = vec3( texValue );\n\
+		vec3 normal2 = vec3( texture( bumpTexture, varTexCoord ) );\n\
 		normal2 = (normal2 - 0.5) * 2.0;\n\
 		if( terrainTileType == 2 && tileTextureInfo.y < tileBlendingWidth ){ \n\
 			float factor = 0.5 + 0.5 * tileTextureInfo.y / tileBlendingWidth;\n\
@@ -683,12 +653,6 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.tileTextures[3] = glGetUniformLocation(self->program, "tileTexture4");
 	self->uniforms.tileTextures[4] = glGetUniformLocation(self->program, "tileTexture5");
 	self->uniforms.tileTextures[5] = glGetUniformLocation(self->program, "tileTexture6");
-	self->uniforms.tileBumpMaps[0] = glGetUniformLocation(self->program, "tileBumpMap1");
-	self->uniforms.tileBumpMaps[1] = glGetUniformLocation(self->program, "tileBumpMap2");
-	self->uniforms.tileBumpMaps[2] = glGetUniformLocation(self->program, "tileBumpMap3");
-	self->uniforms.tileBumpMaps[3] = glGetUniformLocation(self->program, "tileBumpMap4");
-	self->uniforms.tileBumpMaps[4] = glGetUniformLocation(self->program, "tileBumpMap5");
-	self->uniforms.tileBumpMaps[5] = glGetUniformLocation(self->program, "tileBumpMap6");
 
 	//self->uniforms.material = glGetUniformBlockIndex(self->program, "material");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
