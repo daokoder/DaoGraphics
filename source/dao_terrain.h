@@ -118,7 +118,7 @@ struct DaoxTerrain
 	DList   *vertices;
 	DArray  *triangles;
 
-	DaoxImage     *heightmap;
+	DaoArray      *heightmap;
 	DaoxMaterial  *material;
 
 	DList   *pointList;
@@ -130,8 +130,8 @@ extern DaoType *daox_type_terrain;
 DaoxTerrain* DaoxTerrain_New();
 void DaoxTerrain_Delete( DaoxTerrain *self );
 
-void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length, float height );
-void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoxImage *heightmap );
+void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length );
+void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoArray *heightmap );
 void DaoxTerrain_SetMaterial( DaoxTerrain *self, DaoxMaterial *material );
 void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainCell *cell );
 void DaoxTerrain_Rebuild( DaoxTerrain *self );
@@ -227,10 +227,10 @@ struct DaoxHexTerrain
 	DaoxSceneNode  base;
 	DaoxMesh      *mesh;
 
-	DaoxImage  *heightmap;
-	DList      *points;
-	DList      *borders;
-	DList      *tiles; /* column major; */
+	DaoArray  *heightmap;
+	DList     *points;
+	DList     *borders;
+	DList     *tiles; /* column major; */
 
 	int    rows;
 	int    columns;
@@ -247,9 +247,10 @@ extern DaoType *daox_type_hexterrain;
 DaoxHexTerrain* DaoxHexTerrain_New();
 void DaoxHexTerrain_Delete( DaoxHexTerrain *self );
 
-void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int rows, int cols, float height );
-void DaoxHexTerrain_SetHeightmap( DaoxHexTerrain *self, DaoxImage *heightmap );
+void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int rows, int cols, float radius );
+void DaoxHexTerrain_SetHeightmap( DaoxHexTerrain *self, DaoArray *heightmap );
 void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self );
+void DaoxHexTerrain_Generate( DaoxHexTerrain *self, DList *features );
 
 
 #endif

@@ -223,7 +223,9 @@ static void CAM_Rotate( DaoProcess *proc, DaoValue *p[], int N )
 static void CAM_Orient( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCamera *self = (DaoxCamera*) p[0];
-	DaoxCamera_Orient( self, p[1]->xEnum.value + 1 );
+	int dir = p[1]->xEnum.value + 1;
+	int rev = p[2]->xBoolean.value;
+	DaoxCamera_Orient( self, rev ? -dir : dir );
 }
 static void CAM_SetFOV( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -263,7 +265,7 @@ static DaoFuncItem DaoxCameraMeths[]=
 	{ CAM_MoveBy,  "MoveBy( self: Camera, dx: float, dy: float, dz: float )" },
 	{ CAM_LookAt,  "LookAt( self: Camera, x: float, y: float, z: float )" },
 	{ CAM_Rotate,  "Rotate( self: Camera, angle: float )" },
-	{ CAM_Orient,  "Orient( self: Camera, worldUpAxis: enum<X,Y,Z> = $Z )" },
+	{ CAM_Orient,  "Orient( self: Camera, worldUpAxis: enum<X,Y,Z> = $Z, reverse = false )" },
 	{ CAM_SetFOV,  "SetFOV( self: Camera, angle: float )" },
 	{ CAM_SetNearPlane,  "SetNearPlane( self: Camera, dist: float )" },
 	{ CAM_SetFarPlane,   "SetFarPlane( self: Camera, dist: float )" },
@@ -414,33 +416,60 @@ static void SCENE_AddBox( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void SCENE_AddTerrain( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxScene *self = (DaoxScene*) p[0];
-	DaoxImage *heightmap = (DaoxImage*) p[1];
 	DaoxTerrain *terrain = DaoxTerrain_New();
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoArray *heightmap = (DaoArray*) p[1];
 	float width = p[2]->xFloat.value;
 	float length = p[3]->xFloat.value;
 	float height = p[4]->xFloat.value;
 
+	if( heightmap->type != DAO_ARRAY ){
+		DaoxImage *image = (DaoxImage*) p[1];
+		heightmap = DaoArray_New(DAO_FLOAT);
+		DaoxImage_Export( image, heightmap, height / 255.0 );
+	}
+
 	DaoxTerrain_SetHeightmap( terrain, heightmap );
-	DaoxTerrain_SetSize( terrain, width, length, height );
+	DaoxTerrain_SetSize( terrain, width, length );
 	DaoxTerrain_Rebuild( terrain );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
 static void SCENE_AddHexTerrain( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxScene *self = (DaoxScene*) p[0];
-	DaoxImage *heightmap = (DaoxImage*) p[1];
 	DaoxHexTerrain *terrain = DaoxHexTerrain_New();
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoArray *heightmap = (DaoArray*) p[1];
 	int rows = p[2]->xInteger.value;
 	int cols = p[3]->xInteger.value;
 	float radius = p[4]->xFloat.value;
 	float height = p[5]->xFloat.value;
 
+	if( heightmap->type != DAO_ARRAY ){
+		DaoxImage *image = (DaoxImage*) p[1];
+		heightmap = DaoArray_New(DAO_FLOAT);
+		DaoxImage_Export( image, heightmap, height / 255.0 );
+	}
+
 	DaoxHexTerrain_SetHeightmap( terrain, heightmap );
+	DaoxHexTerrain_SetSize( terrain, rows, cols, radius );
+	DaoxHexTerrain_Rebuild( terrain );
+	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
+	DaoProcess_PutValue( proc, (DaoValue*) terrain );
+}
+static void SCENE_AddHexTerrain2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoxHexTerrain *terrain = DaoxHexTerrain_New();
+	DList *features = p[1]->xList.value;
+	int rows = p[2]->xInteger.value;
+	int cols = p[3]->xInteger.value;
+	float radius = p[4]->xFloat.value;
+	float height = p[5]->xFloat.value;
+
 	DaoxHexTerrain_SetSize( terrain, rows, cols, height );
 	terrain->radius = radius;
-	DaoxHexTerrain_Rebuild( terrain );
+	DaoxHexTerrain_Generate( terrain, features );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
@@ -450,11 +479,23 @@ static DaoFuncItem DaoxSceneMeths[] =
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
 	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1.0, ylen = 1.0, zlen = 1.0 ) => Model" },
 	{ SCENE_AddTerrain,
+		"AddTerrain( self: Scene, heightmap: array<float>, width = 1.0, length = 1.0 )"
+			"=> Terrain"
+	},
+	{ SCENE_AddTerrain,
 		"AddTerrain( self: Scene, heightmap: Image, width = 1.0, length = 1.0, height = 1.0 )"
 			"=> Terrain"
 	},
 	{ SCENE_AddHexTerrain,
+		"AddHexTerrain( self: Scene, heightmap: array<float>, rows = 1, columns = 1, radius = 1.0 )"
+			"=> HexTerrain"
+	},
+	{ SCENE_AddHexTerrain,
 		"AddHexTerrain( self: Scene, heightmap: Image, rows = 1, columns = 1, radius = 1.0, height = 1.0 )"
+			"=> HexTerrain"
+	},
+	{ SCENE_AddHexTerrain2,
+		"AddHexTerrain( self: Scene, tileFeatures: list<tuple<height:float,variance:float,roughness:float>>, rows = 1, columns = 1, radius = 1.0 )"
 			"=> HexTerrain"
 	},
 	{ NULL, NULL }

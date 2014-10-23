@@ -218,6 +218,25 @@ int DaoxImage_SavePNG( DaoxImage *self, const char *file )
 	return 1;
 }
 
+void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor )
+{
+	int i, j, pixelBytes = 1 + self->depth;
+	daoint dims[2];
+
+	dims[0] = self->height;
+	dims[1] = self->width;
+	DaoArray_ResizeArray( matrix, dims, 2 );
+	for(i=0; i<self->height; ++i){
+		uchar_t *pix = self->imageData + i * self->widthStep;
+		for(j=0;  j<self->width;  ++j, pix += pixelBytes){
+			daoint k = i * self->width + j;
+			switch( matrix->etype ){
+			case DAO_INTEGER : matrix->data.i[k] = factor * (*pix); break;
+			case DAO_FLOAT   : matrix->data.f[k] = factor * (*pix); break;
+			}
+		}
+	}
+}
 
 
 
@@ -255,11 +274,21 @@ static void IMAGE_Save( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if( ret == 0 ) DaoProcess_RaiseError( proc, NULL, "file saving failed" );
 }
+static void IMAGE_Export( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxImage *self = (DaoxImage*) p[0];
+	DaoArray *matrix = (DaoArray*) p[2];
+	double factor = DaoValue_GetFloat( p[3] );
+	int channels = p[1]->xEnum.value; // TODO:
+
+	DaoxImage_Export( self, matrix, factor );
+}
 static DaoFuncItem DaoxImageMeths[]=
 {
 	{ IMAGE_New,     "Image()" },
 	{ IMAGE_Load,    "Load( self: Image, file: string )" },
 	{ IMAGE_Save,    "Save( self: Image, file: string )" },
+	{ IMAGE_Export,  "Export( self: Image, channel: enum<red;grean;blue;alpha>, matrix: array<@T<int|float>>, factor: @T = 1 )" },
 	{ NULL, NULL }
 };
 

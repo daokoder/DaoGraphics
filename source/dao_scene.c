@@ -635,10 +635,11 @@ void DaoxCamera_RotateBy( DaoxCamera *self, float alpha )
 }
 void DaoxCamera_Orient( DaoxCamera *self, int xyz )
 {
-	DaoxVector3D xaxis = { 1.0, 0.0, 0.0 };
-	DaoxVector3D yaxis = { 0.0, 1.0, 0.0 };
-	DaoxVector3D zaxis = { 0.0, 0.0, 1.0 };
-	DaoxVector3D upaxis = xyz == 1 ? xaxis : (xyz == 2 ? yaxis : zaxis);
+	float unit = xyz > 0 ? 1.0 : -1.0;
+	DaoxVector3D xaxis = DaoxVector3D_XYZ( unit, 0.0, 0.0 );
+	DaoxVector3D yaxis = DaoxVector3D_XYZ( 0.0, unit, 0.0 );
+	DaoxVector3D zaxis = DaoxVector3D_XYZ( 0.0, 0.0, unit );
+	DaoxVector3D upaxis = abs(xyz) == 1 ? xaxis : (abs(xyz) == 2 ? yaxis : zaxis);
 	DaoxVector3D cameraUp = DaoxCamera_GetUpDirection( self );
 	DaoxVector3D cameraDirection = DaoxCamera_GetViewDirection( self );
 	DaoxVector3D projection = DaoxVector3D_ProjectToPlane( & upaxis, & cameraDirection );

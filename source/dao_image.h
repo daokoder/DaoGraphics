@@ -79,4 +79,6 @@ int DaoxImage_SaveBMP( DaoxImage *self, const char *file );
 int DaoxImage_LoadPNG( DaoxImage *self, const char *file );
 int DaoxImage_SavePNG( DaoxImage *self, const char *file );
 
+void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor );
+
 #endif
