@@ -74,8 +74,8 @@ scene.AddNode( camera );
 
 intensity = 1.0;
 
-light1 = Graphics::Light( $spot, 0.5*intensity, 0.5*intensity, 0.5*intensity )
-light2 = Graphics::Light( $spot, 0.4*intensity, 0.4*intensity, 0.4*intensity )
+light1 = Graphics::Light( $spot, 0.6*intensity, 0.5*intensity, 0.5*intensity )
+light2 = Graphics::Light( $spot, 0.4*intensity, 0.4*intensity, 0.2*intensity )
 light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
 light1.Move( 0.5*columns*radius+radius, rows*radius+2*radius, 2*height )
 light2.Move( 1.5*columns*radius-radius, rows*radius-radius, 2*height )
