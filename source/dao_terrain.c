@@ -26,6 +26,7 @@
 */
 
 #include"dao_terrain.h"
+#include"daoNumtype.h"
 
 
 DaoxTerrainPoint* DaoxTerrainPoint_New()
@@ -1032,7 +1033,7 @@ void DaoxHexTerrain_InitializeTiles( DaoxHexTerrain *self )
 	for(i=0; i<count; ++i){
 		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
 		int column = i / self->rows;
-		int row = i - column * self->rows;
+		int row = i % self->rows;
 
 		unit->center->pos.x = column * self->radius * (1.0 + cos60) + self->radius;
 		unit->center->pos.y = self->radius * sin60 * (2.0 * row + 1.0 + column % 2);
@@ -1071,6 +1072,7 @@ float DaoxHexTerrain_GetHeight( DaoxHexTerrain *self, float x, float y )
 	float sin60 = sin( M_PI / 3.0 );
 	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius + EPSILON + 1;
 	float length = self->rows * 2.0 * self->radius * sin60 + self->radius * sin60 + EPSILON + 1;
+	if( self->heightmap == NULL ) return 0.0;
 	return DaoArray_InterpolateValue( self->heightmap, width, length, x, y );
 }
 
@@ -1091,7 +1093,9 @@ void DaoxHexTerrain_Split( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTrian
 		}else{
 			mid = DaoxHexPoint_New(0.0,0.0);
 			mid->pos = DaoxVector3D_Interpolate( border->start->pos, border->end->pos, 0.5 );
-			mid->pos.z = DaoxHexTerrain_GetHeight( self, mid->pos.x, mid->pos.y );
+			if( self->heightmap != NULL ){
+				mid->pos.z = DaoxHexTerrain_GetHeight( self, mid->pos.x, mid->pos.y );
+			}
 			border->left = DaoxHexBorder_New( border->start, mid );
 			border->right = DaoxHexBorder_New( mid, border->end );
 		}
@@ -1400,15 +1404,21 @@ void DaoxHexTerrain_ExportTriangles( DaoxHexTerrain *self, DaoxHexUnit *unit, Da
 		mt->index[i] = triangle->points[i]->id - 1;
 	}
 }
+void DaoxHexUnit_InitTextureCoordinates( DaoxHexUnit *self )
+{
+	int i;
+
+	self->center->tex.x = self->center->tex.y = 0.5;
+	for(i=0; i<6; ++i){
+		self->spokes[i]->end->tex.x = 0.5 + 0.4 * cos( i*M_PI/3.0 );
+		self->spokes[i]->end->tex.y = 0.5 + 0.4 * sin( i*M_PI/3.0 );
+	}
+}
 void DaoxHexTerrain_BuildMesh( DaoxHexTerrain *self, DaoxHexUnit *unit )
 {
 	int i;
 	unit->mesh->vertices->size = unit->mesh->triangles->size = 0;
-	unit->center->tex.x = unit->center->tex.y = 0.5;
-	for(i=0; i<6; ++i){
-		unit->spokes[i]->end->tex.x = 0.5 + 0.4 * cos( i*M_PI/3.0 );
-		unit->spokes[i]->end->tex.y = 0.5 + 0.4 * sin( i*M_PI/3.0 );
-	}
+	DaoxHexUnit_InitTextureCoordinates( unit );
 	for(i=0; i<6; ++i) DaoxHexTerrain_ResetVertices( self, unit, unit->splits[i] );
 	for(i=0; i<6; ++i) DaoxHexTerrain_ExportVertices( self, unit, unit->splits[i] );
 	for(i=0; i<6; ++i) DaoxHexTerrain_ExportTriangles( self, unit, unit->splits[i] );
@@ -1421,15 +1431,10 @@ void DaoxHexTerrain_BuildMesh( DaoxHexTerrain *self, DaoxHexUnit *unit )
 	}
 
 }
-void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self )
+void DaoxHexTerrain_FinalizeMesh( DaoxHexTerrain *self )
 {
 	int i, j, k, count = self->rows * self->columns;
-	printf( "DaoxHexTerrain_Rebuild\n" );
-	DaoxHexTerrain_InitializeTiles( self );
-	for(i=0; i<count; ++i){
-		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
-		DaoxHexTerrain_RebuildUnit( self, unit );
-	}
+
 	self->changes = 1;
 	while( self->changes ){
 		self->changes = 0;
@@ -1453,14 +1458,137 @@ void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self )
 	DaoxMesh_ResetBoundingBox( self->mesh );
 	self->base.obbox = self->mesh->obbox;
 }
-
-void DaoxHexTerrain_Generate( DaoxHexTerrain *self, DList *features )
+void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self )
 {
 	int i, j, k, count = self->rows * self->columns;
+	printf( "DaoxHexTerrain_Rebuild\n" );
+	DaoxHexTerrain_InitializeTiles( self );
+	for(i=0; i<count; ++i){
+		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
+		DaoxHexTerrain_RebuildUnit( self, unit );
+	}
+	DaoxHexTerrain_FinalizeMesh( self );
+}
+
+
+typedef struct DaoxTerrainProcedure DaoxTerrainProcedure;
+
+struct DaoxTerrainProcedure
+{
+	float              faultDist;
+	DaoxVector2D       faultPoint;
+	DaoxVector2D       faultNorm;
+	DaoRandGenerator  *randGenerator;
+};
+
+void DaoxHexTerrain_ApplyFaultLine2( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTriangle *triangle, DaoxTerrainProcedure *procedure, int split )
+{
+	DaoxVector2D point1 = DaoxVector2D_Vector3D( triangle->points[1]->pos );
+	DaoxVector2D point2 = DaoxVector2D_Vector3D( triangle->points[2]->pos );
+	float sin60 = sin( M_PI / 3.0 );
+	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius + EPSILON + 1;
+	float length = self->rows * 2.0 * self->radius * sin60 + self->radius * sin60 + EPSILON + 1;
+	float diameter = sqrt(width*width + length*length);
+	float faultScale1 = 0.01 * diameter;
+	float faultScale2 = 0.05 * diameter;
+	float len = DaoxVector2D_Dist( point1, point2 );
+	float min = 0.01 * diameter;
+	float minDistToPoint = diameter;
+	float distToFaultLine[3];
+	float distToFaultPoint[3];
+	int i;
+
+	procedure->faultDist = fabs( procedure->faultDist );
+	if( triangle->splits[0] != NULL ){
+		for(i=0; i<4; ++i) DaoxHexTerrain_ApplyFaultLine2( self, unit, triangle->splits[i], procedure, 1 );
+		return;
+	}
+	for(i=0; i<3; ++i){
+		DaoxVector2D point = DaoxVector2D_Vector3D( triangle->points[i]->pos );
+		distToFaultPoint[i] = DaoxVector2D_Dist( point, procedure->faultPoint );
+		if( minDistToPoint > distToFaultPoint[i] ) minDistToPoint = distToFaultPoint[i];
+
+		point = DaoxVector2D_Sub( & point, & procedure->faultPoint );
+		distToFaultLine[i] = DaoxVector2D_Dot( & point, & procedure->faultNorm );
+	}
+	if( distToFaultLine[0] * distToFaultLine[1] < 0.0 || distToFaultLine[0] * distToFaultLine[2] < 0.0 ){
+		float prob;
+		if( split == 0 || len <= min ) goto Adjust;
+		prob = exp( - minDistToPoint / faultScale2 );
+		if( DaoRandGenerator_GetUniform( procedure->randGenerator ) > prob ) goto Adjust;
+		DaoxHexTerrain_Split( self, unit, triangle );
+		for(i=0; i<4; ++i) DaoxHexTerrain_ApplyFaultLine2( self, unit, triangle->splits[i], procedure, 0 );
+		return;
+	}
+Adjust:
+	for(i=0; i<3; ++i){
+		float factor1 = distToFaultLine[i] / (fabs(distToFaultLine[i]) + faultScale1);
+		float factor2 = exp( - minDistToPoint / faultScale2 );
+		float offset = min * factor1 * factor2;
+		triangle->points[i]->pos.z += offset;
+	}
+}
+void DaoxHexTerrain_ApplyFaultLine( DaoxHexTerrain *self, DaoxTerrainProcedure *procedure )
+{
+	int i, j, k, count = self->rows * self->columns;
+
+	for(i=0; i<count; ++i){
+		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
+		DaoxHexUnit_InitTextureCoordinates( unit );
+		for(j=0; j<6; ++j) DaoxHexTerrain_ResetVertices( self, unit, unit->splits[j] );
+	}
+	for(i=0; i<count; ++i){
+		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
+		for(j=0; j<6; ++j){
+			DaoxHexTerrain_ApplyFaultLine2( self, unit, unit->splits[j], procedure, 1 );
+		}
+	}
+}
+void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed )
+{
+	DaoxTerrainProcedure procedure;
+	DaoRandGenerator *randgen;
+	DaoxVector2D *faultPoint = & procedure.faultPoint;
+	DaoxVector2D *faultNorm = & procedure.faultNorm;
+	float sin60 = sin( M_PI / 3.0 );
+	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius + EPSILON + 1;
+	float length = self->rows * 2.0 * self->radius * sin60 + self->radius * sin60 + EPSILON + 1;
+	float diameter = sqrt(width*width + length*length);
+	int i, j, k, count = self->rows * self->columns;
+	int steps = 20 + sqrt( self->rows + self->columns );
+
+	procedure.randGenerator = randgen = DaoRandGenerator_New( seed );
 	printf( "DaoxHexTerrain_Generate:\n" );
 	DaoxHexTerrain_InitializeTiles( self );
 	for(i=0; i<count; ++i){
 		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
-		//DaoxHexTerrain_RebuildUnit( self, unit );
+		unit->center->pos.z = 0.0;
+		for(j=0; j<6; ++j) unit->spokes[j]->end->pos.z = 0.0;
 	}
+	for(i=0; i<steps; ++i){
+		float randAngle;
+		faultPoint->x = width * DaoRandGenerator_GetUniform( randgen );
+		faultPoint->y = length * DaoRandGenerator_GetUniform( randgen );
+		faultNorm->x = DaoRandGenerator_GetUniform( randgen ) - 0.5;
+		faultNorm->y = DaoRandGenerator_GetUniform( randgen ) - 0.5;
+		*faultNorm = DaoxVector2D_Normalize( faultNorm );
+		procedure.faultDist = 0.5 * diameter;
+		DaoxHexTerrain_ApplyFaultLine( self, & procedure );
+		while( procedure.faultDist >= 0.05 * diameter ){
+			DaoxVector2D faultDir = DaoxMatrix3D_RotateVector( *faultNorm, 0.5*M_PI );
+			procedure.faultDist = procedure.faultDist * DaoRandGenerator_GetNormal( randgen );
+			faultPoint->x += procedure.faultDist * faultDir.x;
+			faultPoint->y += procedure.faultDist * faultDir.y;
+			randAngle = 0.5 * M_PI * DaoRandGenerator_GetNormal( randgen );
+			*faultNorm = DaoxMatrix3D_RotateVector( faultDir, randAngle );
+			*faultNorm = DaoxVector2D_Normalize( faultNorm );
+			if( DaoRandGenerator_GetUniform( randgen ) ){
+				faultNorm->x = - faultNorm->x;
+				faultNorm->y = - faultNorm->y;
+			}
+			procedure.faultDist = fabs( procedure.faultDist );
+			DaoxHexTerrain_ApplyFaultLine( self, & procedure );
+		}
+	}
+	DaoxHexTerrain_FinalizeMesh( self );
 }

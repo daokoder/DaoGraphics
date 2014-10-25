@@ -806,6 +806,8 @@ void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxCanvasState *state )
 // Buffer Object Streaming:
 // Server-side multi-buffering (buffer re-specification/orphaning)
 // https://www.opengl.org/wiki/Buffer_Object_Streaming
+// Array Texture:
+// https://www.opengl.org/wiki/Array_Texture
 */
 
 void DaoxBuffer_Init( DaoxBuffer *self )

@@ -421,10 +421,10 @@ static void SCENE_AddTerrain( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray *heightmap = (DaoArray*) p[1];
 	float width = p[2]->xFloat.value;
 	float length = p[3]->xFloat.value;
-	float height = p[4]->xFloat.value;
 
 	if( heightmap->type != DAO_ARRAY ){
 		DaoxImage *image = (DaoxImage*) p[1];
+		float height = p[4]->xFloat.value;
 		heightmap = DaoArray_New(DAO_FLOAT);
 		DaoxImage_Export( image, heightmap, height / 255.0 );
 	}
@@ -443,10 +443,10 @@ static void SCENE_AddHexTerrain( DaoProcess *proc, DaoValue *p[], int N )
 	int rows = p[2]->xInteger.value;
 	int cols = p[3]->xInteger.value;
 	float radius = p[4]->xFloat.value;
-	float height = p[5]->xFloat.value;
 
 	if( heightmap->type != DAO_ARRAY ){
 		DaoxImage *image = (DaoxImage*) p[1];
+		float height = p[5]->xFloat.value;
 		heightmap = DaoArray_New(DAO_FLOAT);
 		DaoxImage_Export( image, heightmap, height / 255.0 );
 	}
@@ -461,15 +461,13 @@ static void SCENE_AddHexTerrain2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxScene *self = (DaoxScene*) p[0];
 	DaoxHexTerrain *terrain = DaoxHexTerrain_New();
-	DList *features = p[1]->xList.value;
-	int rows = p[2]->xInteger.value;
-	int cols = p[3]->xInteger.value;
-	float radius = p[4]->xFloat.value;
-	float height = p[5]->xFloat.value;
+	int rows = p[1]->xInteger.value;
+	int cols = p[2]->xInteger.value;
+	float radius = p[3]->xFloat.value;
+	int seed = p[4]->xInteger.value;
 
-	DaoxHexTerrain_SetSize( terrain, rows, cols, height );
-	terrain->radius = radius;
-	DaoxHexTerrain_Generate( terrain, features );
+	DaoxHexTerrain_SetSize( terrain, rows, cols, radius );
+	DaoxHexTerrain_Generate( terrain, seed );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
@@ -495,7 +493,7 @@ static DaoFuncItem DaoxSceneMeths[] =
 			"=> HexTerrain"
 	},
 	{ SCENE_AddHexTerrain2,
-		"AddHexTerrain( self: Scene, tileFeatures: list<tuple<height:float,variance:float,roughness:float>>, rows = 1, columns = 1, radius = 1.0 )"
+		"GenerateHexTerrain( self: Scene, rows = 1, columns = 1, radius = 1.0, seed = 0 )"
 			"=> HexTerrain"
 	},
 	{ NULL, NULL }

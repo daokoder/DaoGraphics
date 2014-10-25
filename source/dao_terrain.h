@@ -250,7 +250,7 @@ void DaoxHexTerrain_Delete( DaoxHexTerrain *self );
 void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int rows, int cols, float radius );
 void DaoxHexTerrain_SetHeightmap( DaoxHexTerrain *self, DaoArray *heightmap );
 void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self );
-void DaoxHexTerrain_Generate( DaoxHexTerrain *self, DList *features );
+void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed );
 
 
 #endif

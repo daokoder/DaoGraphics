@@ -1,6 +1,8 @@
 
 load math;
 load graphics;
+load time;
+load os
 
 Graphics::glutInit( 900, 600, 'Tank', 15, 1 )
 
@@ -38,37 +40,31 @@ for( i = 0 : % texImages - 1 ){
 
 	material = Graphics::Material()
 	material.SetTexture( texture, $first )
-	material.SetTexture( texture2, $second )
+#	material.SetTexture( texture2, $second )
 	materials.append( material );
 }
 
 camera = Graphics::Camera()
 
-rows = 3;
-columns = 3;
+math.srand( time.now().value % 10000 + 10000 * os.clock() )
+rows = 20 # + rand(20);
+columns = rows;
+io.writeln( rows )
 radius = 5.0;
 height = sqrt(rows*columns)*radius/8;
 
-math.srand( 100 )
 
-# Public domain heightmap, downloaded from wikipedia.org:
-terrain: Graphics::HexTerrain;
-if( 1 ){
-	heightmap.Load( '../media/heightmap.png' )
-	terrain = scene.AddHexTerrain( heightmap, rows, columns, radius, height )
-}else{
-	height = 2.0;
-	heightmap2 = array<float>(20,20){ rand(2.0) + 0.5 }
-	terrain = scene.AddHexTerrain( heightmap2, rows, columns, radius )
-}
-camera.Move( columns*radius-radius/2, 2*rows*radius+radius, (rows + columns)*radius )
-camera.LookAt( columns*radius-radius/2, rows*radius+radius/2, height/(rows + columns) );
+terrain = scene.GenerateHexTerrain( rows, columns, radius, 0 )
+camera.Move( columns*radius, 2*rows*radius, (rows + columns)*radius )
+camera.LookAt( columns*radius, rows*radius, height/(rows + columns) );
+camera.SetFOV( 60 );
 
 
 for( row = 0 : rows - 1 ){
 	for( col = 0 : columns - 1 ){
 		tile = terrain.GetTile( row, col )
-		tile.SetMaterial( materials[ rand( %materials ) ] )
+		#tile.SetMaterial( materials[0] )
+		#tile.SetMaterial( materials[ rand( %materials ) ] )
 	}
 }
 
@@ -78,12 +74,15 @@ scene.AddNode( camera );
 
 intensity = 1.0;
 
-light1 = Graphics::Light( $spot, 0.6*intensity, 0.6*intensity, 0.6*intensity )
-light2 = Graphics::Light( $spot, 0.5*intensity, 0.5*intensity, 0.5*intensity )
-light1.Move( columns*radius+radius, rows*radius+2*radius, 2*height )
-light2.Move( columns*radius-radius, rows*radius-radius, 2*height )
+light1 = Graphics::Light( $spot, 0.5*intensity, 0.5*intensity, 0.5*intensity )
+light2 = Graphics::Light( $spot, 0.4*intensity, 0.4*intensity, 0.4*intensity )
+light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
+light1.Move( 0.5*columns*radius+radius, rows*radius+2*radius, 2*height )
+light2.Move( 1.5*columns*radius-radius, rows*radius-radius, 2*height )
+light3.Move( columns*radius-radius, rows*radius-radius, 2*height )
 scene.AddNode( light1 );
 scene.AddNode( light2 );
+scene.AddNode( light3 );
 
 renderer = Graphics::Renderer();
 renderer.SetCurrentCamera( camera )
