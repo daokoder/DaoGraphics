@@ -1475,6 +1475,9 @@ typedef struct DaoxTerrainProcedure DaoxTerrainProcedure;
 
 struct DaoxTerrainProcedure
 {
+	float              resolution;
+	float              amplitude;
+	float              faultScale;
 	float              faultDist;
 	DaoxVector2D       faultPoint;
 	DaoxVector2D       faultNorm;
@@ -1489,11 +1492,11 @@ void DaoxHexTerrain_ApplyFaultLine2( DaoxHexTerrain *self, DaoxHexUnit *unit, Da
 	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius + EPSILON + 1;
 	float length = self->rows * 2.0 * self->radius * sin60 + self->radius * sin60 + EPSILON + 1;
 	float diameter = sqrt(width*width + length*length);
-	float faultScale1 = 0.01 * diameter;
-	float faultScale2 = 0.05 * diameter;
+	float faultScale1 = 0.01 * diameter / procedure->faultScale;
+	float faultScale2 = 0.05 * diameter / procedure->faultScale;
 	float len = DaoxVector2D_Dist( point1, point2 );
-	float minSize = 0.01 * diameter;
-	float maxChange = 0.01 * diameter;
+	float minSize = 0.01 * diameter * procedure->resolution;
+	float maxChange = 0.01 * diameter * procedure->amplitude;
 	float minDistToPoint = diameter;
 	float distToFaultLine[3];
 	float distToFaultPoint[3];
@@ -1503,7 +1506,8 @@ void DaoxHexTerrain_ApplyFaultLine2( DaoxHexTerrain *self, DaoxHexUnit *unit, Da
 	noise = DaoRandGenerator_GetNormal( procedure->randGenerator );
 	if( noise >  1.0 ) noise =  1.0;
 	if( noise < -1.0 ) noise = -1.0;
-	maxChange += 0.1 * minSize * noise;
+	maxChange += 0.1 * maxChange * noise;
+	if( maxChange > 0.3*len ) maxChange = 0.3*len;
 	procedure->faultDist = fabs( procedure->faultDist );
 	if( triangle->splits[0] != NULL ){
 		for(i=0; i<4; ++i) DaoxHexTerrain_ApplyFaultLine2( self, unit, triangle->splits[i], procedure );
@@ -1577,6 +1581,9 @@ void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed )
 		faultNorm->x = DaoRandGenerator_GetUniform( randgen ) - 0.5;
 		faultNorm->y = DaoRandGenerator_GetUniform( randgen ) - 0.5;
 		*faultNorm = DaoxVector2D_Normalize( faultNorm );
+		procedure.resolution = 1.0;
+		procedure.amplitude = 1.0;
+		procedure.faultScale = 1.0;
 		procedure.faultDist = 0.5 * diameter;
 		DaoxHexTerrain_ApplyFaultLine( self, & procedure );
 		while( procedure.faultDist >= 0.05 * diameter ){
@@ -1584,7 +1591,7 @@ void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed )
 			procedure.faultDist = procedure.faultDist * DaoRandGenerator_GetNormal( randgen );
 			faultPoint->x += procedure.faultDist * faultDir.x;
 			faultPoint->y += procedure.faultDist * faultDir.y;
-			randAngle = 0.5 * M_PI * DaoRandGenerator_GetNormal( randgen );
+			randAngle = 0.5 * M_PI * (1.0 + DaoRandGenerator_GetNormal( randgen ));
 			*faultNorm = DaoxMatrix3D_RotateVector( faultDir, randAngle );
 			*faultNorm = DaoxVector2D_Normalize( faultNorm );
 			if( DaoRandGenerator_GetUniform( randgen ) ){

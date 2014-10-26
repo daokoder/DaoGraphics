@@ -47,7 +47,7 @@ for( i = 0 : % texImages - 1 ){
 camera = Graphics::Camera()
 
 math.srand( time.now().value % 10000 + 10000 * os.clock() )
-rows = 20 # + rand(20);
+rows = 1 # + rand(20);
 columns = rows;
 io.writeln( rows )
 radius = 5.0;
