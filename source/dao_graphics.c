@@ -353,10 +353,10 @@ DaoTypeBase DaoxTerrain_Typer =
 static void HexTerrain_GetTile( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxHexTerrain *self = (DaoxHexTerrain*) p[0];
-	int row = p[1]->xInteger.value;
-	int col = p[2]->xInteger.value;
-	int index = col * self->rows + row;
-	DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pValue[index];
+	int circle = p[1]->xInteger.value;
+	int index = p[2]->xInteger.value;
+	DaoxHexUnit *unit = DaoxHexTerrain_GetTile( self, circle, index );
+	printf( "DaoxHexTerrain_GetTile: %p\n", unit );
 	DaoProcess_PutValue( proc, (DaoValue*) unit->mesh );
 }
 static void HexTerrain_SetTileType( DaoProcess *proc, DaoValue *p[], int N )
@@ -373,7 +373,7 @@ static void HexTerrain_SetTileType( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxHexTerrainMeths[]=
 {
 	{ HexTerrain_GetTile,
-		"GetTile( self: HexTerrain, row: int, column: int ) => MeshUnit"
+		"GetTile( self: HexTerrain, circle: int, index: int ) => MeshUnit"
 	},
 	{ NULL, NULL }
 };
@@ -461,12 +461,13 @@ static void SCENE_AddHexTerrain2( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxScene *self = (DaoxScene*) p[0];
 	DaoxHexTerrain *terrain = DaoxHexTerrain_New();
-	int rows = p[1]->xInteger.value;
-	int cols = p[2]->xInteger.value;
-	float radius = p[3]->xFloat.value;
-	int seed = p[4]->xInteger.value;
+	int circles = p[1]->xInteger.value;
+	float radius = p[2]->xFloat.value;
+	int seed = p[3]->xInteger.value;
 
-	DaoxHexTerrain_SetSize( terrain, rows, cols, radius );
+	terrain->circles = circles;
+	terrain->radius = radius;
+
 	DaoxHexTerrain_Generate( terrain, seed );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
@@ -493,7 +494,7 @@ static DaoFuncItem DaoxSceneMeths[] =
 			"=> HexTerrain"
 	},
 	{ SCENE_AddHexTerrain2,
-		"GenerateHexTerrain( self: Scene, rows = 1, columns = 1, radius = 1.0, seed = 0 )"
+		"GenerateHexTerrain( self: Scene, circles = 1, radius = 1.0, seed = 0 )"
 			"=> HexTerrain"
 	},
 	{ NULL, NULL }

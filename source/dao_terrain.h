@@ -219,6 +219,7 @@ struct DaoxHexUnit
 	DaoxHexBorder    *borders[6];
 	DaoxHexBorder    *spokes[6];
 	DaoxHexUnit      *neighbors[6];
+	DaoxHexUnit      *next;
 	DaoxMeshUnit     *mesh;
 };
 
@@ -227,11 +228,16 @@ struct DaoxHexTerrain
 	DaoxSceneNode  base;
 	DaoxMesh      *mesh;
 
-	DaoArray  *heightmap;
+	DaoArray     *heightmap;
+
+	DaoxHexUnit  *first;
+	DaoxHexUnit  *last;
+
 	DList     *points;
 	DList     *borders;
 	DList     *tiles; /* column major; */
 
+	int    circles;
 	int    rows;
 	int    columns;
 	int    changes;
@@ -251,6 +257,8 @@ void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int rows, int cols, float rad
 void DaoxHexTerrain_SetHeightmap( DaoxHexTerrain *self, DaoArray *heightmap );
 void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self );
 void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed );
+
+DaoxHexUnit* DaoxHexTerrain_GetTile( DaoxHexTerrain *self, int circle, int index );
 
 
 #endif

@@ -862,11 +862,12 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum )
 
 
 
-DaoxHexPoint* DaoxHexPoint_New( float x, float y )
+DaoxHexPoint* DaoxHexPoint_New( float x, float y, float z )
 {
 	DaoxHexPoint *self = (DaoxHexPoint*) dao_calloc( 1, sizeof(DaoxHexPoint) );
 	self->pos.x = x;
 	self->pos.y = y;
+	self->pos.z = z;
 	return self;
 }
 DaoxHexBorder* DaoxHexBorder_New( DaoxHexPoint *start, DaoxHexPoint *end )
@@ -923,6 +924,7 @@ DaoxHexTerrain* DaoxHexTerrain_New()
 	self->points = DList_New(0);
 	self->mesh = DaoxMesh_New();
 	GC_IncRC( self->mesh );
+	self->circles = 2;
 	self->rows = 1;
 	self->columns = 1;
 	self->radius = 5.0;
@@ -984,8 +986,8 @@ void DaoxHexTerrain_InitializeTile( DaoxHexTerrain *self, DaoxHexUnit *unit )
 			double d2 = DaoxVector2D_Dist( q2, p2 );
 			end = d1 < d2 ? next->start : next->end;
 		}
-		if( start == NULL ) start = DaoxHexPoint_New( x1, y1 );
-		if( end == NULL ) end = DaoxHexPoint_New( x2, y2 );
+		if( start == NULL ) start = DaoxHexPoint_New( x1, y1, 0.0 );
+		if( end == NULL ) end = DaoxHexPoint_New( x2, y2, 0.0 );
 		unit->borders[i] = DaoxHexBorder_New( start, end );
 	}
 	for(i=0; i<6; ++i){
@@ -1022,7 +1024,7 @@ void DaoxHexTerrain_InitializeTiles( DaoxHexTerrain *self )
 	printf( "DaoxHexTerrain_InitializeTiles\n" );
 	while( self->tiles->size < count ){
 		DaoxHexUnit *unit = DaoxHexUnit_New();
-		unit->center = DaoxHexPoint_New(0.0,0.0);
+		unit->center = DaoxHexPoint_New(0.0,0.0,0.0);
 		unit->mesh = DaoxMesh_AddUnit( self->mesh );
 		DList_Append( self->tiles, unit );
 	}
@@ -1066,6 +1068,159 @@ void DaoxHexTerrain_InitializeTiles( DaoxHexTerrain *self )
 		DaoxHexTerrain_InitializeTile( self, unit );
 	}
 }
+DaoxHexUnit* DaoxHexTerrain_GetTile( DaoxHexTerrain *self, int circle, int index )
+{
+	DaoxHexUnit *unit = self->first;
+	while( circle > 0 && unit->neighbors[0] ){
+		unit = unit->neighbors[0];
+		circle -= 1;
+	}
+	if( circle > 0 ) return NULL;
+	while( index > 0 && unit->next ){
+		if( unit == self->last ) return NULL;
+		unit = unit->next;
+		index -= 1;
+	}
+	if( index > 0 ) return NULL;
+	return unit;
+}
+void DaoxHexUnit_SetNeighbor( DaoxHexUnit *self, DaoxHexUnit *unit, int side )
+{
+	self->neighbors[side] = unit;
+	unit->neighbors[(side+3)%6] = self;
+}
+void DaoxHexTerrain_AddCircle( DaoxHexTerrain *self )
+{
+	DaoxHexUnit *unit, *unit2, *unit3;
+	DaoxHexUnit *start = self->first;
+	double cdist = 2.0 * self->radius * cos( M_PI / 6.0 );
+	double angle = 2.0 * M_PI / 3.0;
+	int i, j, k, side = 2, count = 1;
+	while( start->neighbors[0] ){
+		start = start->neighbors[0];
+		count += 1;
+	}
+	unit = start->next;
+	if( unit == NULL ){
+		unit = DaoxHexUnit_New();
+		unit->mesh = DaoxMesh_AddUnit( self->mesh );
+		unit->center = DaoxHexPoint_New(0.0,0.0,0.0);
+		start->next = unit;
+	}
+	self->last = unit;
+	for(j=0; j<6; ++j) unit->neighbors[j] = NULL;
+	unit->center->pos = start->center->pos;
+	unit->center->pos.x += 2.0 * self->radius * cos( M_PI / 6.0 );
+	DaoxHexUnit_SetNeighbor( start, unit, 0 );
+	start = unit;
+	for(i=0; i<6; i+=1){
+		for(j=0; j<count; j+=1){
+			unit = start->next;
+			if( unit == NULL ){
+				unit = DaoxHexUnit_New();
+				unit->mesh = DaoxMesh_AddUnit( self->mesh );
+				unit->center = DaoxHexPoint_New(0.0,0.0,0.0);
+				start->next = unit;
+			}
+			self->last = unit;
+			for(k=0; k<6; ++k) unit->neighbors[k] = NULL;
+			unit->center->pos.x = start->center->pos.x + cdist * cos( angle );
+			unit->center->pos.y = start->center->pos.y + cdist * sin( angle );
+			DaoxHexUnit_SetNeighbor( start, unit, side );
+			k = (side + 1) % 6;
+			unit2 = start->neighbors[k];
+			DaoxHexUnit_SetNeighbor( unit2, unit, (k + 3 + 1) % 6 );
+			k = (k + 3 + 2) % 6;
+			unit3 = unit2->neighbors[k];
+			if( unit3 ) DaoxHexUnit_SetNeighbor( unit3, unit, (k + 3 + 1) % 6 );
+			start = unit;
+		}
+		angle += M_PI / 3.0;
+		side = (side + 1) % 6;
+	}
+}
+void DaoxHexTerrain_InitializeTile2( DaoxHexTerrain *self, DaoxHexUnit *unit )
+{
+	int i;
+
+	for(i=0; i<6; ++i){
+		if( unit->neighbors[i] ){
+			unit->borders[i] = unit->neighbors[i]->borders[(i+3)%6];
+		}
+	}
+	for(i=0; i<6; ++i){
+		float x1 = unit->center->pos.x + self->radius * cos( i*M_PI/3.0 - M_PI/6.0 );
+		float y1 = unit->center->pos.y + self->radius * sin( i*M_PI/3.0 - M_PI/6.0 );
+		float x2 = unit->center->pos.x + self->radius * cos( i*M_PI/3.0 + M_PI/6.0 );
+		float y2 = unit->center->pos.y + self->radius * sin( i*M_PI/3.0 + M_PI/6.0 );
+		DaoxVector2D p1 = DaoxVector2D_XY( x1, y1 );
+		DaoxVector2D p2 = DaoxVector2D_XY( x2, y2 );
+		DaoxHexBorder *prev = unit->borders[(i+5)%6];
+		DaoxHexBorder *next = unit->borders[(i+1)%6];
+		DaoxHexPoint *start = NULL;
+		DaoxHexPoint *end = NULL;
+		if( unit->borders[i] ) continue;
+		if( prev ){
+			DaoxVector2D q1 = DaoxVector2D_Vector3D( prev->start->pos );
+			DaoxVector2D q2 = DaoxVector2D_Vector3D( prev->end->pos );
+			double d1 = DaoxVector2D_Dist( q1, p1 );
+			double d2 = DaoxVector2D_Dist( q2, p1 );
+			start = d1 < d2 ? prev->start : prev->end;
+		}
+		if( next ){
+			DaoxVector2D q1 = DaoxVector2D_Vector3D( next->start->pos );
+			DaoxVector2D q2 = DaoxVector2D_Vector3D( next->end->pos );
+			double d1 = DaoxVector2D_Dist( q1, p2 );
+			double d2 = DaoxVector2D_Dist( q2, p2 );
+			end = d1 < d2 ? next->start : next->end;
+		}
+		if( start == NULL ) start = DaoxHexPoint_New( x1, y1, 0.0 );
+		if( end == NULL ) end = DaoxHexPoint_New( x2, y2, 0.0 );
+		unit->borders[i] = DaoxHexBorder_New( start, end );
+	}
+	for(i=0; i<6; ++i){
+		DaoxHexBorder *border = unit->borders[i];
+		float x1 = unit->center->pos.x + self->radius * cos( i*M_PI/3.0 - M_PI/6.0 );
+		float y1 = unit->center->pos.y + self->radius * sin( i*M_PI/3.0 - M_PI/6.0 );
+		DaoxVector2D p1 = DaoxVector2D_XY( x1, y1 );
+		DaoxVector2D q1 = DaoxVector2D_Vector3D( border->start->pos );
+		DaoxVector2D q2 = DaoxVector2D_Vector3D( border->end->pos );
+
+		double d1 = DaoxVector2D_Dist( q1, p1 );
+		double d2 = DaoxVector2D_Dist( q2, p1 );
+		DaoxHexPoint *start = d1 < d2 ? border->start : border->end;
+
+		unit->spokes[i] = DaoxHexBorder_New( unit->center, start );
+	}
+
+	for(i=0; i<6; ++i){
+		DaoxHexTriangle *triangle = unit->splits[i];
+		if( triangle == NULL ) unit->splits[i] = triangle = DaoxHexTriangle_New();
+		triangle->borders[0] = unit->spokes[i];
+		triangle->borders[1] = unit->borders[i];
+		triangle->borders[2] = unit->spokes[(i+1)%6];
+		triangle->points[0] = unit->center;
+		triangle->points[1] = unit->spokes[i]->end;
+		triangle->points[2] = unit->spokes[(i+1)%6]->end;
+	}
+}
+void DaoxHexTerrain_InitializeTiles2( DaoxHexTerrain *self )
+{
+	DaoxHexUnit *unit;
+	int i, j;
+	if( self->first == NULL ){
+		unit = DaoxHexUnit_New();
+		unit->center = DaoxHexPoint_New(0.0,0.0,0.0);
+		unit->mesh = DaoxMesh_AddUnit( self->mesh );
+		self->first = unit;
+	}
+	self->last = self->first;
+	for(i=0; i<6; ++i) self->first->neighbors[i] = NULL;
+	for(i=1; i<self->circles; ++i) DaoxHexTerrain_AddCircle( self );
+	for(unit=self->first; unit!=self->last->next; unit=unit->next){
+		DaoxHexTerrain_InitializeTile2( self, unit );
+	}
+}
 
 float DaoxHexTerrain_GetHeight( DaoxHexTerrain *self, float x, float y )
 {
@@ -1091,7 +1246,7 @@ void DaoxHexTerrain_Split( DaoxHexTerrain *self, DaoxHexUnit *unit, DaoxHexTrian
 			DaoxHexBorder *left = border->left;
 			mid = left->start == border->start ? left->end : left->start;
 		}else{
-			mid = DaoxHexPoint_New(0.0,0.0);
+			mid = DaoxHexPoint_New(0.0,0.0,0.0);
 			mid->pos = DaoxVector3D_Interpolate( border->start->pos, border->end->pos, 0.5 );
 			if( self->heightmap != NULL ){
 				mid->pos.z = DaoxHexTerrain_GetHeight( self, mid->pos.x, mid->pos.y );
@@ -1428,6 +1583,7 @@ void DaoxHexTerrain_BuildMesh( DaoxHexTerrain *self, DaoxHexUnit *unit )
 		DaoxVertex *vertex = unit->mesh->vertices->data.vertices + i;
 		vertex->tex.x *= self->textureScale;
 		vertex->tex.y *= self->textureScale;
+		//printf( "%9f %9f %9f\n", vertex->pos.x, vertex->pos.y, vertex->pos.z );
 	}
 
 }
@@ -1469,6 +1625,39 @@ void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self )
 	}
 	DaoxHexTerrain_FinalizeMesh( self );
 }
+void DaoxHexTerrain_FinalizeMesh2( DaoxHexTerrain *self )
+{
+	DaoxHexUnit *unit;
+	int i, j, k, count = 0;
+
+	self->changes = 1;
+	while( self->changes ){
+		self->changes = 0;
+		for(unit=self->first; unit!=self->last->next; unit=unit->next){
+			DaoxHexTerrain_AdjustUnit( self, unit );
+		}
+		printf( "adjust: %i\n", self->changes );
+	}
+	for(unit=self->first; unit!=self->last->next; unit=unit->next){
+		for(j=0; j<6; ++j) DaoxHexTerrain_ResetVertices( self, unit, unit->splits[j] );
+		for(j=0; j<6; ++j) DaoxHexTerrain_ComputeNormalTangents( self, unit, unit->splits[j] );
+	}
+	for(unit=self->first; unit!=self->last->next; unit=unit->next){
+		DaoxHexTerrain_BuildMesh( self, unit );
+		count += 1;
+	}
+	printf( "DaoxHexTerrain_Rebuild %i %i\n", count, self->mesh->units->size );
+	DaoxMesh_UpdateTree( self->mesh, 1024 );
+	DaoxMesh_ResetBoundingBox( self->mesh );
+	self->base.obbox = self->mesh->obbox;
+}
+void DaoxHexTerrain_Rebuild2( DaoxHexTerrain *self )
+{
+	int i, j, k, count = self->rows * self->columns;
+	printf( "DaoxHexTerrain_Rebuild2\n" );
+	DaoxHexTerrain_InitializeTiles2( self );
+	DaoxHexTerrain_FinalizeMesh2( self );
+}
 
 
 typedef struct DaoxTerrainProcedure DaoxTerrainProcedure;
@@ -1488,10 +1677,7 @@ void DaoxHexTerrain_ApplyFaultLine2( DaoxHexTerrain *self, DaoxHexUnit *unit, Da
 {
 	DaoxVector2D point1 = DaoxVector2D_Vector3D( triangle->points[1]->pos );
 	DaoxVector2D point2 = DaoxVector2D_Vector3D( triangle->points[2]->pos );
-	float sin60 = sin( M_PI / 3.0 );
-	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius + EPSILON + 1;
-	float length = self->rows * 2.0 * self->radius * sin60 + self->radius * sin60 + EPSILON + 1;
-	float diameter = sqrt(width*width + length*length);
+	float diameter = 4.0 * self->circles * self->radius * sin( M_PI / 3.0 );
 	float faultScale1 = 0.01 * diameter / procedure->faultScale;
 	float faultScale2 = 0.05 * diameter / procedure->faultScale;
 	float len = DaoxVector2D_Dist( point1, point2 );
@@ -1539,15 +1725,14 @@ void DaoxHexTerrain_ApplyFaultLine2( DaoxHexTerrain *self, DaoxHexUnit *unit, Da
 }
 void DaoxHexTerrain_ApplyFaultLine( DaoxHexTerrain *self, DaoxTerrainProcedure *procedure )
 {
-	int i, j, k, count = self->rows * self->columns;
+	DaoxHexUnit *unit;
+	int i, j;
 
-	for(i=0; i<count; ++i){
-		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
+	for(unit=self->first; unit!=self->last->next; unit=unit->next){
 		DaoxHexUnit_InitTextureCoordinates( unit );
 		for(j=0; j<6; ++j) DaoxHexTerrain_ResetVertices( self, unit, unit->splits[j] );
 	}
-	for(i=0; i<count; ++i){
-		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
+	for(unit=self->first; unit!=self->last->next; unit=unit->next){
 		for(j=0; j<6; ++j){
 			DaoxHexTerrain_ApplyFaultLine2( self, unit, unit->splits[j], procedure );
 		}
@@ -1555,29 +1740,26 @@ void DaoxHexTerrain_ApplyFaultLine( DaoxHexTerrain *self, DaoxTerrainProcedure *
 }
 void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed )
 {
+	DaoxHexUnit *unit;
 	DaoxTerrainProcedure procedure;
 	DaoRandGenerator *randgen;
 	DaoxVector2D *faultPoint = & procedure.faultPoint;
 	DaoxVector2D *faultNorm = & procedure.faultNorm;
-	float sin60 = sin( M_PI / 3.0 );
-	float width = (self->columns - 1) * 1.5 * self->radius + 2.0 * self->radius + EPSILON + 1;
-	float length = self->rows * 2.0 * self->radius * sin60 + self->radius * sin60 + EPSILON + 1;
-	float diameter = sqrt(width*width + length*length);
-	int i, j, k, count = self->rows * self->columns;
-	int steps = 50;// + sqrt( self->rows + self->columns );
+	float radius = 2.0 * self->circles * self->radius * sin( M_PI / 3.0 );
+	float diameter = 2.0 * radius;
+	int i, j, k, steps = 50;
 
 	procedure.randGenerator = randgen = DaoRandGenerator_New( seed );
 	printf( "DaoxHexTerrain_Generate:\n" );
-	DaoxHexTerrain_InitializeTiles( self );
-	for(i=0; i<count; ++i){
-		DaoxHexUnit *unit = (DaoxHexUnit*) self->tiles->items.pVoid[i];
+	DaoxHexTerrain_InitializeTiles2( self );
+	for(unit=self->first; unit!=self->last->next; unit=unit->next){
 		unit->center->pos.z = 0.0;
 		for(j=0; j<6; ++j) unit->spokes[j]->end->pos.z = 0.0;
 	}
 	for(i=0; i<steps; ++i){
 		float randAngle;
-		faultPoint->x = width * DaoRandGenerator_GetUniform( randgen );
-		faultPoint->y = length * DaoRandGenerator_GetUniform( randgen );
+		faultPoint->x = radius * (DaoRandGenerator_GetUniform( randgen ) - 0.5);
+		faultPoint->y = radius * (DaoRandGenerator_GetUniform( randgen ) - 0.5);
 		faultNorm->x = DaoRandGenerator_GetUniform( randgen ) - 0.5;
 		faultNorm->y = DaoRandGenerator_GetUniform( randgen ) - 0.5;
 		*faultNorm = DaoxVector2D_Normalize( faultNorm );
@@ -1602,5 +1784,5 @@ void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed )
 			DaoxHexTerrain_ApplyFaultLine( self, & procedure );
 		}
 	}
-	DaoxHexTerrain_FinalizeMesh( self );
+	DaoxHexTerrain_FinalizeMesh2( self );
 }

@@ -258,13 +258,13 @@ void DaoxRenderer_PrepareHexTerrain( DaoxRenderer *self, DaoxHexTerrain *terrain
 {
 	DaoxMesh *mesh = terrain->mesh;
 	DaoxDrawTask *task = NULL;
+	DaoxHexUnit *tile;
 	DaoxVertex *vertex;
 	DNode *it;
 	daoint i;
 
 	//printf( "DaoxRenderer_PrepareModel:\n" );
-	for(i=0; i<terrain->tiles->size; ++i){
-		DaoxHexUnit *tile = (DaoxHexUnit*) terrain->tiles->items.pVoid[i];
+	for(tile=terrain->first; tile!=terrain->last->next; tile=tile->next){
 		DaoxMeshUnit *unit = tile->mesh;
 		int currentCount = 0;
 		if( unit->tree == NULL ) continue;
@@ -605,16 +605,16 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	glUniform4fv( self->shader.uniforms.emissionColor, 1, & emission.red );
 
 	if( drawtask->hexTile && drawtask->hexTile->mesh->material && drawtask->hexTile->mesh->material->texture1 ){
-		DaoxTexture *texture0 = drawtask->hexTile->mesh->material->texture1;
+		DaoxMaterial *material = drawtask->hexTile->mesh->material;
 		terrainTileType = drawtask->terrainTileType;
 		tileTextureCount = 7;
 		tileTextureScale =  drawtask->hexTerrain->textureScale;
 		for(i=0; i<6; ++i){
 			DaoxHexUnit *neighbor = drawtask->hexTile->neighbors[i];
-			DaoxTexture *texturex = neighbor ? neighbor->mesh->material->texture1 : texture0;
-			DaoxTexture_glInitTexture( texturex );
+			DaoxMaterial *material2 = neighbor ? neighbor->mesh->material : material;
+			DaoxTexture_glInitTexture( material->texture1 );
 			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE1 + i);
-			glBindTexture(GL_TEXTURE_2D, texturex->tid);
+			glBindTexture(GL_TEXTURE_2D, material->texture1->tid);
 			glUniform1i(self->shader.uniforms.tileTextures[i], DAOX_TILE_TEXTURE1 + i );
 		}
 	}

@@ -47,42 +47,42 @@ for( i = 0 : % texImages - 1 ){
 camera = Graphics::Camera()
 
 math.srand( time.now().value % 10000 + 10000 * os.clock() )
-rows = 1 # + rand(20);
-columns = rows;
-io.writeln( rows )
+
+circles = 3
 radius = 5.0;
-height = sqrt(rows*columns)*radius/8;
 
 
-terrain = scene.GenerateHexTerrain( rows, columns, radius, 0 )
-camera.Move( columns*radius, 2*rows*radius, (rows + columns)*radius )
-camera.LookAt( columns*radius, rows*radius, height/(rows + columns) );
-camera.SetFOV( 60 );
+terrain = scene.GenerateHexTerrain( circles, radius, 0 )
+camera.Move( 0.0, 2*circles*radius, 2*circles*radius )
+camera.LookAt( 0.0, 0.4*circles*radius, 0.0 );
+#camera.SetFOV( 60 );
 
-
-for( row = 0 : rows - 1 ){
-	for( col = 0 : columns - 1 ){
-		tile = terrain.GetTile( row, col )
-		#tile.SetMaterial( materials[0] )
-		#tile.SetMaterial( materials[ rand( %materials ) ] )
-	}
-}
+tile = terrain.GetTile( 0, 0 )
+tile.SetMaterial( materials[1] )
 
 camera.SetFarPlane( 10000 );
 camera.Orient( $Z );
 scene.AddNode( camera );
 
-intensity = 1.0;
+intensity1 = 0.2;
+intensity2 = 0.2;
+intensity3 = 0.2;
+intensity4 = 0.2;
 
-light1 = Graphics::Light( $spot, 0.6*intensity, 0.5*intensity, 0.5*intensity )
-light2 = Graphics::Light( $spot, 0.4*intensity, 0.4*intensity, 0.2*intensity )
-light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.3*intensity )
-light1.Move( 0.5*columns*radius+radius, rows*radius+2*radius, 2*height )
-light2.Move( 1.5*columns*radius-radius, rows*radius-radius, 2*height )
-light3.Move( columns*radius-radius, rows*radius-radius, 2*height )
+len = 2*circles*radius
+
+light1 = Graphics::Light( $spot, intensity1, intensity1, intensity1 )
+light2 = Graphics::Light( $spot, intensity2, intensity2, intensity2 )
+light3 = Graphics::Light( $spot, intensity3, intensity3, intensity3 )
+light4 = Graphics::Light( $spot, intensity4, intensity4, intensity4 )
+light1.Move( 0.0, 0.0, 5*len );
+light2.Move( len, 0.0, 5*len );
+light3.Move( 0.5*len, len*sin(0.6667*3.1415), 5*len );
+light4.Move( 0.5*len, -len*sin(0.6667*3.1415), 5*len );
 scene.AddNode( light1 );
 scene.AddNode( light2 );
 scene.AddNode( light3 );
+scene.AddNode( light4 );
 
 renderer = Graphics::Renderer();
 renderer.SetCurrentCamera( camera )
