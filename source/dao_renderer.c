@@ -614,7 +614,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 			DaoxMaterial *material2 = neighbor ? neighbor->mesh->material : material;
 			DaoxTexture_glInitTexture( material->texture1 );
 			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE1 + i);
-			glBindTexture(GL_TEXTURE_2D, material->texture1->tid);
+			glBindTexture(GL_TEXTURE_2D, material2->texture1->tid);
 			glUniform1i(self->shader.uniforms.tileTextures[i], DAOX_TILE_TEXTURE1 + i );
 		}
 	}

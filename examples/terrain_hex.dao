@@ -13,6 +13,8 @@ heightmap = Graphics::Image();
 
 texImages =
 {
+#	"../media/textures/rock_with_algae_test.png",
+#	"../media/textures/rock_with_algae_test.png",
 	"../media/textures/rock_with_algae.png",
 	"../media/textures/cliff_with_grass.png"
 }
@@ -38,16 +40,15 @@ for( i = 0 : % texImages - 1 ){
 
 	material = Graphics::Material()
 	material.SetTexture( texture, $first )
-	material.SetTexture( texture2, $second )
+	#material.SetTexture( texture2, $second )
 	materials.append( material );
 }
 
 camera = Graphics::Camera()
 
-rows = 3;
-columns = 3;
+circles = 2;
 radius = 5.0;
-height = sqrt(rows*columns)*radius/8;
+height = circles*radius/4;
 
 math.srand( 100 )
 
@@ -55,35 +56,54 @@ math.srand( 100 )
 terrain: Graphics::HexTerrain;
 if( 1 ){
 	heightmap.Load( '../media/heightmap.png' )
-	terrain = scene.AddHexTerrain( heightmap, rows, columns, radius, height )
+	terrain = scene.AddHexTerrain( heightmap, circles, radius, height )
 }else{
 	height = 2.0;
 	heightmap2 = array<float>(20,20){ rand(2.0) + 0.5 }
-	terrain = scene.AddHexTerrain( heightmap2, rows, columns, radius )
+	terrain = scene.AddHexTerrain( heightmap2, circles, radius )
 }
-camera.Move( columns*radius-radius/2, 2*rows*radius+radius, (rows + columns)*radius )
-camera.LookAt( columns*radius-radius/2, rows*radius+radius/2, height/(rows + columns) );
+camera.Move( 0.0, 2*circles*radius, 2*circles*radius )
+camera.LookAt( 0.0, 0.35*circles*radius, 0.0 );
+#camera.LookAt( 0.5*circles*radius, 0.35*circles*radius, 0.0 );
+camera.SetFOV( 60 );
 
 
-for( row = 0 : rows - 1 ){
-	for( col = 0 : columns - 1 ){
-		tile = terrain.GetTile( row, col )
-		tile.SetMaterial( materials[ rand( %materials ) ] )
+for( i = 0 : 5 ){
+	for( j = 0 : circles - 1 ){
+		for( k = 0 : circles - 2 ){
+			io.writeln( i, j, k )
+			tile = terrain.GetTile( i, j, k )
+			tile.SetMaterial( materials[ rand( %materials ) ] )
+		}
 	}
 }
+#tile = terrain.GetTile( 0, 1, 0 )
+#tile.SetMaterial( materials[ rand( %materials ) ] )
 
 camera.SetFarPlane( 10000 );
 camera.Orient( $Z );
 scene.AddNode( camera );
 
-intensity = 1.0;
 
-light1 = Graphics::Light( $spot, 0.6*intensity, 0.6*intensity, 0.6*intensity )
-light2 = Graphics::Light( $spot, 0.5*intensity, 0.5*intensity, 0.5*intensity )
-light1.Move( columns*radius+radius, rows*radius+2*radius, 2*height )
-light2.Move( columns*radius-radius, rows*radius-radius, 2*height )
+intensity1 = 0.2;
+intensity2 = 0.2;
+intensity3 = 0.2;
+intensity4 = 0.2;
+
+len = 2*circles*radius
+
+light1 = Graphics::Light( $spot, intensity1, intensity1, intensity1 )
+light2 = Graphics::Light( $spot, intensity2, intensity2, intensity2 )
+light3 = Graphics::Light( $spot, intensity3, intensity3, intensity3 )
+light4 = Graphics::Light( $spot, intensity4, intensity4, intensity4 )
+light1.Move( 0.0, 0.0, 5*len );
+light2.Move( len, 0.0, 5*len );
+light3.Move( 0.5*len, len*sin(0.6667*3.1415), 5*len );
+light4.Move( 0.5*len, -len*sin(0.6667*3.1415), 5*len );
 scene.AddNode( light1 );
 scene.AddNode( light2 );
+scene.AddNode( light3 );
+scene.AddNode( light4 );
 
 renderer = Graphics::Renderer();
 renderer.SetCurrentCamera( camera )

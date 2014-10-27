@@ -140,46 +140,6 @@ void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 
 
-/*
-// Indexing:
-//           ________
-//          /\      /\
-//         /  \ 1  /  \
-//        / 2  \  /  0 \
-//       /______\/______\
-//       \      /\      /
-//        \ 3  /  \  5 /
-//         \  / 4  \  /
-//          \/______\/
-//
-// Tile arrangment:
-//       .........____......
-//       :       /    \
-//       :  ____/      \____
-//       : /    \      /
-//       :/      \____/
-//       :\      /\  /\
-//       : \____/__\/__\____
-//       : /    \  /\  /
-//       :/      \/__\/
-//       :\      /    \
-//       :.\____/......\____
-//
-// Texture coordinates:
-//            __________
-//           /\        /\
-//          /  \      /  \
-//         /    \    /    \
-//        /      \  /      \
-//       /        \/        \
-//   0.1,0.5---0.5,0.5---0.9,0.5
-//       \        /\        /
-//        \      /  \      /
-//         \    /    \    /
-//          \  /      \  /
-//           \/________\/
-//
-*/
 
 typedef struct DaoxHexPoint    DaoxHexPoint;
 typedef struct DaoxHexBorder   DaoxHexBorder;
@@ -242,17 +202,16 @@ struct DaoxHexTerrain
 	DaoxMesh      *mesh;
 
 	DaoArray     *heightmap;
+	DaoxHexTerrain  *model;
 
 	DaoxHexUnit  *first;
 	DaoxHexUnit  *last;
 
 	DList     *points;
 	DList     *borders;
-	DList     *tiles; /* column major; */
+	DList     *tiles;
 
 	int    circles;
-	int    rows;
-	int    columns;
 	int    changes;
 	float  radius;
 	float  height;
