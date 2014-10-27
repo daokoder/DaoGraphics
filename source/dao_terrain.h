@@ -187,6 +187,18 @@ typedef struct DaoxHexTriangle DaoxHexTriangle;
 typedef struct DaoxHexUnit     DaoxHexUnit;
 typedef struct DaoxHexTerrain  DaoxHexTerrain;
 
+typedef struct DaoxTerrainParams    DaoxTerrainParams;
+typedef struct DaoxTerrainGenerator DaoxTerrainGenerator;
+
+
+struct DaoxTerrainParams
+{
+	float  faultScale;
+	float  amplitude;
+	float  resolution;
+};
+
+
 struct DaoxHexPoint
 {
 	DaoxVector3D  pos;
@@ -221,6 +233,7 @@ struct DaoxHexUnit
 	DaoxHexUnit      *neighbors[6];
 	DaoxHexUnit      *next;
 	DaoxMeshUnit     *mesh;
+	DaoxTerrainParams  *params;
 };
 
 struct DaoxHexTerrain
@@ -253,12 +266,36 @@ extern DaoType *daox_type_hexterrain;
 DaoxHexTerrain* DaoxHexTerrain_New();
 void DaoxHexTerrain_Delete( DaoxHexTerrain *self );
 
-void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int rows, int cols, float radius );
+void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int circles, float radius );
 void DaoxHexTerrain_SetHeightmap( DaoxHexTerrain *self, DaoArray *heightmap );
 void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self );
 void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed );
 
-DaoxHexUnit* DaoxHexTerrain_GetTile( DaoxHexTerrain *self, int circle, int index );
+DaoxHexUnit* DaoxHexTerrain_GetTile( DaoxHexTerrain *self, int side, int radius, int offset );
 
+
+
+
+struct DaoxTerrainGenerator
+{
+	DAO_CSTRUCT_COMMON;
+
+	DaoxHexTerrain    *terrain;
+
+	DaoRandGenerator  *randGenerator;
+
+	DaoxTerrainParams  params;
+	DaoxVector2D       faultPoint;
+	DaoxVector2D       faultNorm;
+	float              faultDist;
+	float              diameter;
+};
+extern DaoType *daox_type_terrain_generator;
+
+DaoxTerrainGenerator* DaoxTerrainGenerator_New();
+void DaoxTerrainGenerator_Delete( DaoxTerrainGenerator *self );
+
+void DaoxTerrainGenerator_Update( DaoxTerrainGenerator *self, int iterations );
+void DaoxTerrainGenerator_Generate( DaoxTerrainGenerator *self, int iterations, int seed );
 
 #endif

@@ -4,8 +4,6 @@ load graphics;
 load time;
 load os
 
-Graphics::glutInit( 900, 600, 'Tank', 15, 1 )
-
 length = 1
 width = 0.1
 
@@ -48,17 +46,24 @@ camera = Graphics::Camera()
 
 math.srand( time.now().value % 10000 + 10000 * os.clock() )
 
-circles = 3
+circles = 2
 radius = 5.0;
 
-
-terrain = scene.GenerateHexTerrain( circles, radius, 0 )
+generator = Graphics::TerrainGenerator( $hexagon, circles, radius )
+generator.Configure( amplitude = 2.0 )
+generator.ConfigureTile( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
+generator.Generate( 80 )
+terrain = generator.GetTerrain()
+scene.AddNode( terrain )
 camera.Move( 0.0, 2*circles*radius, 2*circles*radius )
-camera.LookAt( 0.0, 0.4*circles*radius, 0.0 );
-#camera.SetFOV( 60 );
+camera.LookAt( 0.0, 0.35*circles*radius, 0.0 );
+camera.SetFOV( 60 );
 
-tile = terrain.GetTile( 0, 0 )
-tile.SetMaterial( materials[1] )
+tile = terrain.GetTile( 0, 0, 0 )
+#tile.SetMaterial( materials[0] )
+
+tile = terrain.GetTile( 1, 1, 0 )
+#tile.SetMaterial( materials[0] )
 
 camera.SetFarPlane( 10000 );
 camera.Orient( $Z );
@@ -84,6 +89,7 @@ scene.AddNode( light2 );
 scene.AddNode( light3 );
 scene.AddNode( light4 );
 
+Graphics::glutInit( 900, 600, 'Tank', 15, 1 )
 renderer = Graphics::Renderer();
 renderer.SetCurrentCamera( camera )
 #renderer.Enable( $axis );
