@@ -40,7 +40,7 @@ for( i = 0 : % texImages - 1 ){
 
 	material = Graphics::Material()
 	material.SetTexture( texture, $first )
-	#material.SetTexture( texture2, $second )
+	material.SetTexture( texture2, $second )
 	materials.append( material );
 }
 

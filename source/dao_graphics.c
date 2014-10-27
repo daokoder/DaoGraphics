@@ -670,6 +670,18 @@ static void TerrainGenerator_GetTerrain( DaoProcess *proc, DaoValue *p[], int N 
 	DaoxTerrainGenerator *self = (DaoxTerrainGenerator*) p[0];
 	DaoProcess_PutValue( proc, (DaoValue*) self->terrain );
 }
+static void TerrainGenerator_ExportTerrain( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxTerrainGenerator *self = (DaoxTerrainGenerator*) p[0];
+	DaoxHexTerrain *terrain = DaoxHexTerrain_New();
+	int circles = p[1]->xInteger.value;
+	float radius = p[2]->xFloat.value;
+
+	GC_Assign( & terrain->model, self->terrain );
+	DaoxHexTerrain_SetSize( terrain, circles, radius );
+	DaoxHexTerrain_Rebuild( terrain );
+	DaoProcess_PutValue( proc, (DaoValue*) terrain );
+}
 
 static DaoFuncItem DaoxTerrainGeneratorMeths[]=
 {
@@ -691,6 +703,9 @@ static DaoFuncItem DaoxTerrainGeneratorMeths[]=
 	},
 	{ TerrainGenerator_GetTerrain,
 		"GetTerrain( self: TerrainGenerator ) => HexTerrain"
+	},
+	{ TerrainGenerator_ExportTerrain,
+		"ExportTerrain( self: TerrainGenerator, circles: int, radius: float ) => HexTerrain"
 	},
 	{ NULL, NULL }
 };

@@ -358,7 +358,7 @@ out vec4 fragColor;\n\
 \n\
 vec3 worldPosition;\n\
 vec4 tileTextureInfo = vec4(0.0,0.0,0.0,0.0);\n\
-float tileBlendingWidth = 0.05;\n\
+float tileBlendingWidth = 0.1;\n\
 int hasColorTexture2 = hasColorTexture;\n\
 \n\
 \n\
@@ -433,6 +433,15 @@ vec4 BlendTerrainTextures( vec4 texValue, vec2 tex )\n\
 }\n\
 \n\
 \n\
+vec3 Slerp3( vec3 v1, vec3 v2, float t )\n\
+{\n\
+	float angle = acos( dot( v1, v2 ) );\n\
+	float sine = sin( angle );\n\
+	float sine1 = sin( angle * (1.0 - t) );\n\
+	float sine2 = sin( angle * t );\n\
+	return (sine1 * v1 + sine2 * v2) / sine;\n\
+}\n\
+\n\
 \n\
 vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 {\n\
@@ -451,17 +460,14 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 		vec3 camDir2 = normalize( vec3( cdx, cdy, cdz ) );\n\
 		vec3 normal2 = vec3( texture( bumpTexture, varTexCoord ) );\n\
 		normal2 = (normal2 - 0.5) * 2.0;\n\
+		//normal2 = normalize( normal2 );\n\
+		float factor = 0.5;\n\
 		if( terrainTileType == 2 && tileTextureInfo.y < tileBlendingWidth ){ \n\
-			float factor = 0.5 + 0.5 * tileTextureInfo.y / tileBlendingWidth;\n\
-			normal = factor * normal2 + (1.0 - factor) * normal;\n\
-			lightDir = factor * lightDir2 + (1.0 - factor) * lightDir;\n\
-			camDir = factor * camDir2 + (1.0 - factor) * camDir;\n\
-		}else{\n\
-			normal = normal2;\n\
-			lightDir = lightDir2;\n\
-			camDir = camDir2;\n\
+			factor *= tileTextureInfo.y / tileBlendingWidth;\n\
 		}\n\
-		//normal = normalize( normal );\n\
+		normal = Slerp3( normal, normal2, factor );\n\
+		lightDir = Slerp3( lightDir, lightDir2, factor );\n\
+		camDir = Slerp3( camDir, camDir2, factor );\n\
 	}\n\
 	float cosAngIncidence = dot( normal, lightDir );\n\
 	cosAngIncidence = clamp(cosAngIncidence, 0, 1);\n\
