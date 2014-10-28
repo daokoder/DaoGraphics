@@ -65,7 +65,6 @@ DaoxRenderer* DaoxRenderer_New()
 	self->dynamicTasks = DList_New(0);
 	self->staticTasks = DList_New(0);
 	self->taskCache = DList_New(0);
-	self->terrains = DList_New( DAO_DATA_VALUE );
 	self->hexTerrains = DList_New( DAO_DATA_VALUE );
 	self->canvases = DList_New( DAO_DATA_VALUE );
 	self->map = DMap_New(0,0);
@@ -136,7 +135,6 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 	DList_Delete( self->taskCache );
 	DList_Delete( self->dynamicTasks );
 	DList_Delete( self->staticTasks );
-	DList_Delete( self->terrains );
 	DList_Delete( self->hexTerrains );
 	DList_Delete( self->canvases );
 	DMap_Delete( self->map );
@@ -254,11 +252,11 @@ void DaoxRenderer_PrepareModel( DaoxRenderer *self, DaoxModel *model, DaoxMatrix
 		}
 	}
 }
-void DaoxRenderer_PrepareHexTerrain( DaoxRenderer *self, DaoxHexTerrain *terrain, DaoxMatrix4D *objectToWorld )
+void DaoxRenderer_PrepareHexTerrain( DaoxRenderer *self, DaoxTerrain *terrain, DaoxMatrix4D *objectToWorld )
 {
 	DaoxMesh *mesh = terrain->mesh;
 	DaoxDrawTask *task = NULL;
-	DaoxHexUnit *tile;
+	DaoxTerrainBlock *tile;
 	DaoxVertex *vertex;
 	DNode *it;
 	daoint i;
@@ -299,7 +297,7 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 	DaoxOBBox3D obbox;
 	daoint i;
 
-	if( ctype != daox_type_model && ctype != daox_type_hexterrain && ctype != daox_type_canvas ) goto PrepareChildren;
+	if( ctype != daox_type_model && ctype != daox_type_terrain && ctype != daox_type_canvas ) goto PrepareChildren;
 
 	// 1. Transform view frustum to object coordinates;
 	objectToWorld = DaoxSceneNode_GetWorldTransform( node );
@@ -318,8 +316,8 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 		return;
 	}
 
-	if( ctype == daox_type_hexterrain ){
-		DaoxRenderer_PrepareHexTerrain( self, (DaoxHexTerrain*) node, & objectToWorld );
+	if( ctype == daox_type_terrain ){
+		DaoxRenderer_PrepareHexTerrain( self, (DaoxTerrain*) node, & objectToWorld );
 	}else{
 		DaoxRenderer_PrepareModel( self, model, & objectToWorld );
 	}
@@ -504,73 +502,6 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self )
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
-void DaoxRenderer_UpdateTerrainBuffer( DaoxRenderer *self )
-{
-	DaoGLVertex3D *glvertices;
-	DaoGLTriangle *gltriangles;
-	DaoxDrawTask *drawtask;
-	int vertexCount = 0;
-	int triangleCount = 0;
-	int i, j;
-
-	if( self->terrains->size == 0 ) return;
-
-	for(i=0; i<self->terrains->size; ++i){
-		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
-		vertexCount += terrain->vertices->size;
-		triangleCount += terrain->triangles->size;
-	}
-	printf( "DaoxRenderer_UpdateTerrainBuffer: %i %i\n", vertexCount, triangleCount );
-	glvertices = DaoxBuffer_MapVertices3D( & self->terrainBuffer, vertexCount );
-	gltriangles = DaoxBuffer_MapTriangles( & self->terrainBuffer, triangleCount );
-	vertexCount = triangleCount = 0;
-
-	for(i=0; i<self->terrains->size; ++i){
-		DaoxTerrain *terrain = self->terrains->items.pTerrain[i];
-		int M = 3*terrain->triangles->size;
-		int K = triangleCount;
-		int vboffset = self->terrainBuffer.vertexOffset;
-		printf( "%i %i\n", vertexCount, triangleCount );
-		for(j=0; j<terrain->vertices->size; ++j){
-			DaoxTerrainPoint *point = (DaoxTerrainPoint*) terrain->vertices->items.pVoid[j];
-			DaoGLVertex3D *glvertex = glvertices + vertexCount + j;
-			glvertex->pos.x = point->pos.x;
-			glvertex->pos.y = point->pos.y;
-			glvertex->pos.z = point->pos.z;
-			glvertex->norm.x = point->norm.x;
-			glvertex->norm.y = point->norm.y;
-			glvertex->norm.z = point->norm.z;
-			glvertex->tan.x = 1.0;
-			glvertex->tan.y = 0.0;
-			glvertex->tan.z = 0.0;
-			glvertex->tex.x = point->pos.x / terrain->width;
-			glvertex->tex.y = point->pos.y / terrain->length;
-		}
-		for(j=0; j<terrain->triangles->size; ++j){
-			DaoxTriangle *triangle = & terrain->triangles->data.triangles[j];
-			DaoGLTriangle *gltriangle = gltriangles + triangleCount + j;
-			gltriangle->index[0] = triangle->index[0] + vertexCount + vboffset;
-			gltriangle->index[1] = triangle->index[1] + vertexCount + vboffset;
-			gltriangle->index[2] = triangle->index[2] + vertexCount + vboffset;
-		}
-		drawtask = DaoxRenderer_MakeDrawTask( self );
-		drawtask->shape = GL_TRIANGLES;
-		drawtask->offset = self->terrainBuffer.triangleOffset + triangleCount;
-		drawtask->tcount = terrain->triangles->size;
-		drawtask->material = terrain->material;
-		drawtask->matrix = DaoxMatrix4D_Identity();
-		DList_Append( self->staticTasks, drawtask );
-
-		vertexCount += terrain->vertices->size;
-		triangleCount += terrain->triangles->size;
-	}
-	self->terrainBuffer.vertexOffset += vertexCount;
-	self->terrainBuffer.triangleOffset += triangleCount;
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
 void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 {
 	DaoxColor dark = {0.2, 0.2, 0.2, 1.0};
@@ -610,7 +541,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 		tileTextureCount = 7;
 		tileTextureScale =  drawtask->hexTerrain->textureScale;
 		for(i=0; i<6; ++i){
-			DaoxHexUnit *neighbor = drawtask->hexTile->neighbors[i];
+			DaoxTerrainBlock *neighbor = drawtask->hexTile->neighbors[i];
 			DaoxMaterial *material2 = neighbor ? neighbor->mesh->material : material;
 			DaoxTexture_glInitTexture( material->texture1 );
 			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE1 + i);
@@ -731,18 +662,12 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		self->frustum = fm;
 		//printf( "prepare\n" );
 		DList_Clear( self->canvases );
-		DList_Clear( self->terrains );
 		DaoxRenderer_ClearDrawTasks( self, self->dynamicTasks );
 		DaoxRenderer_ClearDrawTasks( self, self->staticTasks );
 		for(i=0; i<scene->nodes->size; ++i){
 			DaoxSceneNode *node = scene->nodes->items.pSceneNode[i];
 			DaoxRenderer_PrepareNode( self, node );
-			if( node->ctype == daox_type_terrain ){
-				DaoxTerrain_UpdateView( (DaoxTerrain*) node, & self->frustum );
-				DList_Append( self->terrains, (DaoxTerrain*) node );
-			}
 		}
-		DaoxRenderer_UpdateTerrainBuffer( self );
 		if( self->showAxis ) DaoxRenderer_PrepareNode( self, (DaoxSceneNode*) self->worldAxis );
 		if( self->dynamicTasks->size ) DaoxRenderer_UpdateBuffer( self );
 	}

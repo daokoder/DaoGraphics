@@ -48,107 +48,24 @@
 */
 
 
-typedef struct DaoxTerrainPoint  DaoxTerrainPoint;
-typedef struct DaoxTerrainCell   DaoxTerrainCell;
-typedef struct DaoxTerrainBlock  DaoxTerrainBlock;
-
-struct DaoxTerrainPoint
-{
-	uint_t             index;
-	ushort_t           level;
-	ushort_t           count;
-
-	DaoxVector3D       pos;
-	DaoxVector3D       norm;
-
-	DaoxTerrainPoint  *east;
-	DaoxTerrainPoint  *west;
-	DaoxTerrainPoint  *south;
-	DaoxTerrainPoint  *north;
-	DaoxTerrainPoint  *bottom;
-};
-
-
-/*
-// Indexing of vertex corners and sub cells:
-//
-//    3---------------2
-//    |       |       |
-//    |   1   |   0   |
-//    |       |       |
-//    Y-------+-------|
-//    |       |   |   |
-//    |   2   |---3---|
-//    |       |   |   |
-//    O-------X-------1
-*/
-struct DaoxTerrainCell
-{
-	uchar_t  visible;
-	uchar_t  smooth;
-	float    minHeight;
-	float    maxHeight;
-
-	DaoxTerrainPoint  *center;
-	DaoxTerrainPoint  *corners[4];
-	DaoxTerrainCell   *subcells[4];
-};
-
-struct DaoxTerrainBlock
-{
-	DaoxTerrainCell   *cellTree;
-	DaoxTerrainPoint  *baseCenter;
-
-	DaoxTerrainBlock  *east;
-	DaoxTerrainBlock  *west;
-	DaoxTerrainBlock  *south;
-	DaoxTerrainBlock  *north;
-};
-
-struct DaoxTerrain
-{
-	DaoxSceneNode  base;
-
-	float  width;   /* x-axis; */
-	float  length;  /* y-axis; */
-	float  height;  /* z-axis; */
-	float  depth;
-
-	DList   *blocks;
-	DList   *vertices;
-	DArray  *triangles;
-
-	DaoArray      *heightmap;
-	DaoxMaterial  *material;
-
-	DList   *pointList;
-	DList   *pointCache;
-	DList   *cellCache;
-};
-extern DaoType *daox_type_terrain;
-
-DaoxTerrain* DaoxTerrain_New();
-void DaoxTerrain_Delete( DaoxTerrain *self );
-
-void DaoxTerrain_SetSize( DaoxTerrain *self, float width, float length );
-void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoArray *heightmap );
-void DaoxTerrain_SetMaterial( DaoxTerrain *self, DaoxMaterial *material );
-void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainCell *cell );
-void DaoxTerrain_Rebuild( DaoxTerrain *self );
-void DaoxTerrain_UpdateView( DaoxTerrain *self, DaoxViewFrustum *frustum );
 
 
 
-
-
-typedef struct DaoxHexPoint    DaoxHexPoint;
-typedef struct DaoxHexBorder   DaoxHexBorder;
-typedef struct DaoxHexTriangle DaoxHexTriangle;
-typedef struct DaoxHexUnit     DaoxHexUnit;
-typedef struct DaoxHexTerrain  DaoxHexTerrain;
+typedef struct DaoxTerrainPoint     DaoxTerrainPoint;
+typedef struct DaoxTerrainBorder    DaoxTerrainBorder;
+typedef struct DaoxTerrainTriangle  DaoxTerrainTriangle;
+typedef struct DaoxTerrainBlock     DaoxTerrainBlock;
+typedef struct DaoxTerrain          DaoxTerrain;
 
 typedef struct DaoxTerrainParams    DaoxTerrainParams;
 typedef struct DaoxTerrainGenerator DaoxTerrainGenerator;
+
+
+enum DaoxTerrainTypes
+{
+	DAOX_RECT_TERRAIN ,
+	DAOX_HEX_TERRAIN
+};
 
 
 struct DaoxTerrainParams
@@ -159,7 +76,7 @@ struct DaoxTerrainParams
 };
 
 
-struct DaoxHexPoint
+struct DaoxTerrainPoint
 {
 	DaoxVector3D  pos;
 	DaoxVector3D  norm;
@@ -169,69 +86,84 @@ struct DaoxHexPoint
 	int           id;
 };
 
-struct DaoxHexBorder
+struct DaoxTerrainBorder
 {
-	DaoxHexPoint   *start;
-	DaoxHexPoint   *end;
-	DaoxHexBorder  *left;
-	DaoxHexBorder  *right;
+	DaoxTerrainPoint   *start;
+	DaoxTerrainPoint   *end;
+
+	DaoxTerrainBorder  *left;
+	DaoxTerrainBorder  *right;
 };
 
-struct DaoxHexTriangle
+struct DaoxTerrainTriangle
 {
-	DaoxHexPoint     *points[3];
-	DaoxHexBorder    *borders[3];
-	DaoxHexTriangle  *splits[4];
+	DaoxTerrainPoint     *points[3];
+	DaoxTerrainBorder    *borders[3];
+	DaoxTerrainTriangle  *splits[4];
 };
 
-struct DaoxHexUnit
+struct DaoxTerrainBlock
 {
-	int               type;
-	DaoxHexPoint     *center;
-	DaoxHexTriangle  *splits[6];
-	DaoxHexBorder    *borders[6];
-	DaoxHexBorder    *spokes[6];
-	DaoxHexUnit      *neighbors[6];
-	DaoxHexUnit      *next;
-	DaoxMeshUnit     *mesh;
-	DaoxTerrainParams  *params;
+	short                 geotype;
+	short                 sides;
+	DaoxTerrainPoint     *center;
+	DaoxTerrainTriangle  *splits[6];
+	DaoxTerrainBorder    *borders[6];
+	DaoxTerrainBorder    *spokes[6];
+	DaoxTerrainBlock     *neighbors[6];
+	DaoxTerrainBlock     *next;
+	DaoxTerrainParams    *params;
+	DaoxMeshUnit         *mesh;
 };
 
-struct DaoxHexTerrain
+struct DaoxTerrain
 {
 	DaoxSceneNode  base;
 	DaoxMesh      *mesh;
 
 	DaoArray     *heightmap;
 
-	DaoxHexUnit  *first;
-	DaoxHexUnit  *last;
+	DaoxTerrainBlock  *first;
+	DaoxTerrainBlock  *last;
 
 	DList     *points;
 	DList     *borders;
 	DList     *tiles;
 
-	int    circles;
-	int    changes;
+	short  shape;
+	short  rows;
+	short  columns;
+	short  circles;
+	float  width;
+	float  length;
+	float  xbsize;
+	float  ybsize;
 	float  radius;
 	float  height;
 	float  depth;
 	float  textureScale;
+	int    changes;
 
 	DList  *buffer;
 };
-extern DaoType *daox_type_hexterrain;
+extern DaoType *daox_type_terrain;
 
-DaoxHexTerrain* DaoxHexTerrain_New();
-void DaoxHexTerrain_Delete( DaoxHexTerrain *self );
+DaoxTerrain* DaoxTerrain_New();
+void DaoxTerrain_Delete( DaoxTerrain *self );
 
-void DaoxHexTerrain_SetSize( DaoxHexTerrain *self, int circles, float radius );
-void DaoxHexTerrain_SetHeightmap( DaoxHexTerrain *self, DaoArray *heightmap );
-void DaoxHexTerrain_Rebuild( DaoxHexTerrain *self );
-void DaoxHexTerrain_Generate( DaoxHexTerrain *self, int seed );
+void DaoxTerrain_SetRectAutoBlocks( DaoxTerrain *self, float width, float length );
+void DaoxTerrain_SetRectBlocks( DaoxTerrain *self, int rows, int columns, float blocksize );
+void DaoxTerrain_SetHexBlocks( DaoxTerrain *self, int circles, float blocksize );
 
-DaoxHexUnit* DaoxHexTerrain_GetTile( DaoxHexTerrain *self, int side, int radius, int offset );
+void DaoxTerrain_SetHeightmap( DaoxTerrain *self, DaoArray *heightmap );
 
+void DaoxTerrain_InitBlocks( DaoxTerrain *self );
+void DaoxTerrain_Rebuild( DaoxTerrain *self );
+void DaoxTerrain_Generate( DaoxTerrain *self, int seed );
+
+DaoxTerrainBlock* DaoxTerrain_GetBlock( DaoxTerrain *self, int side, int radius, int offset );
+
+void DaoxTerrain_Export( DaoxTerrain *self, DaoxTerrain *terrain );
 
 
 
@@ -239,7 +171,7 @@ struct DaoxTerrainGenerator
 {
 	DAO_CSTRUCT_COMMON;
 
-	DaoxHexTerrain    *terrain;
+	DaoxTerrain    *terrain;
 
 	DaoRandGenerator  *randGenerator;
 
@@ -251,7 +183,7 @@ struct DaoxTerrainGenerator
 };
 extern DaoType *daox_type_terrain_generator;
 
-DaoxTerrainGenerator* DaoxTerrainGenerator_New( int shape, int circles, float radius );
+DaoxTerrainGenerator* DaoxTerrainGenerator_New();
 void DaoxTerrainGenerator_Delete( DaoxTerrainGenerator *self );
 
 void DaoxTerrainGenerator_Update( DaoxTerrainGenerator *self, int iterations );

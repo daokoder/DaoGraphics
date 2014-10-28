@@ -53,7 +53,7 @@ height = circles*radius/4;
 math.srand( 100 )
 
 # Public domain heightmap, downloaded from wikipedia.org:
-terrain: Graphics::HexTerrain;
+terrain: Graphics::Terrain;
 if( 1 ){
 	heightmap.Load( '../media/heightmap.png' )
 	terrain = scene.AddHexTerrain( heightmap, circles, radius, height )

@@ -328,35 +328,15 @@ DaoTypeBase DaoxModel_Typer =
 
 
 
-static void TERRAIN_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
+
+
+static void Terrain_GetTile( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTerrain *self = (DaoxTerrain*) p[0];
-	DaoxMaterial *material = (DaoxMaterial*) p[1];
-	DaoxTerrain_SetMaterial( self, material );
-}
-static DaoFuncItem DaoxTerrainMeths[]=
-{
-	{ TERRAIN_SetMaterial,
-		"SetMaterial( self: Terrain, material: Material, which: enum<first,second> = $first )"
-	},
-	{ NULL, NULL }
-};
-DaoTypeBase DaoxTerrain_Typer =
-{
-	"Terrain", NULL, NULL, (DaoFuncItem*) DaoxTerrainMeths,
-	{ & DaoxSceneNode_Typer, 0 }, {0},
-	(FuncPtrDel)DaoxTerrain_Delete, NULL
-};
-
-
-
-static void HexTerrain_GetTile( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxHexTerrain *self = (DaoxHexTerrain*) p[0];
 	int side = p[1]->xInteger.value;
 	int radius = p[2]->xInteger.value;
 	int offset = p[3]->xInteger.value;
-	DaoxHexUnit *unit = DaoxHexTerrain_GetTile( self, side, radius, offset );
+	DaoxTerrainBlock *unit = DaoxTerrain_GetBlock( self, side, radius, offset );
 
 	if( unit == NULL ){
 		DaoProcess_RaiseError( proc, "Index", "out of range" );
@@ -364,28 +344,28 @@ static void HexTerrain_GetTile( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	DaoProcess_PutValue( proc, (DaoValue*) unit->mesh );
 }
-static void HexTerrain_SetTileType( DaoProcess *proc, DaoValue *p[], int N )
+static void Terrain_SetTileType( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxHexTerrain *self = (DaoxHexTerrain*) p[0];
+	DaoxTerrain *self = (DaoxTerrain*) p[0];
 	int side = p[1]->xInteger.value;
 	int radius = p[2]->xInteger.value;
 	int offset = p[3]->xInteger.value;
-	DaoxHexUnit *unit = DaoxHexTerrain_GetTile( self, side, radius, offset );
+	DaoxTerrainBlock *unit = DaoxTerrain_GetBlock( self, side, radius, offset );
 	//unit->type = type;
 }
 
-static DaoFuncItem DaoxHexTerrainMeths[]=
+static DaoFuncItem DaoxTerrainMeths[]=
 {
-	{ HexTerrain_GetTile,
-		"GetTile( self: HexTerrain, side: int, radius: int, offset: int ) => MeshUnit"
+	{ Terrain_GetTile,
+		"GetTile( self: Terrain, side: int, radius: int, offset: int ) => MeshUnit"
 	},
 	{ NULL, NULL }
 };
-DaoTypeBase DaoxHexTerrain_Typer =
+DaoTypeBase DaoxTerrain_Typer =
 {
-	"HexTerrain", NULL, NULL, (DaoFuncItem*) DaoxHexTerrainMeths,
+	"Terrain", NULL, NULL, (DaoFuncItem*) DaoxTerrainMeths,
 	{ & DaoxModel_Typer, 0 }, {0},
-	(FuncPtrDel)DaoxHexTerrain_Delete, NULL
+	(FuncPtrDel)DaoxTerrain_Delete, NULL
 };
 
 
@@ -418,7 +398,7 @@ static void SCENE_AddBox( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxScene_AddNode( self, (DaoxSceneNode*) model );
 	DaoProcess_PutValue( proc, (DaoValue*) model );
 }
-static void SCENE_AddTerrain( DaoProcess *proc, DaoValue *p[], int N )
+static void SCENE_AddRectTerrain( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTerrain *terrain = DaoxTerrain_New();
 	DaoxScene *self = (DaoxScene*) p[0];
@@ -434,14 +414,14 @@ static void SCENE_AddTerrain( DaoProcess *proc, DaoValue *p[], int N )
 	}
 
 	DaoxTerrain_SetHeightmap( terrain, heightmap );
-	DaoxTerrain_SetSize( terrain, width, length );
+	DaoxTerrain_SetRectAutoBlocks( terrain, width, length );
 	DaoxTerrain_Rebuild( terrain );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
 static void SCENE_AddHexTerrain( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxHexTerrain *terrain = DaoxHexTerrain_New();
+	DaoxTerrain *terrain = DaoxTerrain_New();
 	DaoxScene *self = (DaoxScene*) p[0];
 	DaoArray *heightmap = (DaoArray*) p[1];
 	int circles = p[2]->xInteger.value;
@@ -454,9 +434,9 @@ static void SCENE_AddHexTerrain( DaoProcess *proc, DaoValue *p[], int N )
 		DaoxImage_Export( image, heightmap, height / 255.0 );
 	}
 
-	DaoxHexTerrain_SetHeightmap( terrain, heightmap );
-	DaoxHexTerrain_SetSize( terrain, circles, radius );
-	DaoxHexTerrain_Rebuild( terrain );
+	DaoxTerrain_SetHeightmap( terrain, heightmap );
+	DaoxTerrain_SetHexBlocks( terrain, circles, radius );
+	DaoxTerrain_Rebuild( terrain );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
@@ -465,21 +445,21 @@ static DaoFuncItem DaoxSceneMeths[] =
 	{ SCENE_New,         "Scene()" },
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
 	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1.0, ylen = 1.0, zlen = 1.0 ) => Model" },
-	{ SCENE_AddTerrain,
-		"AddTerrain( self: Scene, heightmap: array<float>, width = 1.0, length = 1.0 )"
+	{ SCENE_AddRectTerrain,
+		"AddRectTerrain( self: Scene, heightmap: array<float>, width = 1.0, length = 1.0 )"
 			"=> Terrain"
 	},
-	{ SCENE_AddTerrain,
-		"AddTerrain( self: Scene, heightmap: Image, width = 1.0, length = 1.0, height = 1.0 )"
+	{ SCENE_AddRectTerrain,
+		"AddRectTerrain( self: Scene, heightmap: Image, width = 1.0, length = 1.0, height = 1.0 )"
 			"=> Terrain"
 	},
 	{ SCENE_AddHexTerrain,
 		"AddHexTerrain( self: Scene, heightmap: array<float>, circles = 2, radius = 1.0 )"
-			"=> HexTerrain"
+			"=> Terrain"
 	},
 	{ SCENE_AddHexTerrain,
 		"AddHexTerrain( self: Scene, heightmap: Image, circles = 1, radius = 1.0, height = 1.0 )"
-			"=> HexTerrain"
+			"=> Terrain"
 	},
 	{ NULL, NULL }
 };
@@ -610,10 +590,24 @@ DaoTypeBase DaoxResource_Typer =
 static void TerrainGenerator_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	int shape = p[0]->xEnum.value;
-	int width = p[1]->xInteger.value;
+	int circles = p[1]->xInteger.value;
 	float radius = p[2]->xFloat.value;
 
-	DaoxTerrainGenerator *self = DaoxTerrainGenerator_New( shape, width, radius );
+	DaoxTerrainGenerator *self = DaoxTerrainGenerator_New();
+	DaoxTerrain_SetHexBlocks( self->terrain, circles, radius );
+	DaoxTerrain_InitBlocks( self->terrain );
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static void TerrainGenerator_New2( DaoProcess *proc, DaoValue *p[], int N )
+{
+	int shape = p[0]->xEnum.value;
+	int rows = p[1]->xInteger.value;
+	int cols = p[2]->xInteger.value;
+	float radius = p[3]->xFloat.value;
+
+	DaoxTerrainGenerator *self = DaoxTerrainGenerator_New();
+	DaoxTerrain_SetRectBlocks( self->terrain, rows, cols, radius );
+	DaoxTerrain_InitBlocks( self->terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void TerrainParams_Configure( DaoxTerrainParams *self, DaoValue **p, int N )
@@ -640,7 +634,7 @@ static void TerrainGenerator_Configure2( DaoProcess *proc, DaoValue *p[], int N 
 	int side = p[1]->xInteger.value;
 	int radius = p[2]->xInteger.value;
 	int offset = p[3]->xInteger.value;
-	DaoxHexUnit *unit = DaoxHexTerrain_GetTile( self->terrain, side, radius, offset );
+	DaoxTerrainBlock *unit = DaoxTerrain_GetBlock( self->terrain, side, radius, offset );
 
 	if( unit == NULL ){
 		DaoProcess_RaiseError( proc, "Index", "out of range" );
@@ -672,19 +666,22 @@ static void TerrainGenerator_GetTerrain( DaoProcess *proc, DaoValue *p[], int N 
 static void TerrainGenerator_ExportTerrain( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTerrainGenerator *self = (DaoxTerrainGenerator*) p[0];
-	DaoxHexTerrain *terrain = DaoxHexTerrain_New();
+	DaoxTerrain *terrain = DaoxTerrain_New();
 	int circles = p[1]->xInteger.value;
 	float radius = p[2]->xFloat.value;
 
-	DaoxHexTerrain_SetSize( terrain, circles, radius );
-	DaoxHexTerrain_Export( self->terrain, terrain );
+	DaoxTerrain_SetHexBlocks( terrain, circles, radius );
+	DaoxTerrain_Export( self->terrain, terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
 
 static DaoFuncItem DaoxTerrainGeneratorMeths[]=
 {
 	{ TerrainGenerator_New,
-		"TerrainGenerator( shape: enum<hexagon>, width = 2, radius = 1.0 )"
+		"TerrainGenerator( shape: enum<hexagon>, circles = 2, radius = 1.0 )"
+	},
+	{ TerrainGenerator_New2,
+		"TerrainGenerator( shape: enum<rectangle>, rows = 2, columns = 2, blocksize = 1.0 )"
 	},
 	{ TerrainGenerator_Configure,
 		"Configure( self: TerrainGenerator, ... : tuple<enum<scale,amplitude,resolution>,float> )"
@@ -700,10 +697,10 @@ static DaoFuncItem DaoxTerrainGeneratorMeths[]=
 		"Update( self: TerrainGenerator, iterations = 20 )"
 	},
 	{ TerrainGenerator_GetTerrain,
-		"GetTerrain( self: TerrainGenerator ) => HexTerrain"
+		"GetTerrain( self: TerrainGenerator ) => Terrain"
 	},
 	{ TerrainGenerator_ExportTerrain,
-		"ExportTerrain( self: TerrainGenerator, circles: int, radius: float ) => HexTerrain"
+		"ExportTerrain( self: TerrainGenerator, circles: int, radius: float ) => Terrain"
 	},
 	{ NULL, NULL }
 };
@@ -726,7 +723,6 @@ DaoType *daox_type_camera = NULL;
 DaoType *daox_type_light = NULL;
 DaoType *daox_type_model = NULL;
 DaoType *daox_type_terrain = NULL;
-DaoType *daox_type_hexterrain = NULL;
 DaoType *daox_type_scene = NULL;
 DaoType *daox_type_painter = NULL;
 DaoType *daox_type_renderer = NULL;
@@ -755,7 +751,6 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_light = DaoNamespace_WrapType( ns, & DaoxLight_Typer, 0 );
 	daox_type_model = DaoNamespace_WrapType( ns, & DaoxModel_Typer, 0 );
 	daox_type_terrain = DaoNamespace_WrapType( ns, & DaoxTerrain_Typer, 0 );
-	daox_type_hexterrain = DaoNamespace_WrapType( ns, & DaoxHexTerrain_Typer, 0 );
 	daox_type_scene = DaoNamespace_WrapType( ns, & DaoxScene_Typer, 0 );
 	daox_type_painter = DaoNamespace_WrapType( ns, & DaoxPainter_Typer, 0 );
 	daox_type_renderer = DaoNamespace_WrapType( ns, & DaoxRenderer_Typer, 0 );

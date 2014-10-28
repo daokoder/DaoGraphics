@@ -49,8 +49,8 @@ struct DaoxDrawTask
 	DList          chunks;
 	DaoxMatrix4D   matrix;   /* Object to world matrix; */
 	DaoxMaterial  *material;
-	DaoxHexUnit   *hexTile;
-	DaoxHexTerrain *hexTerrain;
+	DaoxTerrainBlock  *hexTile;
+	DaoxTerrain       *hexTerrain;
 };
 
 
@@ -81,7 +81,6 @@ struct DaoxRenderer
 	DList   *dynamicTasks;
 	DList   *staticTasks;
 
-	DList   *terrains;
 	DList   *hexTerrains;
 	DList   *canvases;
 	DList   *taskCache;
