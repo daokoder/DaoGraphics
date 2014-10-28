@@ -46,15 +46,15 @@ camera = Graphics::Camera()
 
 math.srand( time.now().value % 10000 + 10000 * os.clock() )
 
-circles = 2
+circles = 3
 radius = 5.0;
 
 generator = Graphics::TerrainGenerator( $hexagon, circles, radius )
 generator.Configure( amplitude = 2.0 )
 generator.ConfigureTile( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
 generator.Generate( 80, 1 )
-terrain = generator.GetTerrain()
-#terrain = generator.ExportTerrain( circles, radius );
+#terrain = generator.GetTerrain()
+terrain = generator.ExportTerrain( circles+1, radius );
 scene.AddNode( terrain )
 camera.Move( 0.0, 2*circles*radius, 2*circles*radius )
 camera.LookAt( 0.0, 0.35*circles*radius, 0.0 );
@@ -70,7 +70,7 @@ for( i = 0 : 5 ){
 	for( j = 0 : circles - 1 ){
 		for( k = 0 : circles - 2 ){
 			io.writeln( i, j, k )
-			tile = terrain.GetTile( i, j, k )
+#			tile = terrain.GetTile( i, j, k )
 			#tile.SetMaterial( materials[ rand( %materials ) ] )
 		}
 	}

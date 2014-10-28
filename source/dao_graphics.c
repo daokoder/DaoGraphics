@@ -613,8 +613,7 @@ static void TerrainGenerator_New( DaoProcess *proc, DaoValue *p[], int N )
 	int width = p[1]->xInteger.value;
 	float radius = p[2]->xFloat.value;
 
-	DaoxTerrainGenerator *self = DaoxTerrainGenerator_New( shape );
-	DaoxHexTerrain_SetSize( self->terrain, width, radius );
+	DaoxTerrainGenerator *self = DaoxTerrainGenerator_New( shape, width, radius );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void TerrainParams_Configure( DaoxTerrainParams *self, DaoValue **p, int N )

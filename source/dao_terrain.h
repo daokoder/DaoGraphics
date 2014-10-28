@@ -251,7 +251,7 @@ struct DaoxTerrainGenerator
 };
 extern DaoType *daox_type_terrain_generator;
 
-DaoxTerrainGenerator* DaoxTerrainGenerator_New();
+DaoxTerrainGenerator* DaoxTerrainGenerator_New( int shape, int circles, float radius );
 void DaoxTerrainGenerator_Delete( DaoxTerrainGenerator *self );
 
 void DaoxTerrainGenerator_Update( DaoxTerrainGenerator *self, int iterations );

@@ -1134,6 +1134,14 @@ void DaoxHexBorder_GetPoints( DaoxHexBorder *self, DList *points )
 	}
 	DList_Append( points, self->end );
 }
+int DaoxTriangle_Contain2( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C, DaoxVector2D P )
+{
+	double epsilon = 1E-6 * fabs( DaoxTriangle_Area( A, B, C ) );
+	int AB = 2*(DaoxTriangle_Area( P, A, B ) >= -epsilon) - 1;
+	int BC = 2*(DaoxTriangle_Area( P, B, C ) >= -epsilon) - 1;
+	int CA = 2*(DaoxTriangle_Area( P, C, A ) >= -epsilon) - 1;
+	return (AB*BC > 0) && (BC*CA > 0) && (CA*AB > 0);
+}
 DaoxHexTriangle* DaoxHexTerrain_LocateTriangle( DaoxHexTerrain *self, DaoxHexTriangle *triangle, float x, float y )
 {
 	int i;
@@ -1141,13 +1149,13 @@ DaoxHexTriangle* DaoxHexTerrain_LocateTriangle( DaoxHexTerrain *self, DaoxHexTri
 	DaoxVector2D points[3];
 
 	for(i=0; i<3; ++i) points[i] = DaoxVector2D_Vector3D( triangle->points[i]->pos );
-	if( DaoxTriangle_Contain( points[0], points[1], points[2], query ) == 0 ) return NULL;
+	if( DaoxTriangle_Contain2( points[0], points[1], points[2], query ) == 0 ) return NULL;
 	if( triangle->splits[0] == NULL ) return triangle;
 	for(i=0; i<4; ++i){
 		DaoxHexTriangle *sub = DaoxHexTerrain_LocateTriangle( self, triangle->splits[i], x, y );
 		if( sub ) return sub;
 	}
-	return NULL;
+	return triangle;
 }
 DaoxHexTriangle* DaoxHexTerrain_Locate( DaoxHexTerrain *self, float x, float y )
 {
@@ -1181,42 +1189,27 @@ float DaoxHexTerrain_GetHeight( DaoxHexTerrain *self, float x, float y )
 	DaoxHexTriangle *T = DaoxHexTerrain_Locate( self, x, y );
 
 	if( T == NULL ) return 0.0;
-
-	for(i=0; i<3; ++i){
-		if( T->borders[i]->left != NULL ){
-			divs += 1;
-			k = i;
-		}
-	}
-	if( divs == 1 ){
-		DaoxHexPoint *p0 = T->points[(k+2)%3];
-		DaoxVector2D v0 = DaoxVector2D_Vector3D( p0->pos );
-		DList *points = self->buffer;
-		points->size = 0;
-		DList_Append( points, T->borders[k]->start );
-		DaoxHexBorder_GetPoints( T->borders[k], points );
-		if( T->points[k] == T->borders[k]->end ) DList_Reverse( points );
-		for(i=1; i<points->size; ++i){
-			DaoxHexPoint *p1 = (DaoxHexPoint*) points->items.pVoid[i-1];
-			DaoxHexPoint *p2 = (DaoxHexPoint*) points->items.pVoid[i];
-			DaoxVector2D v1 = DaoxVector2D_Vector3D( p1->pos );
-			DaoxVector2D v2 = DaoxVector2D_Vector3D( p2->pos );
-			if( DaoxTriangle_Contain( v0, v1, v2, P ) ){
-				return DaoxHexTerrain_Interpolate( p0, p1, p2, x, y );
-			}
-		}
-	}
+	/*
+	// No need to handle the case where there are vertices on one of the edges.
+	// Since these vertices belong only to some of the neighboring triangles,
+	// this means the edge and this triangle is relative smooth, and the edge
+	// is divided only because of roughness of neighboring region, which must
+	// lie at the other side of the edge. So interpolating using this undivided
+	// triangle should be good enough.
+	*/
 	return DaoxHexTerrain_Interpolate( T->points[0], T->points[1], T->points[2], x, y );
 }
 static float DaoxHexTerrain_GetHMHeight( DaoxHexTerrain *self, float x, float y )
 {
 	double sin60 = sin( M_PI / 3.0 );
-	double width = 2.0 * (2*self->circles - 1) * self->radius * sin60 + EPSILON + 1;
-	double length = 3.0 * (self->circles - 1) * self->radius + 2.0 * self->radius + EPSILON + 1;
+	double epsilon = 1E-6 * self->radius;
+	double width = 2.0 * (2*self->circles - 1) * self->radius * sin60 + epsilon;
+	double length = 3.0 * (self->circles - 1) * self->radius + 2.0 * self->radius + epsilon;
 	if( self->model ){
 		DaoxHexTerrain *mod = self->model;
-		double width2 = 2.0 * (2*mod->circles - 1) * mod->radius * sin60 + EPSILON + 1;
-		double length2 = 3.0 * (mod->circles - 1) * mod->radius + 2.0 * mod->radius + EPSILON + 1;
+		double epsilon = 1E-6 * mod->radius;
+		double width2 = 2.0 * (2*mod->circles - 1) * mod->radius * sin60 + epsilon;
+		double length2 = 3.0 * (mod->circles - 1) * mod->radius + 2.0 * mod->radius + epsilon;
 		x = x * width2 / width;
 		y = y * length2 / length;
 		return DaoxHexTerrain_GetHeight( mod, x, y );
@@ -1268,7 +1261,8 @@ void DaoxHexTerrain_FindMinMaxPixel( DaoxHexTerrain *self, DaoxVector2D points[3
 	DaoxVector2D center = {0.0, 0.0};
 	DaoxVector2D points2[3];
 	DaoxVector2D points3[3];
-	float width = 2.0 * (2*self->circles - 1) * self->radius * sin(M_PI/3.0) + EPSILON + 1;
+	double epsilon = 1E-6 * self->radius;
+	float width = 2.0 * (2*self->circles - 1) * self->radius * sin(M_PI/3.0) + epsilon;
 	float z, len = DaoxVector2D_Dist( points[0], points[1] );
 	int i;
 
@@ -1276,7 +1270,7 @@ void DaoxHexTerrain_FindMinMaxPixel( DaoxHexTerrain *self, DaoxVector2D points[3
 		if( len * self->heightmap->dims[1] / width < 1.0 ) return;
 	}else if( self->model ){
 		DaoxHexTerrain *mod = self->model;
-		float width2 = 2.0 * (2*mod->circles - 1) * mod->radius * sin(M_PI/3.0) + EPSILON + 1;
+		float width2 = 2.0 * (2*mod->circles - 1) * mod->radius * sin(M_PI/3.0) + epsilon;
 		if( len * width2 / width < 0.1 ) return;
 	}
 	if( (*max - *min) > 0.1 * self->height && (*max - *min) > 0.05 * self->radius ) return;
@@ -1618,12 +1612,13 @@ void DaoxHexTerrain_Import( DaoxHexTerrain *self, DaoxHexTerrain *other, float h
 
 
 
-DaoxTerrainGenerator* DaoxTerrainGenerator_New( int shape )
+DaoxTerrainGenerator* DaoxTerrainGenerator_New( int shape, int circles, float radius )
 {
 	DaoxTerrainGenerator *self = (DaoxTerrainGenerator*) dao_calloc(1,sizeof(DaoxTerrainGenerator));
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_terrain_generator );
 	self->terrain = DaoxHexTerrain_New();
 	GC_IncRC( self->terrain );
+	DaoxHexTerrain_SetSize( self->terrain, circles, radius );
 	DaoxHexTerrain_InitializeTiles( self->terrain );
 	self->randGenerator = DaoRandGenerator_New( rand() );
 	self->params.resolution = 1.0;
