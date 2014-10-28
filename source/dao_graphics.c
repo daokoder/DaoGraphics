@@ -676,9 +676,8 @@ static void TerrainGenerator_ExportTerrain( DaoProcess *proc, DaoValue *p[], int
 	int circles = p[1]->xInteger.value;
 	float radius = p[2]->xFloat.value;
 
-	GC_Assign( & terrain->model, self->terrain );
 	DaoxHexTerrain_SetSize( terrain, circles, radius );
-	DaoxHexTerrain_Rebuild( terrain );
+	DaoxHexTerrain_Export( self->terrain, terrain );
 	DaoProcess_PutValue( proc, (DaoValue*) terrain );
 }
 

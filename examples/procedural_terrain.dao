@@ -54,7 +54,7 @@ generator.Configure( amplitude = 2.0 )
 generator.ConfigureTile( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
 generator.Generate( 80, 1 )
 #terrain = generator.GetTerrain()
-terrain = generator.ExportTerrain( circles+1, radius );
+terrain = generator.ExportTerrain( circles, radius );
 scene.AddNode( terrain )
 camera.Move( 0.0, 2*circles*radius, 2*circles*radius )
 camera.LookAt( 0.0, 0.35*circles*radius, 0.0 );

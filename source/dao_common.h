@@ -128,6 +128,7 @@ double DaoxVector2D_Dist( DaoxVector2D start, DaoxVector2D end );
 double DaoxVector2D_Dist2( DaoxVector2D start, DaoxVector2D end );
 void DaoxVector2D_Print( DaoxVector2D *self );
 
+double DaoxTriangle_AreaBySideLength( double A, double B, double C );
 double DaoxTriangle_Area( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C );
 double DaoxTriangle_AngleCosine( DaoxVector2D C, DaoxVector2D A, DaoxVector2D B );
 int DaoxTriangle_Contain( DaoxVector2D C, DaoxVector2D A, DaoxVector2D B, DaoxVector2D P );

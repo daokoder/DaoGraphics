@@ -165,6 +165,7 @@ struct DaoxHexPoint
 	DaoxVector3D  norm;
 	DaoxVector3D  tan;
 	DaoxVector2D  tex;
+	float         flat;
 	int           id;
 };
 
@@ -202,7 +203,6 @@ struct DaoxHexTerrain
 	DaoxMesh      *mesh;
 
 	DaoArray     *heightmap;
-	DaoxHexTerrain  *model;
 
 	DaoxHexUnit  *first;
 	DaoxHexUnit  *last;
