@@ -365,17 +365,58 @@ int hasColorTexture2 = hasColorTexture;\n\
 // texture coordinate offset from the center in unit space:\n\
 float hexagonTextureRatio = 0.4;\n\
 \n\
-vec2 hexagonVertices[6] = vec2[6]\n\
+vec2 rectangleVertices[4] = vec2[4]\n\
 (\n\
-	vec2(  1.0,  0.0 ),\n\
-	vec2(  0.5,  0.86602540 ),\n\
-	vec2( -0.5,  0.86602540 ),\n\
-	vec2( -1.0,  0.0 ),\n\
-	vec2( -0.5, -0.86602540 ),\n\
-	vec2(  0.5, -0.86602540 )\n\
+	vec2(  1.0, -1.0 ),\n\
+	vec2(  1.0,  1.0 ),\n\
+	vec2( -1.0,  1.0 ),\n\
+	vec2( -1.0, -1.0 )\n\
 );\n\
 \n\
 \n\
+vec2 hexagonVertices[6] = vec2[6]\n\
+(\n\
+	vec2(  0.86602540, -0.5 ),\n\
+	vec2(  0.86602540,  0.5 ),\n\
+	vec2(  0.0,  1.0 ),\n\
+	vec2( -0.86602540,  0.5 ),\n\
+	vec2( -0.86602540, -0.5 ),\n\
+	vec2(  0.0, -1.0 )\n\
+);\n\
+\n\
+\n\
+\n\
+\n\
+vec4 RectLocateTex( vec2 tex )\n\
+{\n\
+	tex = tex / tileTextureScale;\n\
+	vec2 C = vec2(0.5, 0.5);\n\
+	vec2 P = (tex - C) / hexagonTextureRatio; // To unit space; \n\
+	vec2 Q = vec2(0.0, 0.0);\n\
+	float min = 1.0;\n\
+	int imin = 0;\n\
+	for(int i=0; i<4; ++i){\n\
+		vec2 A = rectangleVertices[i];\n\
+		vec2 B = rectangleVertices[(i+1)%4];\n\
+		vec2 AB = 0.5 * (B - A);\n\
+		vec2 AP = P - A;\n\
+		vec2 AP2 = dot( AB, AP ) * AB;\n\
+		vec2 D = AP - AP2;\n\
+		float d = sqrt( D.x * D.x + D.y * D.y );\n\
+		if( d < min ){\n\
+			min = d;\n\
+			imin = i;\n\
+		}\n\
+	}\n\
+	if( imin == 0 ) Q = P + (rectangleVertices[3] - rectangleVertices[0]);\n\
+	if( imin == 1 ) Q = P + (rectangleVertices[0] - rectangleVertices[1]);\n\
+	if( imin == 2 ) Q = P + (rectangleVertices[0] - rectangleVertices[3]);\n\
+	if( imin == 3 ) Q = P + (rectangleVertices[1] - rectangleVertices[0]);\n\
+	min *= hexagonTextureRatio;\n\
+	Q = hexagonTextureRatio * Q + C;\n\
+	Q *= tileTextureScale;\n\
+	return vec4( imin, min, Q.x, Q.y );\n\
+}\n\
 \n\
 \n\
 vec4 HexLocateTex( vec2 tex )\n\
@@ -413,7 +454,7 @@ vec4 HexLocateTex( vec2 tex )\n\
 \n\
 vec4 BlendTerrainTextures( vec4 texValue, vec2 tex )\n\
 {\n\
-	if( terrainTileType != 2 ) return texValue;\n\
+	if( terrainTileType == 0 ) return texValue;\n\
 	\n\
 	if( tileTextureInfo.y < tileBlendingWidth ){ \n\
 		vec2 tex2 = vec2(tileTextureInfo[2], tileTextureInfo[3]);\n\
@@ -462,7 +503,7 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 		normal2 = (normal2 - 0.5) * 2.0;\n\
 		//normal2 = normalize( normal2 );\n\
 		float factor = 0.5;\n\
-		if( terrainTileType == 2 && tileTextureInfo.y < tileBlendingWidth ){ \n\
+		if( terrainTileType != 0 && tileTextureInfo.y < tileBlendingWidth ){ \n\
 			factor *= tileTextureInfo.y / tileBlendingWidth;\n\
 		}\n\
 		normal = Slerp3( normal, normal2, factor );\n\
@@ -497,11 +538,12 @@ void main(void)\n\
 {\n\
 	vec4 texColor = diffuseColor;\n\
 	worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
+	if( terrainTileType == 1 ) tileTextureInfo = RectLocateTex( varTexCoord );\n\
 	if( terrainTileType == 2 ) tileTextureInfo = HexLocateTex( varTexCoord );\n\
 	if( tileTextureCount > 0 ) hasColorTexture2 = 1;\n\
 	if( hasColorTexture2 > 0 ){\n\
 		texColor = texture( colorTexture, varTexCoord );\n\
-		if( terrainTileType == 2 ){ \n\
+		if( terrainTileType != 0 ){ \n\
 			texColor = BlendTerrainTextures( texColor, varTexCoord );\n\
 		}\n\
 	}\n\

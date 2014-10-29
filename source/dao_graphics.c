@@ -328,6 +328,28 @@ DaoTypeBase DaoxModel_Typer =
 
 
 
+static void TerrainBlock_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxTerrainBlock *self = (DaoxTerrainBlock*) p[0];
+	DaoxMaterial *mat = (DaoxMaterial*) p[1];
+	DaoxMeshUnit_SetMaterial( self->mesh, mat );
+}
+
+static DaoFuncItem DaoxTerrainBlockMeths[]=
+{
+	{ TerrainBlock_SetMaterial,
+		"SetMaterial( self: TerrainBlock, material: Material )"
+	},
+	{ NULL, NULL }
+};
+DaoTypeBase DaoxTerrainBlock_Typer =
+{
+	"TerrainBlock", NULL, NULL, (DaoFuncItem*) DaoxTerrainBlockMeths,
+	{ & DaoxModel_Typer, 0 }, {0},
+	(FuncPtrDel)DaoxTerrainBlock_Delete, NULL
+};
+
+
 
 
 static void Terrain_GetTile( DaoProcess *proc, DaoValue *p[], int N )
@@ -353,11 +375,31 @@ static void Terrain_SetTileType( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxTerrainBlock *unit = DaoxTerrain_GetBlock( self, side, radius, offset );
 	//unit->type = type;
 }
+static void Terrain_EachBlock( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxTerrain *self = (DaoxTerrain*) p[0];
+	DaoVmCode *sect = DaoProcess_InitCodeSection( proc, 1 );
+	DaoxTerrainBlock *unit;
+	int entry;
+
+	if( sect == NULL ) return;
+	entry = proc->topFrame->entry;
+	for(unit=self->first; unit!=NULL; unit=unit->next){
+		if( sect->b >0 ) DaoProcess_SetValue( proc, sect->a, (DaoValue*) unit );
+		proc->topFrame->entry = entry;
+		DaoProcess_Execute( proc );
+		if( proc->status == DAO_PROCESS_ABORTED ) break;
+	}
+	DaoProcess_PopFrame( proc );
+}
 
 static DaoFuncItem DaoxTerrainMeths[]=
 {
 	{ Terrain_GetTile,
 		"GetTile( self: Terrain, side: int, radius: int, offset: int ) => MeshUnit"
+	},
+	{ Terrain_EachBlock,
+		"EachBlock( self: Terrain ) [block:TerrainBlock]"
 	},
 	{ NULL, NULL }
 };
@@ -663,7 +705,19 @@ static void TerrainGenerator_GetTerrain( DaoProcess *proc, DaoValue *p[], int N 
 	DaoxTerrainGenerator *self = (DaoxTerrainGenerator*) p[0];
 	DaoProcess_PutValue( proc, (DaoValue*) self->terrain );
 }
-static void TerrainGenerator_ExportTerrain( DaoProcess *proc, DaoValue *p[], int N )
+static void TerrainGenerator_ExportRectTerrain( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxTerrainGenerator *self = (DaoxTerrainGenerator*) p[0];
+	DaoxTerrain *terrain = DaoxTerrain_New();
+	int rows = p[1]->xInteger.value;
+	int cols = p[2]->xInteger.value;
+	float radius = p[3]->xFloat.value;
+
+	DaoxTerrain_SetRectBlocks( terrain, rows, cols, radius );
+	DaoxTerrain_Export( self->terrain, terrain );
+	DaoProcess_PutValue( proc, (DaoValue*) terrain );
+}
+static void TerrainGenerator_ExportHexTerrain( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTerrainGenerator *self = (DaoxTerrainGenerator*) p[0];
 	DaoxTerrain *terrain = DaoxTerrain_New();
@@ -687,7 +741,7 @@ static DaoFuncItem DaoxTerrainGeneratorMeths[]=
 		"Configure( self: TerrainGenerator, ... : tuple<enum<scale,amplitude,resolution>,float> )"
 	},
 	{ TerrainGenerator_Configure2,
-		"ConfigureTile( self: TerrainGenerator, side: int, radius: int, offset: int,"
+		"ConfigureBlock( self: TerrainGenerator, side: int, dist: int, offset: int,"
 			"... : tuple<enum<scale,amplitude,resolution>,float> )"
 	},
 	{ TerrainGenerator_Generate,
@@ -699,8 +753,11 @@ static DaoFuncItem DaoxTerrainGeneratorMeths[]=
 	{ TerrainGenerator_GetTerrain,
 		"GetTerrain( self: TerrainGenerator ) => Terrain"
 	},
-	{ TerrainGenerator_ExportTerrain,
-		"ExportTerrain( self: TerrainGenerator, circles: int, radius: float ) => Terrain"
+	{ TerrainGenerator_ExportRectTerrain,
+		"ExportRectTerrain( self: TerrainGenerator, rows: int, columns: int, blocksize: float ) => Terrain"
+	},
+	{ TerrainGenerator_ExportHexTerrain,
+		"ExportHexTerrain( self: TerrainGenerator, circles: int, radius: float ) => Terrain"
 	},
 	{ NULL, NULL }
 };
@@ -727,6 +784,7 @@ DaoType *daox_type_scene = NULL;
 DaoType *daox_type_painter = NULL;
 DaoType *daox_type_renderer = NULL;
 DaoType *daox_type_resource = NULL;
+DaoType *daox_type_terrain_block = NULL;
 DaoType *daox_type_terrain_generator = NULL;
 
 
@@ -755,6 +813,7 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_painter = DaoNamespace_WrapType( ns, & DaoxPainter_Typer, 0 );
 	daox_type_renderer = DaoNamespace_WrapType( ns, & DaoxRenderer_Typer, 0 );
 	daox_type_resource = DaoNamespace_WrapType( ns, & DaoxResource_Typer, 0 );
+	daox_type_terrain_block = DaoNamespace_WrapType( ns, & DaoxTerrainBlock_Typer, 0 );
 	daox_type_terrain_generator = DaoNamespace_WrapType( ns, & DaoxTerrainGenerator_Typer, 0 );
 	DaoVectorGraphics_OnLoad( vmSpace, ns );
 #ifdef DAO_GRAPHICS_USE_GLUT

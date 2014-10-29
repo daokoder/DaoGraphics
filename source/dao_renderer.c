@@ -271,7 +271,7 @@ void DaoxRenderer_PrepareHexTerrain( DaoxRenderer *self, DaoxTerrain *terrain, D
 		task->matrix = *objectToWorld;
 		task->material = unit->material;
 		DList_Append( self->dynamicTasks, task );
-		task->terrainTileType = 2;
+		task->terrainTileType = terrain->shape + 1;
 		task->hexTile = tile;
 		task->hexTerrain = terrain;
 
@@ -540,7 +540,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 		terrainTileType = drawtask->terrainTileType;
 		tileTextureCount = 7;
 		tileTextureScale =  drawtask->hexTerrain->textureScale;
-		for(i=0; i<6; ++i){
+		for(i=0; i<drawtask->hexTile->sides; ++i){
 			DaoxTerrainBlock *neighbor = drawtask->hexTile->neighbors[i];
 			DaoxMaterial *material2 = neighbor ? neighbor->mesh->material : material;
 			DaoxTexture_glInitTexture( material->texture1 );

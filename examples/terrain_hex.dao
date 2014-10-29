@@ -67,16 +67,8 @@ camera.LookAt( 0.0, 0.35*circles*radius, 0.0 );
 #camera.LookAt( 0.5*circles*radius, 0.35*circles*radius, 0.0 );
 camera.SetFOV( 60 );
 
+terrain.EachBlock { [block] block.SetMaterial( materials[ rand( %materials ) ] ) }
 
-for( i = 0 : 5 ){
-	for( j = 0 : circles - 1 ){
-		for( k = 0 : circles - 2 ){
-			io.writeln( i, j, k )
-			tile = terrain.GetTile( i, j, k )
-			tile.SetMaterial( materials[ rand( %materials ) ] )
-		}
-	}
-}
 #tile = terrain.GetTile( 0, 1, 0 )
 #tile.SetMaterial( materials[ rand( %materials ) ] )
 

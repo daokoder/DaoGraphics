@@ -104,6 +104,8 @@ struct DaoxTerrainTriangle
 
 struct DaoxTerrainBlock
 {
+	DAO_CSTRUCT_COMMON;
+
 	short                 geotype;
 	short                 sides;
 	DaoxTerrainPoint     *center;
@@ -115,6 +117,10 @@ struct DaoxTerrainBlock
 	DaoxTerrainParams    *params;
 	DaoxMeshUnit         *mesh;
 };
+extern DaoType *daox_type_terrain_block;
+
+DaoxTerrainBlock* DaoxTerrainBlock_New( int sides );
+void DaoxTerrainBlock_Delete( DaoxTerrainBlock *self );
 
 struct DaoxTerrain
 {

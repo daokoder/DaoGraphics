@@ -81,12 +81,14 @@ void DaoxTerrainTriangle_DeleteSplits( DaoxTerrainTriangle *self )
 DaoxTerrainBlock* DaoxTerrainBlock_New( int sides )
 {
 	DaoxTerrainBlock *self = (DaoxTerrainBlock*) dao_calloc( 1, sizeof(DaoxTerrainBlock) );
+	DaoCstruct_Init( (DaoCstruct*) self, daox_type_terrain_block );
 	self->sides = sides;
 	return self;
 }
 void DaoxTerrainBlock_Delete( DaoxTerrainBlock *self )
 {
 	int i;
+	DaoCstruct_Free( (DaoCstruct*) self );
 	for(i=0; i<self->sides; ++i){
 		if( self->splits[i] ) DaoxTerrainTriangle_Delete( self->splits[i] );
 	}
@@ -858,13 +860,19 @@ void DaoxTerrain_ExportTriangles( DaoxTerrain *self, DaoxTerrainBlock *unit, Dao
 }
 void DaoxTerrainBlock_InitTextureCoordinates( DaoxTerrainBlock *self )
 {
-	float ratio = self->sides == 4 ? 0.5 : 0.4;
 	int i;
 
 	self->center->tex.x = self->center->tex.y = 0.5;
-	for(i=0; i<self->sides; ++i){
-		self->spokes[i]->end->tex.x = 0.5 + ratio * cos( i*M_PI/(self->sides/2) );
-		self->spokes[i]->end->tex.y = 0.5 + ratio * sin( i*M_PI/(self->sides/2) );
+	if( self->sides == 4 ){
+		for(i=0; i<self->sides; ++i){
+			self->spokes[i]->end->tex.x = 0.5 + 0.4 * (2*(i == 0 || i == 1) - 1);
+			self->spokes[i]->end->tex.y = 0.5 + 0.4 * (2*(i == 1 || i == 2) - 1);
+		}
+	}else{
+		for(i=0; i<self->sides; ++i){
+			self->spokes[i]->end->tex.x = 0.5 + 0.4 * cos( i*M_PI/3 - M_PI/6 );
+			self->spokes[i]->end->tex.y = 0.5 + 0.4 * sin( i*M_PI/3 - M_PI/6 );
+		}
 	}
 }
 void DaoxTerrain_BuildMesh( DaoxTerrain *self, DaoxTerrainBlock *unit )
@@ -988,6 +996,7 @@ DaoxTerrainGenerator* DaoxTerrainGenerator_New()
 }
 void DaoxTerrainGenerator_Delete( DaoxTerrainGenerator *self )
 {
+	DaoCstruct_Free( (DaoCstruct*) self );
 // TODO
 }
 
