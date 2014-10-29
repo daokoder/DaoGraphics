@@ -1036,13 +1036,14 @@ void DaoxTerrainGenerator_ApplyFaultLine2( DaoxTerrainGenerator *self, DaoxTerra
 	}
 	if( distToFaultLine[0] * distToFaultLine[1] < 0.0 || distToFaultLine[0] * distToFaultLine[2] < 0.0 ){
 		float prob;
-		if( len <= minSize ) return ;
+		if( len <= minSize ) goto Adjust;
 		prob = exp( - minDistToPoint / faultScale2 );
-		if( DaoRandGenerator_GetUniform( self->randGenerator ) > prob ) return;
+		if( DaoRandGenerator_GetUniform( self->randGenerator ) > prob ) goto Adjust;
 		DaoxTerrain_Split( self->terrain, unit, triangle );
 		for(i=0; i<4; ++i) DaoxTerrainGenerator_ApplyFaultLine2( self, unit, triangle->splits[i] );
 		return;
 	}
+Adjust:
 	for(i=0; i<3; ++i){
 		float factor1 = distToFaultLine[i] / (fabs(distToFaultLine[i]) + faultScale1);
 		float factor2 = exp( - distToFaultPoint[i] / faultScale2 );
