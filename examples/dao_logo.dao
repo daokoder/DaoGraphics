@@ -16,19 +16,19 @@ canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 fontRoboto = Graphics::Font( "fonts/Roboto-Bold.ttf" );
 
 
-state = canvas.PushState()
-state.SetFont( fontRoboto, 100 );
-state.SetStrokeWidth( 0.5 );
-state.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
-state.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
+brush = canvas.PushBrush()
+brush.SetFont( fontRoboto, 100 );
+brush.SetStrokeWidth( 0.5 );
+brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
+brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
 text = canvas.AddText( "Dao", -100, 250 );
 
-state = canvas.PushState()
-state.SetFont( fontRoboto, 60 );
-state.SetStrokeWidth( 0.5 );
-state.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
-state.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
+brush = canvas.PushBrush()
+brush.SetFont( fontRoboto, 60 );
+brush.SetStrokeWidth( 0.5 );
+brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
+brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
 path = Graphics::Path();
 #item = canvas.AddPath( path );
@@ -40,18 +40,18 @@ path.ArcTo( 650, 0, 135 )
 #canvas.SetFont( fontRoboto, 80 );
 #text = canvas.AddText( "Programming Language", path );
 text = canvas.AddText( "PROGRAMMING LANGUAGE", path );
-canvas.PopState();
+canvas.PopBrush();
 #{
 #}
-canvas.PopState();
+canvas.PopBrush();
 
-canvas.PushState()
+canvas.PushBrush()
 
 unit = 100;
 
-state = canvas.PushState().SetJunction( $flat ).SetStrokeWidth(0)
+brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(0)
 
-grad_O = state.SetRadialGradient();
+grad_O = brush.SetRadialGradient();
 grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
 grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
 grad_O.AddStop( 0.8, (0.6, 0.0, 0.9, 0.9) )
@@ -73,12 +73,12 @@ path.MoveTo( 2*unit, -unit )
 .ArcAbsTo( 2*unit, -unit, +180 )
 path.Close();
 
-canvas.PopState()
+canvas.PopBrush()
 
 
-state = canvas.PushState().SetJunction( $flat ).SetStrokeWidth(0)
+brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(0)
 
-grad_O = state.SetRadialGradient();
+grad_O = brush.SetRadialGradient();
 grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
 grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
 grad_O.AddStop( 0.8, (0.9, 0.4, 0.0, 0.9) )
@@ -106,11 +106,11 @@ path.MoveTo( -2*unit, unit )
 path.Close();
 
 
-canvas.PopState()
+canvas.PopBrush()
 
-state = canvas.PushState().SetJunction( $flat ).SetStrokeWidth(0)
+brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(0)
 
-grad_A = state.SetRadialGradient();
+grad_A = brush.SetRadialGradient();
 grad_A.AddStop( 0.0, (0.6, 0.7, 0.6, 0.1) )
 grad_A.AddStop( 0.3, (0.5, 0.6, 0.5, 0.4) )
 grad_A.AddStop( 0.5, (0.2, 0.9, 0.2, 0.7) )
@@ -134,12 +134,12 @@ path.Close();
 
 
 
-canvas.PopState()
+canvas.PopBrush()
 
-state = canvas.PushState().SetJunction( $flat ).SetStrokeWidth(5)
+brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(5)
 .SetStrokeColor( 0.8, 0.4, 0.0, 0.9 );
 
-grad_A = state.SetRadialGradient();
+grad_A = brush.SetRadialGradient();
 grad_A.AddStop( 0.0, (1.0, 0.9, 0.4, 0.7) )
 grad_A.AddStop( 0.5, (0.8, 0.7, 0.0, 0.7) )
 grad_A.AddStop( 0.95, (0.9, 0.6, 0.3, 0.7) )
@@ -169,7 +169,7 @@ path.CubicTo( -20, 0, 0, -60 )
 path.Close()
 
 
-canvas.PopState()
+canvas.PopBrush()
 
 #{
 image = Graphics::Image();

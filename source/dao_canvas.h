@@ -52,12 +52,12 @@
 
 
 
-typedef struct DaoxCanvasState     DaoxCanvasState;
-typedef struct DaoxColorGradient   DaoxColorGradient;
+typedef struct DaoxBrush      DaoxBrush;
+typedef struct DaoxGradient   DaoxGradient;
 
 
-typedef struct DaoxCanvas          DaoxCanvas;
-typedef struct DaoxCanvasNode      DaoxCanvasNode;
+typedef struct DaoxCanvas     DaoxCanvas;
+typedef struct DaoxCanvasNode DaoxCanvasNode;
 
 
 
@@ -75,7 +75,7 @@ enum DaoxGradientTypes
 	DAOX_GRADIENT_PATH
 };
 
-struct DaoxColorGradient
+struct DaoxGradient
 {
 	DAO_CSTRUCT_COMMON;
 
@@ -87,7 +87,7 @@ struct DaoxColorGradient
 	DaoxVector2D  points[2];
 	float         radius;
 };
-DAO_DLL DaoType *daox_type_color_gradient;
+DAO_DLL DaoType *daox_type_gradient;
 DAO_DLL DaoType *daox_type_linear_gradient;
 DAO_DLL DaoType *daox_type_radial_gradient;
 DAO_DLL DaoType *daox_type_path_gradient;
@@ -98,7 +98,7 @@ DAO_DLL DaoType *daox_type_path_gradient;
 /*
 // States or properties shared by multiple canvas items:
 */
-struct DaoxCanvasState
+struct DaoxBrush
 {
 	DAO_CSTRUCT_COMMON;
 
@@ -112,13 +112,13 @@ struct DaoxCanvasState
 	DaoxColor  strokeColor;  /* stroke color: RGBA; */
 	DaoxColor  fillColor;    /* filling color: RGBA; */
 
-	DaoxColorGradient  *strokeGradient;
-	DaoxColorGradient  *fillGradient;
+	DaoxGradient  *strokeGradient;
+	DaoxGradient  *fillGradient;
 
 	DaoxFont        *font;
 	DaoxCanvasNode  *parent;
 };
-DAO_DLL DaoType *daox_type_canvas_state;
+DAO_DLL DaoType *daox_type_brush;
 
 
 
@@ -140,7 +140,7 @@ struct DaoxCanvasNode
 	DaoxVector2D      scale;        /* local space; */
 	DaoxVector2D      rotation;     /* local space (cos,sin); */
 	DaoxVector2D      translation;  /* parent space; */
-	DaoxCanvasState  *state;
+	DaoxBrush        *brush;
 
 	DaoxCanvasNode   *parent;     /* parent item; */
 	DList            *children;   /* children items; */
@@ -218,7 +218,7 @@ struct DaoxCanvas
 	DaoxColor  background;
 
 	DList  *nodes;
-	DList  *states;
+	DList  *brushes;
 
 	DMap  *rects;
 	DMap  *ellipses;
@@ -244,16 +244,16 @@ extern "C"{
 
 
 
-DaoxColorGradient* DaoxColorGradient_New( int type );
-void DaoxColorGradient_Delete( DaoxColorGradient *self );
-void DaoxColorGradient_Add( DaoxColorGradient *self, float stop, DaoxColor color );
+DaoxGradient* DaoxGradient_New( int type );
+void DaoxGradient_Delete( DaoxGradient *self );
+void DaoxGradient_Add( DaoxGradient *self, float stop, DaoxColor color );
 
 
 
 
-DaoxCanvasState* DaoxCanvasState_New();
-void DaoxCanvasState_Delete( DaoxCanvasState *self );
-void DaoxCanvasState_Copy( DaoxCanvasState *self, DaoxCanvasState *other );
+DaoxBrush* DaoxBrush_New();
+void DaoxBrush_Delete( DaoxBrush *self );
+void DaoxBrush_Copy( DaoxBrush *self, DaoxBrush *other );
 
 
 
@@ -293,8 +293,8 @@ DAO_DLL void DaoxCanvas_SetViewport( DaoxCanvas *self, float left, float right, 
 DAO_DLL float DaoxCanvas_Scale( DaoxCanvas *self );
 DAO_DLL void DaoxCanvas_SetBackground( DaoxCanvas *self, DaoxColor color );
 
-DAO_DLL DaoxCanvasState* DaoxCanvas_PushState( DaoxCanvas *self, int index );
-DAO_DLL void DaoxCanvas_PopState( DaoxCanvas *self );
+DAO_DLL DaoxBrush* DaoxCanvas_PushBrush( DaoxCanvas *self, int index );
+DAO_DLL void DaoxCanvas_PopBrush( DaoxCanvas *self );
 
 DAO_DLL void DaoxCanvas_SetStrokeWidth( DaoxCanvas *self, float width );
 DAO_DLL void DaoxCanvas_SetStrokeColor( DaoxCanvas *self, DaoxColor color );

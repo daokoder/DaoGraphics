@@ -173,8 +173,8 @@ void DaoxShader_Free( DaoxShader *self );
 void DaoxShader_AddShader( DaoxShader *self, int type, const char *source );
 void DaoxShader_Finalize2D( DaoxShader *self );
 void DaoxShader_Finalize3D( DaoxShader *self );
-void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradient, int fill );
-void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxCanvasState *state );
+void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxGradient *gradient, int fill );
+void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush );
 
 
 

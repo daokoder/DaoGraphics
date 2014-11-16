@@ -783,7 +783,7 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings )
 	if( shader && self->program ) glAttachShader( self->program, shader );
 }
 
-void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradient, int fill )
+void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxGradient *gradient, int fill )
 {
 	GLfloat data[2*DAOX_MAX_GRADIENT_STOPS*4];
 	int width = 2*DAOX_MAX_GRADIENT_STOPS;
@@ -821,20 +821,20 @@ void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxColorGradient *gradie
 	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 2*n, GL_RGBA, GL_FLOAT, data);
 	glUniform1i(self->uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
 }
-void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxCanvasState *state )
+void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush )
 {
 	GLfloat dash[DAOX_MAX_DASH];
 	int i, n;
 
-	if( state == NULL ){
+	if( brush == NULL ){
 		glUniform1i(self->uniforms.dashCount, 0 );
 		return;
 	}
 
-	n = state->dash;
+	n = brush->dash;
 	if( n > DAOX_MAX_DASH ) n = DAOX_MAX_DASH;
 	memset( dash, 0, n*sizeof(GLfloat) );
-	for(i=0; i<n; ++i) dash[i] = state->dashPattern[i];
+	for(i=0; i<n; ++i) dash[i] = brush->dashPattern[i];
 
 	//printf( "DaoxShader_MakeDashSampler: %i\n", n );
 

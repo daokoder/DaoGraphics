@@ -163,10 +163,10 @@ void DaoxVG_BufferTriangles( DaoGLTriangle *gltriangles, DArray *triangles, int 
 #define USE_STENCIL
 void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *canvas, DaoxCanvasNode *item )
 {
-	DaoxCanvasState *state = item->state;
+	DaoxBrush *brush = item->brush;
 	float resolution = DaoxCanvas_Scale( canvas );
 	float scale = item->magnitude;
-	float stroke = state->strokeWidth / (resolution + 1E-16);
+	float stroke = brush->strokeWidth / (resolution + 1E-16);
 	int i, fill = item->path != NULL;
 	int fillVertexCount = 0;
 	int fillVertexCount2 = 0;
@@ -177,7 +177,7 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 	int vertexCount = 0;
 	int triangleCount = 0;
 
-	fill &= state->fillColor.alpha > EPSILON || state->fillGradient != NULL;
+	fill &= brush->fillColor.alpha > EPSILON || brush->fillGradient != NULL;
 	if( fill ){
 		fillVertexCount = item->path->mesh->points->size;
 		fillVertexCount2 = item->path->mesh->patches->size;
@@ -218,15 +218,15 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 	//printf( "DaoxVG_PaintItemData: %i %i\n", vertexCount, triangleCount );
 
 	glUniform1i(shader->uniforms.hasColorTexture, 0 );
-	glUniform4fv( shader->uniforms.brushColor, 1, & item->state->strokeColor.red );
+	glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
 	if( item->path ) glUniform1f(shader->uniforms.pathLength, item->path->length );
 
 	if( fill ){
 		void *indices = (void*) (buffer->triangleOffset*sizeof(GLint)*3);
 		glUniform1i( shader->uniforms.dashCount, 0 );
 		glUniform1f( shader->uniforms.alphaBlending, 1.0 );
-		glUniform4fv( shader->uniforms.brushColor, 1, & item->state->fillColor.red );
-		DaoxShader_MakeGradientSampler( shader, item->state->fillGradient, 1 );
+		glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->fillColor.red );
+		DaoxShader_MakeGradientSampler( shader, item->brush->fillGradient, 1 );
 		glDrawElements( GL_TRIANGLES, 3*fillTriangleCount, GL_UNSIGNED_INT, indices );
 		glDrawArrays( GL_TRIANGLES, fillOffset2, fillVertexCount2 );
 	}
@@ -241,9 +241,9 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 		void *indices = (void*) (offset*sizeof(GLint)*3);
 		float alpha = stroke < 1.0 ? sqrt(stroke) : 1.0;
 		glUniform1f( shader->uniforms.alphaBlending, alpha );
-		glUniform4fv( shader->uniforms.brushColor, 1, & item->state->strokeColor.red );
-		DaoxShader_MakeDashSampler( shader, item->state );
-		DaoxShader_MakeGradientSampler( shader, item->state->strokeGradient, 0 );
+		glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
+		DaoxShader_MakeDashSampler( shader, item->brush );
+		DaoxShader_MakeGradientSampler( shader, item->brush->strokeGradient, 0 );
 		glDrawElements( GL_TRIANGLES, 3*strokeTriangleCount, GL_UNSIGNED_INT, indices );
 		glDrawArrays( GL_TRIANGLES, strokeOffset2, strokeVertexCount2 );
 	}
@@ -256,7 +256,7 @@ void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *c
 	if( item->strokes && stroke > 1E-3 ){
 		int offset = buffer->triangleOffset + fillTriangleCount;
 		void *indices = (void*) (offset*sizeof(GLint)*3);
-		glUniform4fv( shader->uniforms.brushColor, 1, & item->state->strokeColor.red );
+		glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
 		DaoxShader_MakeGradientSampler( shader, NULL, 0 );
 		glDrawElements( GL_TRIANGLES, 3*strokeTriangleCount, GL_UNSIGNED_INT, indices );
 		glDrawArrays( GL_TRIANGLES, strokeOffset2, strokeVertexCount2 );
@@ -374,7 +374,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	GLfloat modelMatrix[16] = {0};
 	float distance, diameter;
 	float scale = DaoxCanvas_Scale( canvas );
-	float stroke = item->state->strokeWidth / (scale + 1E-16);
+	float stroke = item->brush->strokeWidth / (scale + 1E-16);
 	int n = item->children ? item->children->size : 0;
 	int k = stroke >= 1.0;
 	int m = stroke >= 1E-3;

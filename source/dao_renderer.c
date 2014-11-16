@@ -365,7 +365,7 @@ void DaoxRenderer_RenderCanvasNode( DaoxRenderer *self, DaoxCanvas *canvas, Daox
 	GLfloat modelMatrix[16] = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
 	float distance, diameter;
 	float scale = 1;//DaoxCanvas_Scale( canvas );
-	float stroke = item->state->strokeWidth / (scale + 1E-16);
+	float stroke = item->brush->strokeWidth / (scale + 1E-16);
 	int n = item->children ? item->children->size : 0;
 	int k = stroke >= 1.0;
 	int m = stroke >= 1E-3;

@@ -38,7 +38,7 @@
 	struct DaoxLight         **pLight; \
 	struct DaoxTerrain       **pTerrain; \
 	struct DaoxCanvas        **pCanvas; \
-	struct DaoxCanvasState   **pCanvasState; \
+	struct DaoxBrush         **pBrush; \
 	struct DaoxCanvasNode    **pCanvasNode; \
 	struct DaoxSceneNode     **pSceneNode; \
 	struct DaoxTerrainBlock  **pTerrainBlock; \
