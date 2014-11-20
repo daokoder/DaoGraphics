@@ -1005,11 +1005,10 @@ void DaoxTerrainGenerator_ApplyFaultLine2( DaoxTerrainGenerator *self, DaoxTerra
 	DaoxVector2D point1 = DaoxVector2D_Vector3D( triangle->points[1]->pos );
 	DaoxVector2D point2 = DaoxVector2D_Vector3D( triangle->points[2]->pos );
 	DaoxTerrainParams *params = unit->params ? unit->params : & self->params;
-	float faultScale1 = 0.01 * self->diameter / params->faultScale;
-	float faultScale2 = 0.05 * self->diameter / params->faultScale;
 	float len = DaoxVector2D_Dist( point1, point2 );
+	float faultScale = 0.1 * self->faultDist;
+	float maxChange = 0.1 * self->faultDist * params->amplitude;
 	float minSize = 0.01 * self->diameter * params->resolution;
-	float maxChange = 0.01 * self->diameter * params->amplitude;
 	float minDistToPoint = self->diameter;
 	float distToFaultLine[3];
 	float distToFaultPoint[3];
@@ -1020,8 +1019,7 @@ void DaoxTerrainGenerator_ApplyFaultLine2( DaoxTerrainGenerator *self, DaoxTerra
 	if( noise >  1.0 ) noise =  1.0;
 	if( noise < -1.0 ) noise = -1.0;
 	maxChange += 0.1 * maxChange * noise;
-	if( maxChange > 0.3*len ) maxChange = 0.3*len;
-	self->faultDist = fabs( self->faultDist );
+	if( maxChange > 0.5*len ) maxChange = 0.5*len;
 	if( triangle->splits[0] != NULL ){
 		for(i=0; i<4; ++i) DaoxTerrainGenerator_ApplyFaultLine2( self, unit, triangle->splits[i] );
 		return;
@@ -1037,7 +1035,7 @@ void DaoxTerrainGenerator_ApplyFaultLine2( DaoxTerrainGenerator *self, DaoxTerra
 	if( distToFaultLine[0] * distToFaultLine[1] < 0.0 || distToFaultLine[0] * distToFaultLine[2] < 0.0 ){
 		float prob;
 		if( len <= minSize ) goto Adjust;
-		prob = exp( - minDistToPoint / faultScale2 );
+		prob = exp( - minDistToPoint / faultScale );
 		if( DaoRandGenerator_GetUniform( self->randGenerator ) > prob ) goto Adjust;
 		DaoxTerrain_Split( self->terrain, unit, triangle );
 		for(i=0; i<4; ++i) DaoxTerrainGenerator_ApplyFaultLine2( self, unit, triangle->splits[i] );
@@ -1045,8 +1043,8 @@ void DaoxTerrainGenerator_ApplyFaultLine2( DaoxTerrainGenerator *self, DaoxTerra
 	}
 Adjust:
 	for(i=0; i<3; ++i){
-		float factor1 = distToFaultLine[i] / (fabs(distToFaultLine[i]) + faultScale1);
-		float factor2 = exp( - distToFaultPoint[i] / faultScale2 );
+		float factor1 = distToFaultLine[i] / (fabs(distToFaultLine[i]) + 1.0);
+		float factor2 = exp( - distToFaultPoint[i] / faultScale );
 		float offset = maxChange * factor1 * factor2;
 		triangle->points[i]->pos.z += offset;
 	}
@@ -1086,7 +1084,7 @@ void DaoxTerrainGenerator_Update( DaoxTerrainGenerator *self, int iterations )
 		*faultNorm = DaoxVector2D_Normalize( faultNorm );
 		self->faultDist = 0.5 * self->diameter;
 		DaoxTerrainGenerator_ApplyFaultLine( self );
-		while( self->faultDist >= 0.05 * self->diameter ){
+		while( self->faultDist >= 0.01 * self->diameter ){
 			DaoxVector2D faultDir = DaoxMatrix3D_RotateVector( *faultNorm, 0.5*M_PI );
 			self->faultDist = self->faultDist * DaoRandGenerator_GetNormal( randgen );
 			faultPoint->x += self->faultDist * faultDir.x;
