@@ -69,7 +69,7 @@ camera.SetFOV( 60 );
 
 terrain.EachBlock { [block] block.SetMaterial( materials[ rand( %materials ) ] ) }
 
-#tile = terrain.GetTile( 0, 1, 0 )
+#tile = terrain.GetBlock( 0, 1, 0 )
 #tile.SetMaterial( materials[ rand( %materials ) ] )
 
 camera.SetFarPlane( 10000 );

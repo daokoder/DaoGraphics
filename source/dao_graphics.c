@@ -352,7 +352,7 @@ DaoTypeBase DaoxTerrainBlock_Typer =
 
 
 
-static void Terrain_GetTile( DaoProcess *proc, DaoValue *p[], int N )
+static void Terrain_GetBlock( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTerrain *self = (DaoxTerrain*) p[0];
 	int side = p[1]->xInteger.value;
@@ -395,8 +395,8 @@ static void Terrain_EachBlock( DaoProcess *proc, DaoValue *p[], int N )
 
 static DaoFuncItem DaoxTerrainMeths[]=
 {
-	{ Terrain_GetTile,
-		"GetTile( self: Terrain, side: int, radius: int, offset: int ) => MeshUnit"
+	{ Terrain_GetBlock,
+		"GetBlock( self: Terrain, side: int, radius: int, offset: int ) => MeshUnit"
 	},
 	{ Terrain_EachBlock,
 		"EachBlock( self: Terrain ) [block:TerrainBlock]"

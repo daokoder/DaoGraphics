@@ -543,6 +543,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 		for(i=0; i<drawtask->hexTile->sides; ++i){
 			DaoxTerrainBlock *neighbor = drawtask->hexTile->neighbors[i];
 			DaoxMaterial *material2 = neighbor ? neighbor->mesh->material : material;
+			if( material2 == NULL ) material2 = material;
 			DaoxTexture_glInitTexture( material->texture1 );
 			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE1 + i);
 			glBindTexture(GL_TEXTURE_2D, material2->texture1->tid);
@@ -707,7 +708,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glClearColor(0.5, 0.5, 0.5, 0.0);
+	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	if( self->showMesh ){
 		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );

@@ -53,7 +53,7 @@ var terrain: Graphics::Terrain
 
 if( 1 ){
 	generator = Graphics::TerrainGenerator( $rectangle, 2*circles, 2*circles, radius )
-	generator.Configure( amplitude = 2.0 )
+	generator.Configure( amplitude = 1.0 )
 	generator.ConfigureBlock( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
 	generator.Generate( 50, 0 )
 	#terrain = generator.GetTerrain()
