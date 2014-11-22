@@ -710,11 +710,14 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+#ifndef DAO_GRAPHICS_USE_GLES
 	if( self->showMesh ){
 		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 	}else{
 		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 	}
+#endif
 
 	glUseProgram( self->shader.program );
 
@@ -729,11 +732,11 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform1i(self->shader.uniforms.tileTextureCount, 0 );
 
 	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER);
-	glBindTexture(GL_TEXTURE_1D, self->shader.textures.gradientSampler);
+	glBindTexture(GL_TEXTURE_2D, self->shader.textures.gradientSampler);
 	glUniform1i(self->shader.uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
 
 	glActiveTexture(GL_TEXTURE0 + DAOX_DASH_SAMPLER);
-	glBindTexture(GL_TEXTURE_1D, self->shader.textures.dashSampler);
+	glBindTexture(GL_TEXTURE_2D, self->shader.textures.dashSampler);
 	glUniform1i(self->shader.uniforms.dashSampler, DAOX_DASH_SAMPLER );
 
 	glUniformMatrix4fv( self->shader.uniforms.projMatrix, 1, 0, matrix2 );

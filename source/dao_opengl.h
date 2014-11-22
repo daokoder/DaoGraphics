@@ -32,20 +32,31 @@
 
 #if defined(__APPLE__)
 
-  //#include <OpenGL/gl.h>
-  #include <OpenGL/gl3.h>
-  #include <GLUT/glut.h>
+# ifdef DAO_GRAPHICS_USE_GLES
+#   include <gl.h>
+# else
+    //#include <OpenGL/gl.h>
+#   include <OpenGL/gl3.h>
+# endif
+
+# ifdef DAO_GRAPHICS_USE_GLUT
+#   include <GLUT/glut.h>
+# endif
 
 #else
 
-  #define GL3_PROTOTYPES
+# define GL3_PROTOTYPES
   //#include <GL/gl.h>
-  #include <GL/gl3.h>
-  #define __gl_h_
-  #include <GL/glut.h>
-  #ifdef FREEGLUT
-    #include <GL/freeglut.h>
-  #endif
+# include <GL/gl3.h>
+# define __gl_h_
+
+# ifdef DAO_GRAPHICS_USE_GLUT
+#   include <GL/glut.h>
+#   ifdef FREEGLUT
+#     include <GL/freeglut.h>
+#   endif
+# endif
+
 #endif
 
 

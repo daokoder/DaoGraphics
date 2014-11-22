@@ -32,6 +32,12 @@
 #include "dao_painter.h"
 
 
+#ifdef DAO_GRAPHICS_USE_GLES
+#define DAO_GLSL_FRAG_COLOR  "gl_FragColor = fragColor;"
+#else
+#define DAO_GLSL_FRAG_COLOR  ""
+#endif
+
 
 
 
@@ -48,8 +54,8 @@ uniform int   gradientStops;     // number of grandient stops; \n\
 uniform vec2  gradientPoint1;    // start for linear; center for radial; \n\
 uniform vec2  gradientPoint2;    // end for linear; focal for radial; \n\
 uniform float gradientRadius;    // radius of radial gradient; \n\
-uniform sampler1D dashSampler;   // dash,gap,dash,gap,... \n\
-uniform sampler1D gradientSampler; // (s,0,0,0),(s,0,0,0),(r,g,b,a),(r,g,b,a); \n\
+uniform sampler2D dashSampler;   // dash,gap,dash,gap,... \n\
+uniform sampler2D gradientSampler; // (s,0,0,0),(s,0,0,0),(r,g,b,a),(r,g,b,a); \n\
 uniform sampler2D colorTexture; \n\
 uniform sampler2D bumpTexture; \n\
 \n\
@@ -64,14 +70,14 @@ vec4 InterpolateColor( vec4 C1, vec4 C2, float start, float mid, float end ) \n\
 float GradientSampler_GetStop( int i ) \n\
 { \n\
 	float gradientMaxStops = float( textureSize( gradientSampler, 0 ) ); \n\
-	return texture( gradientSampler, i/gradientMaxStops )[0]; \n\
+	return texture( gradientSampler, vec2( i/gradientMaxStops, 0.5 ) )[0]; \n\
 } \n\
 \n\
 vec4 GradientSampler_GetColor( int i ) \n\
 { \n\
 	float gradientMaxStops = float( textureSize( gradientSampler, 0 ) ); \n\
-	return texture( gradientSampler, (i + gradientStops)/gradientMaxStops ); \n\
-	return texture( gradientSampler, 0.5 + i/gradientMaxStops ); \n\
+	return texture( gradientSampler, vec2( (i + gradientStops)/gradientMaxStops, 0.5 ) ); \n\
+	return texture( gradientSampler, vec2( 0.5 + i/gradientMaxStops, 0.5 ) ); \n\
 } \n\
 \n\
 vec4 SampleGradientColor( float at ) \n\
@@ -146,15 +152,15 @@ float HandleDash( float offset )\n\
 	float sum = 0.0; \n\
 	float dashMaxCount = float( textureSize( dashSampler, 0 ) ); \n\
 	int i; \n\
-	for(i=0; i<dashCount; ++i) sum += texture( dashSampler, i/dashMaxCount )[0]; \n\
+	for(i=0; i<dashCount; ++i) sum += texture( dashSampler, vec2( i/dashMaxCount, 0.5 ) )[0]; \n\
 	offset -= sum * int(offset/sum); \n\
 	for(i=0; i<dashCount; ++i){ \n\
-		float dash = texture( dashSampler, i/dashMaxCount )[0]; \n\
+		float dash = texture( dashSampler, vec2( i/dashMaxCount, 0.5 ) )[0]; \n\
 		if( offset < dash ) break; \n\
 		offset -= dash; \n\
 	} \n\
 	if( (i%2) > 0 ) discard; \n\
-	float dash = texture( dashSampler, i/dashMaxCount )[0]; \n\
+	float dash = texture( dashSampler, vec2( i/dashMaxCount, 0.5 ) )[0]; \n\
 	float dx = dFdx( offset ); \n\
 	float dy = dFdy( offset ); \n\
 	// implicit lines: offset*(dash-offset) = 0 \n\
@@ -280,6 +286,7 @@ out vec4  fragColor; \n\
 void main(void) \n\
 { \n\
 	fragColor = RenderVectorGraphics( vertexPosition, bezierKLM, texcoord, pathOffset ); \n\
+	" DAO_GLSL_FRAG_COLOR "\n\
 }";
 
 
@@ -558,6 +565,7 @@ void main(void)\n\
 		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
 		fragColor = texColor * color; \n\
 	}\n\
+	" DAO_GLSL_FRAG_COLOR "\n\
 }\n";
 
 
@@ -581,24 +589,20 @@ void DaoxShader_Init( DaoxShader *self )
 	glGenTextures( 1, & tid );
 	self->textures.gradientSampler = tid;
 
-	glBindTexture(GL_TEXTURE_1D, tid);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_BASE_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, width, 0, GL_RGBA, GL_FLOAT, data);
-	glBindTexture(GL_TEXTURE_1D, 0);
+	glBindTexture(GL_TEXTURE_2D, tid);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, 1, 0, GL_RGBA, GL_FLOAT, data);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glGenTextures( 1, & tid );
 	self->textures.dashSampler = tid;
 
-	glBindTexture(GL_TEXTURE_1D, tid);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_BASE_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RED, DAOX_MAX_DASH, 0, GL_RED, GL_FLOAT, dash);
-	glBindTexture(GL_TEXTURE_1D, 0);
+	glBindTexture(GL_TEXTURE_2D, tid);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, DAOX_MAX_DASH, 1, 0, GL_RED, GL_FLOAT, dash);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 void DaoxShader_Init2D( DaoxShader *self )
 {
@@ -623,9 +627,12 @@ void DaoxShader_Init3D( DaoxShader *self )
 void DaoxShader_Finalize( DaoxShader *self )
 {
 	GLint length, program_ok;
-	if( self->program == 0 ) return;
 	int shaderAttribute = 0;
+	if( self->program == 0 ) return;
+
+#ifndef DAO_GRAPHICS_USE_GLES
 	glBindFragDataLocation( self->program, 0, "fragColor");
+#endif
 	glLinkProgram( self->program );
 	glGetProgramiv( self->program, GL_LINK_STATUS, &program_ok );
 	if( !program_ok ){
@@ -817,8 +824,8 @@ void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxGradient *gradient, i
 	glUniform2fv(self->uniforms.gradientPoint2, 1, & gradient->points[1].x );
 
 	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER );
-	glBindTexture(GL_TEXTURE_1D, self->textures.gradientSampler);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 2*n, GL_RGBA, GL_FLOAT, data);
+	glBindTexture(GL_TEXTURE_2D, self->textures.gradientSampler);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 2*n, 1, GL_RGBA, GL_FLOAT, data);
 	glUniform1i(self->uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
 }
 void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush )
@@ -840,8 +847,8 @@ void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush )
 
 	glUniform1i(self->uniforms.dashCount, n );
 	glActiveTexture(GL_TEXTURE0 + DAOX_DASH_SAMPLER);
-	glBindTexture(GL_TEXTURE_1D, self->textures.dashSampler);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, n, GL_RED, GL_FLOAT, dash);
+	glBindTexture(GL_TEXTURE_2D, self->textures.dashSampler);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, n, 1, GL_RED, GL_FLOAT, dash);
 	glUniform1i(self->uniforms.dashSampler, DAOX_DASH_SAMPLER );
 }
 
@@ -940,7 +947,6 @@ void DaoxBuffer_SetVertexBufferAttributes( DaoxBuffer *self )
 {
 	int i, stride = self->vertexSize;
 	glBindBuffer( GL_ARRAY_BUFFER, self->vertexVBO );
-	glVertexPointer( self->traits[0].count, GL_FLOAT, stride, NULL);
 	for(i=0; i<self->traitCount; ++i){
 		int uniform = self->traits[i].uniform;
 		int count = self->traits[i].count;
