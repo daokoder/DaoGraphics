@@ -354,7 +354,7 @@ DaoxTriangle* DArray_PushTriangleIJK( DArray *self, int i, int j, int k );
 
 
 
-extern DaoVmSpace *__daoVmSpace;
+extern DaoVmSpace *dao_vmspace_graphics;
 
 
 #endif

@@ -34,7 +34,7 @@
 #include "dao_terrain.h"
 
 
-DaoVmSpace *__daoVmSpace = NULL;
+DaoVmSpace *dao_vmspace_graphics = NULL;
 
 
 static void MeshUnit_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
@@ -614,10 +614,20 @@ static void RES_LoadObjFile( DaoProcess *proc, DaoValue *p[], int N )
 	scene = DaoxSceneResource_LoadObjFile( self, file->chars );
 	DaoProcess_PutValue( proc, (DaoValue*) scene );
 }
+static void RES_LoadObjData( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxScene *scene;
+	DaoxSceneResource *self = (DaoxSceneResource*) p[0];
+	DString *data = p[1]->xString.value;
+	DString *path = p[2]->xString.value;
+	scene = DaoxSceneResource_LoadObjSource( self, data, path );
+	DaoProcess_PutValue( proc, (DaoValue*) scene );
+}
 static DaoFuncItem DaoxResourceMeths[]=
 {
 	{ RES_New,              "Resource()" },
 	{ RES_LoadObjFile,      "LoadObjFile( self: Resource, file: string ) => Scene" },
+	{ RES_LoadObjData,      "LoadObjData( self: Resource, data: string, path: string ) => Scene" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxResource_Typer =
@@ -795,7 +805,7 @@ DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
 	DaoNamespace *ns;
-	__daoVmSpace = vmSpace;
+	dao_vmspace_graphics = vmSpace;
 	printf( "DaoGraphics3D_OnLoad\n" );
 	ns = DaoVmSpace_GetNamespace( vmSpace, "Graphics" );
 	DaoNamespace_AddConst( nspace, ns->name, (DaoValue*) ns, DAO_PERM_PUBLIC );

@@ -95,7 +95,7 @@ DaoCstruct* DaoxSceneResource_CallMethod( DaoxSceneResource *self, const char *m
 	DaoProcess *proc;
 
 	if( rout == NULL || obj == NULL ) return NULL;
-	proc = DaoVmSpace_AcquireProcess( __daoVmSpace );
+	proc = DaoVmSpace_AcquireProcess( dao_vmspace_graphics );
 
 	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, NULL, NULL, NULL, 0, 0 );
 	if( rout == NULL ) goto Finalize;
@@ -104,7 +104,7 @@ DaoCstruct* DaoxSceneResource_CallMethod( DaoxSceneResource *self, const char *m
 	if( res == NULL || res->type != DAO_OBJECT ) return NULL;
 	return DaoObject_CastCstruct( (DaoObject*)res, ctype );
 Finalize:
-	DaoVmSpace_ReleaseProcess( __daoVmSpace, proc );
+	DaoVmSpace_ReleaseProcess( dao_vmspace_graphics, proc );
 	return NULL;
 }
 DaoxScene* DaoxSceneResource_CreateScene( DaoxSceneResource *self )

@@ -1,6 +1,9 @@
 # Adapted from SDL library:
 
-load os
+# Single file deployment (run from Dao project root diretory):
+# make -f Makefile.daomake macosx MODE=debug OPTIONS="--reset --option-BUNDLE-SCRIPT modules/DaoGraphics/examples/hextraction_pod_sdl --option-BUNDLE-RESOURCES modules/DaoGraphics/media/hextraction_pod/hextraction_pod.obj"
+
+load aux
 load sdl
 load graphics
 load example_utility
@@ -12,7 +15,8 @@ var resource = Graphics::Resource()
 
 routine LoadScene()
 {
-	scene = resource.LoadObjFile( "../media/hextraction_pod/hextraction_pod.obj" )
+	data = std.resource( "@../media/hextraction_pod/hextraction_pod.obj" )
+	scene = resource.LoadObjData( data, "../media/hextraction_pod/" )
 
 	# light types not supported yet!
 	light = Graphics::Light( $spot, 0.3, 0.3, 0.3 )
@@ -34,10 +38,11 @@ routine LoadScene()
 }
 
 # Call this instead of exit(), so we can clean up SDL: atexit() is evil. 
-routine quit( rc :int )
+routine Abort( message: string )
 {
-	os.exit(rc);
+    std.error( message )
 }
+
 routine main()
 {
 
@@ -52,10 +57,10 @@ routine main()
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
 
 	window = SDL_CreateWindow( "test", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL );
-	if( window == none ) quit(2);
+    if( window == none ) Abort( "Window creation failed" );
 
 	renderer = SDL_CreateRenderer( window, 0, SDL_WINDOW_OPENGL );
-	if( renderer == none ) quit(2);
+    if( renderer == none ) Abort( "Renderer creation failed" );
 
 	var (scene, camera) = LoadScene()
 	var dao_renderer = Graphics::Renderer( WINDOW_WIDTH, WINDOW_HEIGHT );
@@ -88,5 +93,4 @@ routine main()
 		dao_renderer.Render( scene )
 		SDL_RenderPresent( renderer );
 	}
-	quit(0);
 }

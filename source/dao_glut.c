@@ -67,13 +67,13 @@ void DaoCstruct_CallMethod( DaoCstruct *cdata, const char *method )
 	DaoProcess *proc;
 
 	if( rout == NULL || obj == NULL ) return;
-	proc = DaoVmSpace_AcquireProcess( __daoVmSpace );
+	proc = DaoVmSpace_AcquireProcess( dao_vmspace_graphics );
 
 	rout = DaoRoutine_Resolve( rout, (DaoValue*) obj, NULL, & render, NULL, 1, 0 );
 	if( rout == NULL ) goto Finalize;
 	DaoProcess_Call( proc, rout, (DaoValue*) obj, & render, 1 );
 Finalize:
-	DaoVmSpace_ReleaseProcess( __daoVmSpace, proc );
+	DaoVmSpace_ReleaseProcess( dao_vmspace_graphics, proc );
 }
 
 int DaoCstruct_CallKeyboardMethod( DaoCstruct *cdata, const char *method, int key, int x, int y )
@@ -84,7 +84,7 @@ int DaoCstruct_CallKeyboardMethod( DaoCstruct *cdata, const char *method, int ke
 	DaoValue **params;
 
 	if( rout == NULL || obj == NULL ) return 0;
-	proc = DaoVmSpace_AcquireProcess( __daoVmSpace );
+	proc = DaoVmSpace_AcquireProcess( dao_vmspace_graphics );
 
 	DaoProcess_NewInteger( proc, (daoint) key );
 	DaoProcess_NewInteger( proc, (daoint) x );
@@ -94,7 +94,7 @@ int DaoCstruct_CallKeyboardMethod( DaoCstruct *cdata, const char *method, int ke
 	if( rout == NULL ) goto Finalize;
 	DaoProcess_Call( proc, rout, (DaoValue*) obj, params, 3 );
 Finalize:
-	DaoVmSpace_ReleaseProcess( __daoVmSpace, proc );
+	DaoVmSpace_ReleaseProcess( dao_vmspace_graphics, proc );
 	return rout != NULL;
 }
 
@@ -427,7 +427,7 @@ static DaoFuncItem DaoxGLUTMeths[]=
 
 DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	__daoVmSpace = vmSpace;
+	dao_vmspace_graphics = vmSpace;
 	DaoNamespace_WrapFunctions( ns, DaoxGLUTMeths );
 	return 0;
 }
