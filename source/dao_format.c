@@ -288,7 +288,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 				DString_Append( string, & tokens[i]->string );
 			}
 			Dao_MakePath( path, string );
-			printf( "%s\n", string->chars );
+			printf( "loading MTL: %s\n", string->chars );
 			DaoxSceneResource_LoadObjMtlFile( self, parser, string->chars );
 		}else if( DaoxToken_CheckKeyword( token, "v" ) ){
 			k = 0;

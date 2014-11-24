@@ -182,6 +182,7 @@ void DaoxShader_Init2D( DaoxShader *self );
 void DaoxShader_Init3D( DaoxShader *self );
 void DaoxShader_Free( DaoxShader *self );
 void DaoxShader_AddShader( DaoxShader *self, int type, const char *source );
+void DaoxShader_AppendShader( DaoxShader *self, int type, const char *source );
 void DaoxShader_Finalize2D( DaoxShader *self );
 void DaoxShader_Finalize3D( DaoxShader *self );
 void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxGradient *gradient, int fill );

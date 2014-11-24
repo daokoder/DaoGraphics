@@ -43,14 +43,41 @@ routine Abort( message: string )
     std.error( message )
 }
 
+routine EventFilter( userdata: any, event: SDL_Event )
+{
+	io.writeln( "EventFilter:", event.type )
+    switch (event.type)
+    {
+    case SDL_APP_TERMINATING:
+        return false;
+    case SDL_APP_LOWMEMORY:
+        return false;
+    case SDL_APP_WILLENTERBACKGROUND:
+        return false;
+    case SDL_APP_DIDENTERBACKGROUND:
+        return false;
+    case SDL_APP_WILLENTERFOREGROUND:
+        return false;
+    case SDL_APP_DIDENTERFOREGROUND:
+        return false;
+    default:
+        return true;
+    }
+	return true
+}
+
 routine main()
 {
+	SDL_SetEventFilter( EventFilter, none );
 
 	SDL_Init(SDL_INIT_VIDEO);
 	
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	if( Graphics::Backend() == $OpenGL ){
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	}
+
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 8);
@@ -74,6 +101,7 @@ routine main()
 		# Check for events 
 		if( SDL_PollEvent(event) == 0 ) skip;
 		if( event.type == SDL_KEYDOWN ){
+			io.writeln( "Key Pressed:", event.key.keysym.sym )
 			switch( event.key.keysym.sym ){
 			case SDLK_LEFT  : MoveCameraByDirection( camera, $left );
 			case SDLK_RIGHT : MoveCameraByDirection( camera, $right );

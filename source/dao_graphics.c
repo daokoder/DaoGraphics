@@ -780,6 +780,23 @@ DaoTypeBase DaoxTerrainGenerator_Typer =
 
 
 
+static void GRAPHICS_Backend( DaoProcess *proc, DaoValue *p[], int N )
+{
+#   ifdef DAO_GRAPHICS_USE_GLES
+	DaoProcess_PutEnum( proc, "OpenGLES" );
+#   else
+	DaoProcess_PutEnum( proc, "OpenGL" );
+#   endif
+}
+
+static DaoFuncItem globalMeths[]=
+{
+	{ GRAPHICS_Backend,
+		"Backend() => enum<OpenGL,OpenGLES>"
+	},
+	{ NULL, NULL }
+};
+
 
 DaoType *daox_type_mesh = NULL;
 DaoType *daox_type_mesh_unit = NULL;
@@ -809,6 +826,7 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	printf( "DaoGraphics3D_OnLoad\n" );
 	ns = DaoVmSpace_GetNamespace( vmSpace, "Graphics" );
 	DaoNamespace_AddConst( nspace, ns->name, (DaoValue*) ns, DAO_PERM_PUBLIC );
+	DaoNamespace_WrapFunctions( ns, globalMeths );
 
 	daox_type_mesh_unit = DaoNamespace_WrapType( ns, & DaoxMeshUnit_Typer, 0 );
 	daox_type_mesh = DaoNamespace_WrapType( ns, & DaoxMesh_Typer, 0 );
