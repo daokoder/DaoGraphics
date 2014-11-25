@@ -614,9 +614,8 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	//printf( "DaoxRenderer_Render: %i %i %i %i\n", scene->nodes->size, self->drawLists->size, self->buffer.vertexOffset, self->buffer.triangleOffset );
 
 	//DaoxMatrix4D_Print( & rotation );
-	int error = glGetError();
-
 #if 0
+	int error = glGetError();
 	printf( "line %i: %i\n", __LINE__, glGetError() );
 
 	static float angle = 0.0;
@@ -659,7 +658,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	DaoxViewFrustum_Init( & fm, cam );
 	fm.ratio = self->targetWidth / (fm.right - fm.left);
 
-	DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, fm.axisOrigin );
+	if( self->showAxis ) DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, fm.axisOrigin );
 
 	if( DaoxViewFrustum_Difference( & fm, & self->frustum ) > EPSILON ){ // TODO: better handling;
 		self->frustum = fm;
@@ -708,18 +707,18 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glEnable(GL_CULL_FACE);
 	glDisable(GL_CULL_FACE); /* Not effective for canvas? */
 
+#ifndef DAO_GRAPHICS_USE_GLES
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-#ifndef DAO_GRAPHICS_USE_GLES
 	if( self->showMesh ){
 		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 	}else{
 		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 	}
 #endif
+
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram( self->shader.program );
 

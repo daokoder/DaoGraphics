@@ -18,15 +18,14 @@ load sdl
 load graphics
 load example_utility
 
-const WINDOW_WIDTH  = 960
-const WINDOW_HEIGHT = 640
+var WINDOW_WIDTH  = 960
+var WINDOW_HEIGHT = 640
 
 var resource = Graphics::Resource()
 
 routine LoadScene()
 {
-	data = std.resource( "@../media/hextraction_pod/hextraction_pod.obj" )
-	scene = resource.LoadObjData( data, "../media/hextraction_pod/" )
+	scene = resource.LoadObjFile( "../media/hextraction_pod/hextraction_pod.obj" )
 
 	# light types not supported yet!
 	light = Graphics::Light( $spot, 0.3, 0.3, 0.3 )
@@ -99,6 +98,14 @@ routine main()
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 8);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
 
+	if( SDL_GetNumVideoDisplays() == 0 ) Abort( "No display available" );
+
+	display = SDL_DisplayMode();
+	if( SDL_GetCurrentDisplayMode( 0, display ) ) Abort( "No valid display available" );
+
+	WINDOW_WIDTH = display.w * 0.8;
+	WINDOW_HEIGHT = display.h * 0.8;
+
 	window = SDL_CreateWindow( "test", 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_OPENGL );
     if( window == none ) Abort( "Window creation failed" );
 
@@ -116,6 +123,8 @@ routine main()
 	while (!done) {
 		# Check for events 
 		if( SDL_PollEvent(event) == 0 ) skip;
+		x = 0;
+		y = 0;
 		if( event.type == SDL_KEYDOWN ){
 			io.writeln( "Key Pressed:", event.key.keysym.sym )
 			switch( event.key.keysym.sym ){
@@ -127,6 +136,17 @@ routine main()
 			case SDLK_MINUS : ZoomCamera( camera, $out )
 			case SDLK_EQUALS : if( event.key.keysym.mod & KMOD_LSHIFT ) ZoomCamera( camera, $in )
 			}
+		}else if( event.type == SDL_FINGERMOTION ){
+			max = ComputeMoveStep( camera )
+			io.writeln( "Finger moved:", max, event.tfinger.dx, event.tfinger.dy )
+			camera.MoveBy( -max*event.tfinger.dx, -max*event.tfinger.dy, 0 );
+		}else if( event.type == SDL_FINGERDOWN ){
+			x = event.tfinger.x;
+			y = event.tfinger.y;
+		}else if( event.type == SDL_FINGERUP ){
+			max = ComputeMoveStep( camera )
+			io.writeln( "Finger moved2:", max, event.tfinger.x - x, event.tfinger.y - y )
+			#camera.MoveBy( -max*event.tfinger.x - x, -max*event.tfinger.y - y, 0 );
 		}
 		if( timestamp ){
 			if( event.key.keysym.sym == SDLK_ESCAPE ) break;

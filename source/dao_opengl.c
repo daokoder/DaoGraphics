@@ -502,9 +502,9 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 {\n\
 	vec3 camDir = normalize( cameraPosition - worldPosition );\n\
 	vec3 normal = normalize( varNormal );\n\
-	vec3 tangent = normalize( varTangent );\n\
-	vec3 binormal = cross( normal, tangent );\n\
 	if( hasBumpTexture > 0 ){\n\
+		vec3 tangent = normalize( varTangent );\n\
+		vec3 binormal = cross( normal, tangent );\n\
 		float ldx = dot( lightDir, tangent );\n\
 		float ldy = dot( lightDir, binormal );\n\
 		float ldz = dot( lightDir, normal );\n\

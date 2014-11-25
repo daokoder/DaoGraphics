@@ -601,39 +601,27 @@ DaoTypeBase DaoxRenderer_Typer =
 
 static void RES_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxSceneResource *self = DaoxSceneResource_New();
+	DaoxResource *self = DaoxResource_New( proc->vmSpace );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void RES_LoadObjFile( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxScene *scene;
-	DaoxSceneResource *self = (DaoxSceneResource*) p[0];
-	DString *codePath = proc->activeRoutine->nameSpace->path;
+	DaoxResource *self = (DaoxResource*) p[0];
 	DString *file = p[1]->xString.value;
-	Dao_MakePath( codePath, file );
-	scene = DaoxSceneResource_LoadObjFile( self, file->chars );
-	DaoProcess_PutValue( proc, (DaoValue*) scene );
-}
-static void RES_LoadObjData( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxScene *scene;
-	DaoxSceneResource *self = (DaoxSceneResource*) p[0];
-	DString *data = p[1]->xString.value;
-	DString *path = p[2]->xString.value;
-	scene = DaoxSceneResource_LoadObjSource( self, data, path );
+	DString *codePath = proc->activeRoutine->nameSpace->path;
+	DaoxScene *scene = DaoxResource_LoadObjFile( self, file, codePath );
 	DaoProcess_PutValue( proc, (DaoValue*) scene );
 }
 static DaoFuncItem DaoxResourceMeths[]=
 {
 	{ RES_New,              "Resource()" },
 	{ RES_LoadObjFile,      "LoadObjFile( self: Resource, file: string ) => Scene" },
-	{ RES_LoadObjData,      "LoadObjData( self: Resource, data: string, path: string ) => Scene" },
 	{ NULL, NULL }
 };
 DaoTypeBase DaoxResource_Typer =
 {
 	"Resource", NULL, NULL, (DaoFuncItem*) DaoxResourceMeths, {0}, {0},
-	(FuncPtrDel)DaoxSceneResource_Delete, NULL
+	(FuncPtrDel)DaoxResource_Delete, NULL
 };
 
 

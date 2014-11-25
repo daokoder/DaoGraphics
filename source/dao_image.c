@@ -173,16 +173,10 @@ int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
 	return 1;
 }
 
-int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
+void DaoxImage_SetData( DaoxImage *self, unsigned char *buffer, int width, int height )
 {
-	unsigned char *buffer = NULL;
-	unsigned i, j, pixelBytes, width = 0, height = 0;
-	unsigned ret = lodepng_decode32_file( & buffer, & width, & height, file );
+	unsigned i, j, pixelBytes;
 
-	if( ret ){
-		if( buffer ) dao_free( buffer );
-		return 0;
-	}
 	self->depth = DAOX_IMAGE_BIT32;
 	DaoxImage_Resize( self, width, height );
 
@@ -192,6 +186,33 @@ int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
 		uchar_t *src = buffer + i * width * pixelBytes;
 		memcpy( dest, src, width*pixelBytes*sizeof(uchar_t) );
 	}
+}
+int DaoxImage_Decode( DaoxImage *self, DString *data )
+{
+	unsigned char *buffer = NULL;
+	unsigned char *bytes = (unsigned char*) data->chars;
+	unsigned width = 0, height = 0;
+	unsigned ret = lodepng_decode32( & buffer, & width, & height, bytes, data->size );
+
+	if( ret ){
+		if( buffer ) dao_free( buffer );
+		return 0;
+	}
+	DaoxImage_SetData( self, buffer, width, height );
+	dao_free( buffer );
+	return 1;
+}
+int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
+{
+	unsigned char *buffer = NULL;
+	unsigned width = 0, height = 0;
+	unsigned ret = lodepng_decode32_file( & buffer, & width, & height, file );
+
+	if( ret ){
+		if( buffer ) dao_free( buffer );
+		return 0;
+	}
+	DaoxImage_SetData( self, buffer, width, height );
 	dao_free( buffer );
 	return 1;
 }

@@ -52,7 +52,6 @@ struct DaoxObjParser
 DaoxObjParser* DaoxObjParser_New();
 void DaoxObjParser_Delete( DaoxObjParser *self );
 
-DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *source, DString *path );
-DaoxScene* DaoxSceneResource_LoadObjFile( DaoxSceneResource *self, const char *file );
+DaoxScene* DaoxResource_LoadObjFile( DaoxResource *self, DString *file, DString *path );
 
 #endif

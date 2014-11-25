@@ -155,18 +155,19 @@ static DaoxMeshUnit* DaoxObjParser_ConstructMeshUnit( DaoxObjParser *self, DaoxM
 	return unit;
 }
 
-int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *parser, DString *source, DString *path )
+int DaoxResource_LoadObjMtlSource( DaoxResource *self, DaoxObjParser *parser, DString *source, DString *path )
 {
 	DNode *it;
 	DaoToken **tokens;
 	DaoxVector3D vector;
+	DaoxImage *image;
 	DaoxTexture *texture = NULL;
 	DaoxMaterial *material = NULL;
 	DString *string = DString_New();
 	double numbers[4] = {0.0};
 	daoint i, j, k, N, N1;
 
-	printf( "DaoxSceneResource_LoadObjSource\n" );
+	printf( "DaoxResource_LoadObjMtlSource\n" );
 	DaoLexer_Tokenize( parser->lexer2, source->chars, 0 );
 	tokens = parser->lexer2->tokens->items.pToken;
 	N = parser->lexer2->tokens->size;
@@ -221,12 +222,11 @@ int DaoxSceneResource_LoadObjMtlSource( DaoxSceneResource *self, DaoxObjParser *
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
-			Dao_MakePath( path, string );
-			DString_Change( string, "%\\", "/", 0 );
+			image = DaoxResource_LoadImage( self, string, path );
+			printf( "texture: %p %s %s\n", image, string->chars, path->chars );
 			texture = DaoxTexture_New();
-			DaoxTexture_LoadImage( texture, string->chars );
+			if( image ) DaoxTexture_SetImage( texture, image );
 			DaoxMaterial_SetTexture( material, texture, which );
-			printf( "texture: %s %i\n", string->chars, texture->image->imageSize );
 		}else{
 			i += 1;
 		}
@@ -236,7 +236,7 @@ InvalidFormat:
 	printf( "ERROR: invalid format!\n" );
 	return 0;
 }
-int DaoxSceneResource_LoadObjMtlFile( DaoxSceneResource *self, DaoxObjParser *parser, const char *file )
+int DaoxResource_LoadObjMtlFile( DaoxResource *self, DaoxObjParser *parser, const char *file )
 {
 	int res;
 	FILE *fin = fopen( file, "r" );
@@ -246,13 +246,13 @@ int DaoxSceneResource_LoadObjMtlFile( DaoxSceneResource *self, DaoxObjParser *pa
 	DString_Change( path, "%\\", "/", 0 );
 	DString_Change( path, "[^/]+ $", "", 1 );
 	DaoFile_ReadAll( fin, source, 1 );
-	res = DaoxSceneResource_LoadObjMtlSource( self, parser, source, path );
+	res = DaoxResource_LoadObjMtlSource( self, parser, source, path );
 	DString_Delete( source );
 	DString_Delete( path );
 	return res;
 }
 
-DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *source, DString *path )
+DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DString *path )
 {
 	DNode *it;
 	DaoToken **tokens;
@@ -264,7 +264,8 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 	DaoxMaterial *material = NULL;
 	DaoxScene *scene = DaoxScene_New();
 	DaoxObjParser *parser = DaoxObjParser_New();
-	DString *string = DString_New();
+	DString *string = DString_New(); // TODO;
+	DString *source2 = DString_New(); // TODO;
 	DArray *vlist = parser->vlist;
 	DArray *vtlist = parser->vtlist;
 	DArray *vnlist = parser->vnlist;
@@ -275,7 +276,7 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 	daoint i, j, k, N, N1, tcount = 0;
 	int smooth = 1;
 
-	printf( "DaoxSceneResource_LoadObjSource\n" );
+	printf( "DaoxResource_LoadObjSource\n" );
 	DaoLexer_Tokenize( parser->lexer, source->chars, 0 );
 	tokens = parser->lexer->tokens->items.pToken;
 	N = parser->lexer->tokens->size;
@@ -287,9 +288,12 @@ DaoxScene* DaoxSceneResource_LoadObjSource( DaoxSceneResource *self, DString *so
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
-			Dao_MakePath( path, string );
-			printf( "loading MTL: %s\n", string->chars );
-			DaoxSceneResource_LoadObjMtlFile( self, parser, string->chars );
+			printf( "loading MTL: %s %s\n", string->chars, path->chars );
+			if( DaoxResource_SearchFile( self, string, path ) ){
+				if( DaoxResource_ReadFile( self, string, source2 ) ){
+					DaoxResource_LoadObjMtlSource( self, parser, source2, path );
+				}
+			}
 		}else if( DaoxToken_CheckKeyword( token, "v" ) ){
 			k = 0;
 			while( (++i) < N && tokens[i]->line == token->line ) {
@@ -429,19 +433,20 @@ InvalidFormat:
 	printf( "ERROR: invalid format at line %i!\n", tokens[i]->line );
 	return NULL;
 }
-DaoxScene* DaoxSceneResource_LoadObjFile( DaoxSceneResource *self, const char *file )
+DaoxScene* DaoxResource_LoadObjFile( DaoxResource *self, DString *file, DString *path )
 {
-	DaoxScene *scene;
-	FILE *fin = fopen( file, "r" );
+	DaoxScene *scene = NULL;
 	DString *source = DString_New(1);
-	DString *path = DString_New(1);
-	DString_SetChars( path, file );
-	DString_Change( path, "%\\", "/", 0 );
-	DString_Change( path, "[^/]+ $", "", 1 );
-	printf( "%s\n", path->chars );
-	DaoFile_ReadAll( fin, source, 1 );
-	scene = DaoxSceneResource_LoadObjSource( self, source, path );
+
+	file = DString_Copy( file );
+	printf( "DaoxResource_LoadObjFile: %s %s\n", file->chars, path->chars );
+	if( DaoxResource_SearchFile( self, file, path ) ){
+		if( DaoxResource_ReadFile( self, file, source ) ){
+			DString_Change( file, "[^/\\]* $", "", 0 );
+			scene = DaoxResource_LoadObjSource( self, source, file );
+		}
+	}
 	DString_Delete( source );
-	DString_Delete( path );
+	DString_Delete( file );
 	return scene;
 }

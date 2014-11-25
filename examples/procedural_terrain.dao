@@ -2,7 +2,6 @@
 load math;
 load graphics;
 load time;
-load os
 
 length = 1
 width = 0.1
@@ -43,8 +42,6 @@ for( i = 0 : % texImages - 1 ){
 }
 
 camera = Graphics::Camera()
-
-math.srand( time.now().value % 10000 + 10000 * os.clock() )
 
 circles = 2
 radius = 5.0;

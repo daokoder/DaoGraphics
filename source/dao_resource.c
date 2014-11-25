@@ -29,6 +29,7 @@
 #include <string.h>
 #include "dao_resource.h"
 #include "dao_format.h"
+#include "daoVmspace.h"
 
 
 
@@ -38,9 +39,9 @@
 
 
 
-DaoxSceneResource* DaoxSceneResource_New()
+DaoxResource* DaoxResource_New( DaoVmSpace *vms )
 {
-	DaoxSceneResource *self = (DaoxSceneResource*) dao_calloc( 1, sizeof(DaoxSceneResource) );
+	DaoxResource *self = (DaoxResource*) dao_calloc( 1, sizeof(DaoxResource) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_resource );
 	self->scenes     = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	self->lights     = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
@@ -53,9 +54,10 @@ DaoxSceneResource* DaoxSceneResource_New()
 	self->terrains   = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	self->xmlDOM     = DaoXmlDOM_New();
 	self->xmlParser  = DaoXmlParser_New();
+	self->vmSpace = vms;
 	return self;
 }
-void DaoxSceneResource_Delete( DaoxSceneResource *self )
+void DaoxResource_Delete( DaoxResource *self )
 {
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DMap_Delete( self->scenes );
@@ -71,12 +73,51 @@ void DaoxSceneResource_Delete( DaoxSceneResource *self )
 	DaoXmlParser_Delete( self->xmlParser );
 	dao_free( self );
 }
-DaoxScene* DaoxSceneResource_GetScene( DaoxSceneResource *self )
+DaoxScene* DaoxResource_GetScene( DaoxResource *self )
 {
 	if( self->scenes->size == 0 ) return NULL;
 	return (DaoxScene*) DMap_First( self->scenes )->value.pVoid;
 }
 
+int DaoxResource_SearchFile( DaoxResource *self, DString *fname, DString *search )
+{
+	DString *tmp;
+
+	if( DaoVmSpace_SearchResource( self->vmSpace, fname, search ) ) return 1;
+	tmp = DString_Copy( fname );
+	Dao_MakePath( search, tmp );
+	if( DaoVmSpace_TestFile( self->vmSpace, tmp ) ){
+		DString_Assign( fname, tmp );
+		DString_Delete( tmp );
+		return 1;
+	}
+	DString_Delete( tmp );
+	return 0;
+}
+int DaoxResource_ReadFile( DaoxResource *self, DString *fname, DString *source )
+{
+	return DaoVmSpace_ReadFile( self->vmSpace, fname, source );
+}
+DaoxImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *path )
+{
+	DaoxImage *image = NULL;
+	DString *file = DString_Copy( fname );
+	DString *source = DString_New();
+
+	if( DaoxResource_SearchFile( self, file, path ) ){
+		DNode *it = DMap_Find( self->images, file );
+		if( it != NULL ){
+			image = (DaoxImage*) it->value.pValue;
+		}else if( DaoxResource_ReadFile( self, file, source ) ){
+			image = DaoxImage_New();
+			DaoxImage_Decode( image, source );
+			DMap_Insert( self->images, file, image );
+		}
+	}
+	DString_Delete( source );
+	DString_Delete( file );
+	return image;
+}
 
 
 static DaoRoutine* Dao_Get_Object_Method( DaoCstruct *cd, DaoObject **obj, const char *name )
@@ -87,7 +128,7 @@ static DaoRoutine* Dao_Get_Object_Method( DaoCstruct *cd, DaoObject **obj, const
   if( *obj == NULL ) return NULL;
   return DaoObject_GetMethod( *obj, name );
 }
-DaoCstruct* DaoxSceneResource_CallMethod( DaoxSceneResource *self, const char *method, DaoType *ctype )
+DaoCstruct* DaoxResource_CallMethod( DaoxResource *self, const char *method, DaoType *ctype )
 {
 	DaoValue *res = NULL;
 	DaoObject *obj = NULL;
@@ -107,16 +148,16 @@ Finalize:
 	DaoVmSpace_ReleaseProcess( dao_vmspace_graphics, proc );
 	return NULL;
 }
-DaoxScene* DaoxSceneResource_CreateScene( DaoxSceneResource *self )
+DaoxScene* DaoxResource_CreateScene( DaoxResource *self )
 {
-	DaoCstruct *res = DaoxSceneResource_CallMethod( self, "CreateScene", daox_type_scene );
-	printf( "DaoxSceneResource_CreateScene %p\n", res );
+	DaoCstruct *res = DaoxResource_CallMethod( self, "CreateScene", daox_type_scene );
+	printf( "DaoxResource_CreateScene %p\n", res );
 	if( res ) return (DaoxScene*) res;
 	return DaoxScene_New();
 }
 
 
-DaoxMesh* DaoxSceneResource_MakeTerrain( DaoxSceneResource *self, DaoxImage *heightmap )
+DaoxMesh* DaoxResource_MakeTerrain( DaoxResource *self, DaoxImage *heightmap )
 {
 	DaoxMesh *mesh = DaoxMesh_New();
 	DaoxMeshUnit *unit = DaoxMesh_AddUnit( mesh );

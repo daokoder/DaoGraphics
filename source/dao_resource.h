@@ -33,19 +33,19 @@
 #include "dao_xml.h"
 
 
-typedef struct DaoxSceneResource  DaoxSceneResource;
+typedef struct DaoxResource  DaoxResource;
 
 
 
 
-struct DaoxSceneResource
+struct DaoxResource
 {
 	DAO_CSTRUCT_COMMON;
 
 	DMap  *scenes;
 	DMap  *lights;
 	DMap  *cameras;
-	DMap  *images;   /* also stored as texture for convenience; */
+	DMap  *images;
 	DMap  *textures;
 	DMap  *effects;
 	DMap  *materials;
@@ -54,16 +54,23 @@ struct DaoxSceneResource
 
 	DaoXmlDOM     *xmlDOM;
 	DaoXmlParser  *xmlParser;
+
+	DaoVmSpace  *vmSpace;
 };
 extern DaoType *daox_type_resource;
 
-DaoxSceneResource* DaoxSceneResource_New();
-void DaoxSceneResource_Delete( DaoxSceneResource *self );
+DaoxResource* DaoxResource_New( DaoVmSpace *vms );
+void DaoxResource_Delete( DaoxResource *self );
 
-DaoxScene* DaoxSceneResource_GetScene( DaoxSceneResource *self );
+int DaoxResource_SearchFile( DaoxResource *self, DString *fname, DString *search );
+int DaoxResource_ReadFile( DaoxResource *self, DString *fname, DString *source );
 
-DaoxScene* DaoxSceneResource_CreateScene( DaoxSceneResource *self );
+DaoxImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *path );
 
-DaoxMesh* DaoxSceneResource_MakeTerrain( DaoxSceneResource *self, DaoxImage *heightmap );
+DaoxScene* DaoxResource_GetScene( DaoxResource *self );
+
+DaoxScene* DaoxResource_CreateScene( DaoxResource *self );
+
+DaoxMesh* DaoxResource_MakeTerrain( DaoxResource *self, DaoxImage *heightmap );
 
 #endif
