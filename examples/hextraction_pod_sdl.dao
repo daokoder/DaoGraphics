@@ -3,6 +3,16 @@
 # Single file deployment (run from Dao project root diretory):
 # make -f Makefile.daomake macosx MODE=debug OPTIONS="--reset --option-BUNDLE-SCRIPT modules/DaoGraphics/examples/hextraction_pod_sdl --option-BUNDLE-RESOURCES modules/DaoGraphics/media/hextraction_pod/hextraction_pod.obj"
 
+# Note for compiling SDL2 for IOS with OpenGL ES3:
+# -- Modify src/video/uikit/SDL_uikitopenglview.h, to include "ES3";
+# -- Modify src/video/uikit/SDL_uikitopenglview.m:
+#    1. Change: context = [[EAGLContext alloc] initWithAPI:api sharegroup:shareGroup];
+#       To: context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+#    2. Change: [context presentRenderbuffer:GL_RENDERBUFFER_OES];
+#       To: [context presentRenderbuffer:GL_RENDERBUFFER];
+#    3. Remove "OES" suffix from the functions;
+#    4. Remove "_OES" suffix from the constants;
+
 load aux
 load sdl
 load graphics
@@ -73,9 +83,15 @@ routine main()
 	SDL_Init(SDL_INIT_VIDEO);
 	
 	if( Graphics::Backend() == $OpenGL ){
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	}else if( Graphics::Backend() == $OpenGLES ){
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES );
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+	}else{
+		Abort( "Invalid backend" );
 	}
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);

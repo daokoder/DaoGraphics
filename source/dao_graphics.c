@@ -815,6 +815,44 @@ DaoType *daox_type_terrain_block = NULL;
 DaoType *daox_type_terrain_generator = NULL;
 
 
+DaoxCamera *camera = NULL;
+DaoxLight *light = NULL;
+DaoxScene *scene = NULL;
+DaoxTerrainGenerator *terrain = NULL;
+DaoxRenderer *renderer = NULL;
+
+DAO_DLL void DaoGraphics_InitTest()
+{
+	scene = DaoxScene_New();
+	light = DaoxLight_New();
+	camera = DaoxCamera_New();
+	DaoxScene_AddNode( scene, (DaoxSceneNode*) light );
+	DaoxScene_AddNode( scene, (DaoxSceneNode*) camera );
+	light->intensity.red = 1.0;
+	light->intensity.green = 1.0;
+	light->intensity.blue = 1.0;
+	DaoxLight_MoveXYZ( light, 0, 0, 50 );
+	DaoxCamera_MoveXYZ( camera, 0, 50, 50 );
+	DaoxCamera_LookAtXYZ( camera, 0, 0, 0 );
+
+	terrain = DaoxTerrainGenerator_New();
+	DaoxTerrain_SetHexBlocks( terrain->terrain, 1, 10.0 );
+	DaoxTerrain_InitBlocks( terrain->terrain );
+	DaoxTerrainGenerator_Generate( terrain, 10, 1 );
+	DaoxScene_AddNode( scene, (DaoxSceneNode*) terrain->terrain );
+
+	renderer = DaoxRenderer_New();
+	renderer->targetWidth  = 200;
+	renderer->targetHeight = 500;
+
+	DaoGC_IncRC( (DaoValue*) scene );
+	DaoGC_IncRC( (DaoValue*) renderer );
+}
+DAO_DLL void DaoGraphics_DrawTest()
+{
+	DaoxRenderer_Render( renderer, scene, camera );
+}
+
 
 DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );

@@ -35,27 +35,12 @@
 #ifdef DAO_GRAPHICS_USE_GLES
 
 static const char *const daox_vertex_shader_header =
-"//\n\
+"//#version 300 es\n\
 precision highp float;\n\
 ";
 static const char *const daox_fragment_shader_header =
-"//\n\
+"//#version 300 es\n\
 precision highp float;\n\
-void FragShaderFinalize( vec4 fragColor )\n\
-{\n\
-	gl_FragColor = fragColor;\n\
-}\n";
-static const char *const daox_shader_functions =
-"\n\
-int mod( int x, int y ){ return x - y*int(x/y); }\n\
-ivec2 textureSize( sampler2D sampler, int lod )\n\
-{\n\
-	return ivec2(1,1);\n\
-}\n\
-vec4 texture( sampler2D sampler, vec2 coord )\n\
-{\n\
-	return texture2D( sampler, coord );\n\
-}\n\
 ";
 
 #else
@@ -65,11 +50,6 @@ static const char *const daox_vertex_shader_header =
 ";
 static const char *const daox_fragment_shader_header =
 "//#version 150\n\
-void FragShaderFinalize( vec4 fragColor )\n\
-{\n\
-}\n";
-static const char *const daox_shader_functions =
-"\n\
 ";
 
 #endif
@@ -193,10 +173,10 @@ float HandleDash( float offset )\n\
 		if( offset < dash ) break; \n\
 		offset -= dash; \n\
 	} \n\
-	if( mod(i,2) > 0 ) discard; // OpenGL ES2 has no %; \n\
+	if( i%2 > 0 ) discard; \n\
 	float dash = texture( dashSampler, vec2( float(i)/dashMaxCount, 0.5 ) )[0]; \n\
-	float dx = 1.0;//dFdx( offset ); \n\
-	float dy = 1.0;//dFdy( offset ); \n\
+	float dx = dFdx( offset ); \n\
+	float dy = dFdy( offset ); \n\
 	// implicit lines: offset*(dash-offset) = 0 \n\
 	float fx = (dash - 2.0*offset) * dx; \n\
 	float fy = (dash - 2.0*offset) * dy; \n\
@@ -222,8 +202,8 @@ float HandleDash( float offset )\n\
 vec4 ComputeQuadraticBezier( vec2 p, vec4 color )\n\
 {\n\
 	// Gradients: \n\
-	vec2 px = vec2(0.0,0.0);//dFdx( p ); \n\
-	vec2 py = vec2(0.0,0.0);//dFdy( p ); \n\
+	vec2 px = dFdx( p ); \n\
+	vec2 py = dFdy( p ); \n\
                          \n\
 	// Chain rule: \n\
 	float fx = (2.0*p.x)*px.x - px.y; \n\
@@ -243,8 +223,8 @@ vec4 ComputeQuadraticBezier( vec2 p, vec4 color )\n\
 vec4 ComputeCubicBezier( vec3 p, vec4 color )\n\
 {\n\
 	// Gradients: \n\
-	vec3 px = vec3(0.0,0.0,0.0);//dFdx( p ); \n\
-	vec3 py = vec3(0.0,0.0,0.0);//dFdy( p ); \n\
+	vec3 px = dFdx( p ); \n\
+	vec3 py = dFdy( p ); \n\
                          \n\
 	// Chain rule: \n\
 	float fx = (3.0*p.x*p.x)*px.x - p.y*px.y - p.z*px.z; \n\
@@ -316,7 +296,6 @@ out vec4  fragColor; \n\
 void main(void) \n\
 { \n\
 	fragColor = RenderVectorGraphics( vertexPosition, bezierKLM, texcoord, pathOffset ); \n\
-	FragShaderFinalize( fragColor );\n\
 }";
 
 
@@ -400,10 +379,24 @@ int hasColorTexture2 = hasColorTexture;\n\
 // texture coordinate offset from the center in unit space:\n\
 float hexagonTextureRatio = 0.4;\n\
 \n\
-vec2 rectangleVertices[4];\n\
+vec2 rectangleVertices[4] = vec2[4]\n\
+(\n\
+	vec2(  1.0, -1.0 ),\n\
+	vec2(  1.0,  1.0 ),\n\
+	vec2( -1.0,  1.0 ),\n\
+	vec2( -1.0, -1.0 )\n\
+);\n\
 \n\
 \n\
-vec2 hexagonVertices[6];\n\
+vec2 hexagonVertices[6] = vec2[6]\n\
+(\n\
+	vec2(  0.86602540, -0.5 ),\n\
+	vec2(  0.86602540,  0.5 ),\n\
+	vec2(  0.0,  1.0 ),\n\
+	vec2( -0.86602540,  0.5 ),\n\
+	vec2( -0.86602540, -0.5 ),\n\
+	vec2(  0.0, -1.0 )\n\
+);\n\
 \n\
 \n\
 \n\
@@ -418,7 +411,7 @@ vec4 RectLocateTex( vec2 tex )\n\
 	int imin = 0;\n\
 	for(int i=0; i<4; ++i){\n\
 		vec2 A = rectangleVertices[i];\n\
-		vec2 B = rectangleVertices[mod(i+1,4)]; // OpenGL ES2 has no %;\n\
+		vec2 B = rectangleVertices[(i+1)%4];\n\
 		vec2 AB = 0.5 * (B - A);\n\
 		vec2 AP = P - A;\n\
 		vec2 AP2 = dot( AB, AP ) * AB;\n\
@@ -450,7 +443,7 @@ vec4 HexLocateTex( vec2 tex )\n\
 	int imin = 0;\n\
 	for(int i=0; i<6; ++i){\n\
 		vec2 A = hexagonVertices[i];\n\
-		vec2 B = hexagonVertices[mod(i+1,6)];\n\
+		vec2 B = hexagonVertices[(i+1)%6];\n\
 		vec2 AB = B - A;\n\
 		vec2 AP = P - A;\n\
 		vec2 AP2 = dot( AB, AP ) * AB;\n\
@@ -559,16 +552,6 @@ void main(void)\n\
 {\n\
 	vec4 texColor = diffuseColor;\n\
 	worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
-	rectangleVertices[0] = vec2(  1.0, -1.0 );\n\
-	rectangleVertices[1] = vec2(  1.0,  1.0 );\n\
-	rectangleVertices[2] = vec2( -1.0,  1.0 );\n\
-	rectangleVertices[3] = vec2( -1.0, -1.0 );\n\
-	hexagonVertices[0] = vec2(  0.86602540, -0.5 );\n\
-	hexagonVertices[1] = vec2(  0.86602540,  0.5 );\n\
-	hexagonVertices[2] = vec2(  0.0,  1.0 );\n\
-	hexagonVertices[3] = vec2( -0.86602540,  0.5 );\n\
-	hexagonVertices[4] = vec2( -0.86602540, -0.5 );\n\
-	hexagonVertices[5] = vec2(  0.0, -1.0 );\n\
 	if( terrainTileType == 1 ) tileTextureInfo = RectLocateTex( varTexCoord );\n\
 	if( terrainTileType == 2 ) tileTextureInfo = HexLocateTex( varTexCoord );\n\
 	if( tileTextureCount > 0 ) hasColorTexture2 = 1;\n\
@@ -589,7 +572,6 @@ void main(void)\n\
 		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
 		fragColor = texColor * color; \n\
 	}\n\
-	FragShaderFinalize( fragColor );\n\
 }\n";
 
 
@@ -634,11 +616,9 @@ void DaoxShader_Init2D( DaoxShader *self )
 	self->program = glCreateProgram();
 
 	DaoxShader_AddShader( self, GL_VERTEX_SHADER, daox_vertex_shader_header );
-	DaoxShader_AppendShader( self, GL_VERTEX_SHADER, daox_shader_functions );
 	DaoxShader_AppendShader( self, GL_VERTEX_SHADER, daox_vertex_shader2d_body );
 
 	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader_header );
-	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_shader_functions );
 	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_vector_graphics_shader_body );
 	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader2d_body );
 
@@ -651,11 +631,9 @@ void DaoxShader_Init3D( DaoxShader *self )
 	self->program = glCreateProgram();
 
 	DaoxShader_AddShader( self, GL_VERTEX_SHADER, daox_vertex_shader_header );
-	DaoxShader_AppendShader( self, GL_VERTEX_SHADER, daox_shader_functions );
 	DaoxShader_AppendShader( self, GL_VERTEX_SHADER, daox_vertex_shader3d_body );
 
 	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader_header );
-	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_shader_functions );
 	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_vector_graphics_shader_body );
 	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader3d_body );
 
@@ -773,10 +751,6 @@ void DaoxShader_Free( DaoxShader *self )
 void DaoxShader_AddShader( DaoxShader *self, int type, const char *codes )
 {
 	DString *source = DString_NewChars( codes );
-#ifdef DAO_GRAPHICS_USE_GLES
-	DString_Change( source, "out %s+ vec4 %s+ fragColor", "vec4 fragColor", 0 );
-	DString_Change( source, "%n (in | out) (%s)", "\nvarying highp %2", 0 );
-#endif
 	switch( type ){
 	case GL_VERTEX_SHADER :
 		DList_Append( self->vertexSources, source );
@@ -790,10 +764,6 @@ void DaoxShader_AddShader( DaoxShader *self, int type, const char *codes )
 void DaoxShader_AppendShader( DaoxShader *self, int type, const char *codes )
 {
 	DString *source = DString_NewChars( codes );
-#ifdef DAO_GRAPHICS_USE_GLES
-	DString_Change( source, "out %s+ vec4 %s+ fragColor", "vec4 fragColor", 0 );
-	DString_Change( source, "(%n) (in | out) (%s)", "%1 varying highp %3", 0 );
-#endif
 	switch( type ){
 	case GL_VERTEX_SHADER :
 		if( self->vertexSources->size ){

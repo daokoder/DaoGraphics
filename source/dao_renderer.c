@@ -617,6 +617,8 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	int error = glGetError();
 
 #if 0
+	printf( "line %i: %i\n", __LINE__, glGetError() );
+
 	static float angle = 0.0;
 	angle += 0.001;
 	//printf( "angle = %f\n", angle );
