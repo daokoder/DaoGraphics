@@ -71,6 +71,4 @@ DaoxScene* DaoxResource_GetScene( DaoxResource *self );
 
 DaoxScene* DaoxResource_CreateScene( DaoxResource *self );
 
-DaoxMesh* DaoxResource_MakeTerrain( DaoxResource *self, DaoxImage *heightmap );
-
 #endif

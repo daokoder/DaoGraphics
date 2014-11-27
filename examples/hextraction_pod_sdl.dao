@@ -77,7 +77,7 @@ routine EventFilter( userdata: any, event: SDL_Event )
 
 routine main()
 {
-	SDL_SetEventFilter( EventFilter, none );
+	#SDL_SetEventFilter( EventFilter, none );
 
 	SDL_Init(SDL_INIT_VIDEO);
 	
@@ -137,14 +137,14 @@ routine main()
 			case SDLK_EQUALS : if( event.key.keysym.mod & KMOD_LSHIFT ) ZoomCamera( camera, $in )
 			}
 		}else if( event.type == SDL_FINGERMOTION ){
-			max = ComputeMoveStep( camera )
+			max = 2.0 * ComputeMoveStep( camera )
 			io.writeln( "Finger moved:", max, event.tfinger.dx, event.tfinger.dy )
 			camera.MoveBy( -max*event.tfinger.dx, -max*event.tfinger.dy, 0 );
 		}else if( event.type == SDL_FINGERDOWN ){
 			x = event.tfinger.x;
 			y = event.tfinger.y;
 		}else if( event.type == SDL_FINGERUP ){
-			max = ComputeMoveStep( camera )
+			max = 2.0 * ComputeMoveStep( camera )
 			io.writeln( "Finger moved2:", max, event.tfinger.x - x, event.tfinger.y - y )
 			#camera.MoveBy( -max*event.tfinger.x - x, -max*event.tfinger.y - y, 0 );
 		}
@@ -157,4 +157,5 @@ routine main()
 		dao_renderer.Render( scene )
 		SDL_RenderPresent( renderer );
 	}
+	SDL_Quit();
 }

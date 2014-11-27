@@ -157,8 +157,3 @@ DaoxScene* DaoxResource_CreateScene( DaoxResource *self )
 }
 
 
-DaoxMesh* DaoxResource_MakeTerrain( DaoxResource *self, DaoxImage *heightmap )
-{
-	DaoxMesh *mesh = DaoxMesh_New();
-	DaoxMeshUnit *unit = DaoxMesh_AddUnit( mesh );
-}

@@ -231,9 +231,11 @@ int DaoxResource_LoadObjMtlSource( DaoxResource *self, DaoxObjParser *parser, DS
 			i += 1;
 		}
 	}
+	DString_Delete( string );
 	return 1;
 InvalidFormat:
 	printf( "ERROR: invalid format!\n" );
+	DString_Delete( string );
 	return 0;
 }
 int DaoxResource_LoadObjMtlFile( DaoxResource *self, DaoxObjParser *parser, const char *file )
@@ -264,8 +266,8 @@ DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DStr
 	DaoxMaterial *material = NULL;
 	DaoxScene *scene = DaoxScene_New();
 	DaoxObjParser *parser = DaoxObjParser_New();
-	DString *string = DString_New(); // TODO;
-	DString *source2 = DString_New(); // TODO;
+	DString *string = DString_New();
+	DString *source2 = DString_New();
 	DArray *vlist = parser->vlist;
 	DArray *vtlist = parser->vtlist;
 	DArray *vnlist = parser->vnlist;
@@ -428,9 +430,15 @@ DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DStr
 		DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
 	}
 	printf( "nodes: %i\n", scene->nodes->size );
+	DaoxObjParser_Delete( parser );
+	DString_Delete( source2 );
+	DString_Delete( string );
 	return scene;
 InvalidFormat:
 	printf( "ERROR: invalid format at line %i!\n", tokens[i]->line );
+	DaoxObjParser_Delete( parser );
+	DString_Delete( source2 );
+	DString_Delete( string );
 	return NULL;
 }
 DaoxScene* DaoxResource_LoadObjFile( DaoxResource *self, DString *file, DString *path )

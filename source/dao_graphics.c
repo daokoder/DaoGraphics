@@ -51,10 +51,20 @@ static DaoFuncItem DaoxMeshUnitMeths[]=
 	},
 	{ NULL, NULL }
 };
+static void DaoxMeshUnit_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxMeshUnit *self = (DaoxMeshUnit*) p;
+	if( self->mesh ) DList_Append( values, self->mesh );
+	if( self->material ) DList_Append( values, self->material );
+	if( remove ){
+		self->mesh = NULL;
+		self->material = NULL;
+	}
+}
 DaoTypeBase DaoxMeshUnit_Typer =
 {
 	"MeshUnit", NULL, NULL, (DaoFuncItem*) DaoxMeshUnitMeths, {0}, {0},
-	(FuncPtrDel)DaoxMeshUnit_Delete, NULL
+	(FuncPtrDel)DaoxMeshUnit_Delete, DaoxMeshUnit_GetGCFields
 };
 
 static DaoFuncItem DaoxMeshMeths[]=
@@ -90,10 +100,19 @@ static DaoFuncItem DaoxTextureMeths[]=
 	},
 	{ NULL, NULL }
 };
+
+static void DaoxTexture_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxTexture *self = (DaoxTexture*) p;
+	if( self->image ) DList_Append( values, self->image );
+	if( remove ){
+		self->image = NULL;
+	}
+}
 DaoTypeBase DaoxTexture_Typer =
 {
 	"Texture", NULL, NULL, (DaoFuncItem*) DaoxTextureMeths, {0}, {0},
-	(FuncPtrDel)DaoxTexture_Delete, NULL
+	(FuncPtrDel)DaoxTexture_Delete, DaoxTexture_GetGCFields
 };
 
 
@@ -140,10 +159,21 @@ static DaoFuncItem DaoxMaterialMeths[]=
 	},
 	{ NULL, NULL }
 };
+
+static void DaoxMaterial_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxMaterial *self = (DaoxMaterial*) p;
+	if( self->texture1 ) DList_Append( values, self->texture1 );
+	if( self->texture2 ) DList_Append( values, self->texture2 );
+	if( remove ){
+		self->texture1 = NULL;
+		self->texture2 = NULL;
+	}
+}
 DaoTypeBase DaoxMaterial_Typer =
 {
 	"Material", NULL, NULL, (DaoFuncItem*) DaoxMaterialMeths, {0}, {0},
-	(FuncPtrDel)DaoxMaterial_Delete, NULL
+	(FuncPtrDel)DaoxMaterial_Delete, DaoxMaterial_GetGCFields
 };
 
 

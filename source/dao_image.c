@@ -31,6 +31,7 @@
 #include <string.h>
 #include "dao_image.h"
 #include "dao_png.h"
+#include "dao_jpeg.h"
 
 
 DaoType *daox_type_image = NULL;
@@ -173,11 +174,11 @@ int DaoxImage_SaveBMP( DaoxImage *self, const char *file )
 	return 1;
 }
 
-void DaoxImage_SetData( DaoxImage *self, unsigned char *buffer, int width, int height )
+void DaoxImage_SetData( DaoxImage *self, unsigned char *buffer, int width, int height, int dep )
 {
 	unsigned i, j, pixelBytes;
 
-	self->depth = DAOX_IMAGE_BIT32;
+	self->depth = dep;
 	DaoxImage_Resize( self, width, height );
 
 	pixelBytes = 1 + self->depth;
@@ -187,7 +188,7 @@ void DaoxImage_SetData( DaoxImage *self, unsigned char *buffer, int width, int h
 		memcpy( dest, src, width*pixelBytes*sizeof(uchar_t) );
 	}
 }
-int DaoxImage_Decode( DaoxImage *self, DString *data )
+int DaoxImage_DecodePNG( DaoxImage *self, DString *data )
 {
 	unsigned char *buffer = NULL;
 	unsigned char *bytes = (unsigned char*) data->chars;
@@ -198,7 +199,7 @@ int DaoxImage_Decode( DaoxImage *self, DString *data )
 		if( buffer ) dao_free( buffer );
 		return 0;
 	}
-	DaoxImage_SetData( self, buffer, width, height );
+	DaoxImage_SetData( self, buffer, width, height, DAOX_IMAGE_BIT32 );
 	dao_free( buffer );
 	return 1;
 }
@@ -212,7 +213,7 @@ int DaoxImage_LoadPNG( DaoxImage *self, const char *file )
 		if( buffer ) dao_free( buffer );
 		return 0;
 	}
-	DaoxImage_SetData( self, buffer, width, height );
+	DaoxImage_SetData( self, buffer, width, height, DAOX_IMAGE_BIT32 );
 	dao_free( buffer );
 	return 1;
 }
@@ -237,6 +238,39 @@ int DaoxImage_SavePNG( DaoxImage *self, const char *file )
 	}
 	dao_free( buffer );
 	return 1;
+}
+int DaoxImage_DecodeJPEG( DaoxImage *self, DString *data )
+{
+	unsigned char *buffer = NULL;
+	ujImage im = ujDecode( NULL, data->chars, data->size );
+
+	if( im == NULL ) return 0;
+
+	buffer = ujGetImage( im, NULL );
+	DaoxImage_SetData( self, buffer, ujGetWidth(im), ujGetWidth(im), DAOX_IMAGE_BIT24 );
+
+	ujDestroy( im );
+	dao_free( buffer );
+	return 1;
+}
+int DaoxImage_LoadJPEG( DaoxImage *self, const char *file )
+{
+	unsigned char *buffer = NULL;
+	ujImage im = ujDecodeFile( NULL, file );
+
+	if( im == NULL ) return 0;
+
+	buffer = ujGetImage( im, NULL );
+	DaoxImage_SetData( self, buffer, ujGetWidth(im), ujGetWidth(im), DAOX_IMAGE_BIT24 );
+
+	ujDestroy( im );
+	dao_free( buffer );
+	return 1;
+}
+int DaoxImage_Decode( DaoxImage *self, DString *data )
+{
+	if( DaoxImage_DecodePNG( self, data ) ) return 1;
+	return DaoxImage_DecodeJPEG( self, data );
 }
 
 void DaoxImage_Export( DaoxImage *self, DaoArray *matrix, float factor )

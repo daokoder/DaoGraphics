@@ -72,6 +72,7 @@ void DaoxImage_Delete( DaoxImage *self );
 
 void DaoxImage_Resize( DaoxImage *self, int width, int height );
 
+int DaoxImage_Decode( DaoxImage *self, DString *data );
 
 int DaoxImage_LoadBMP( DaoxImage *self, const char *file );
 int DaoxImage_SaveBMP( DaoxImage *self, const char *file );

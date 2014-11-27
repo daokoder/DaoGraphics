@@ -161,6 +161,7 @@ void DaoxTerrain_SetRectBlocks( DaoxTerrain *self, int rows, int columns, float 
 	self->xbsize = self->ybsize = blocksize;
 	self->width = rows * blocksize;
 	self->length = columns * blocksize;
+	self->radius = sqrt( self->width * self->length );
 }
 void DaoxTerrain_SetHexBlocks( DaoxTerrain *self, int circles, float blocksize )
 {
@@ -611,58 +612,63 @@ void DaoxTerrain_Split( DaoxTerrain *self, DaoxTerrainBlock *unit, DaoxTerrainTr
 	side->borders[1] = borders[2];
 	side->borders[2] = common;
 }
-void DaoxTerrain_FindMinMaxPixel( DaoxTerrain *self, DaoxVector2D points[3], float *min, float *max, DaoxVector3D *planePoint, DaoxVector3D *planeNormal )
+#define MIN_DOT_PRODUCT 0.9
+float DaoxTerrain_FindMaxNormDiff( DaoxTerrain *self, DaoxVector3D points[3], DaoxVector3D *planeNormal, float dot )
 {
-	DaoxVector2D center = {0.0, 0.0};
-	DaoxVector2D points2[3];
-	DaoxVector2D points3[3];
-	double epsilon = 1E-6 * self->radius;
-	float width = self->width;
-	float z, len = DaoxVector2D_Dist( points[0], points[1] );
+	DaoxVector3D norm;
+	DaoxVector3D points2[3];
+	DaoxVector3D points3[3];
+	float dx = points[0].x -  points[1].x;
+	float dy = points[0].y -  points[1].y;
+	float len = sqrt( dx*dx + dy*dy );
+	float dot2;
 	int i;
 
+	if( dot < MIN_DOT_PRODUCT ) return dot;
+	if( len < 0.01 * self->radius ) return 1.0;
 	if( self->heightmap ){
-		if( len * self->heightmap->dims[1] / width < 1.0 ) return;
+		if( len * self->heightmap->dims[1] / self->width < 2.0 ) return 1.0;
 	}
-	if( (*max - *min) > 0.1 * self->height && (*max - *min) > 0.05 * self->radius ) return;
+
+	norm = DaoxTriangle_Normal( & points[0], & points[1], & points[2] );
+	dot2 = DaoxVector3D_Dot( & norm, planeNormal );
+	if( dot2 < dot ) dot = dot2;
+	if( dot < MIN_DOT_PRODUCT ) return dot;
+
 	for(i=0; i<3; ++i){
-		DaoxVector3D mid;
-		points2[i] = DaoxVector2D_Interpolate( points[i], points[(i+1)%3], 0.5 );
-		mid.z = DaoxTerrain_GetHMHeight( self, points2[i].x, points2[i].y ) - planePoint->z;
-		mid.x = points2[i].x - planePoint->x;
-		mid.y = points2[i].y - planePoint->y;
-		z = DaoxVector3D_Dot( & mid, planeNormal );
-		if( z < *min ) *min = z;
-		if( z > *max ) *max = z;
+		points2[i] = DaoxVector3D_Interpolate( points[i], points[(i+1)%3], 0.5 );
+		points2[i].z = DaoxTerrain_GetHMHeight( self, points2[i].x, points2[i].y );
 	}
-	DaoxTerrain_FindMinMaxPixel( self, points2, min, max, planePoint, planeNormal );
+	dot2 = DaoxTerrain_FindMaxNormDiff( self, points2, planeNormal, dot );
+	if( dot2 < dot ) dot = dot2;
+	if( dot < MIN_DOT_PRODUCT ) return dot;
 	for(i=0; i<3; ++i){
-		memcpy( points3, points2, 3*sizeof(DaoxVector2D) );
+		memcpy( points3, points2, 3*sizeof(DaoxVector3D) );
 		points3[i] = points[(i+2)%3];
-		DaoxTerrain_FindMinMaxPixel( self, points3, min, max, planePoint, planeNormal );
+		norm = points3[0];
+		points3[0] = points3[1];
+		points3[1] = norm;
+		dot2 = DaoxTerrain_FindMaxNormDiff( self, points3, planeNormal, dot );
+		if( dot2 < dot ) dot = dot2;
+		if( dot < MIN_DOT_PRODUCT ) break;
 	}
+	return dot;
 }
 
 void DaoxTerrain_Refine( DaoxTerrain *self, DaoxTerrainBlock *unit, DaoxTerrainTriangle *triangle )
 {
+	DaoxVector3D points[3];
 	DaoxVector3D point0 = triangle->points[0]->pos;
 	DaoxVector3D point1 = triangle->points[1]->pos;
 	DaoxVector3D point2 = triangle->points[2]->pos;
 	DaoxVector3D normal = DaoxTriangle_Normal( & point0, & point1, & point2 );
-	DaoxVector2D points[3];
-	float len = DaoxVector3D_Dist( & point0, & point1 );
-	float min = 0.0;
-	float max = 0.0;
+	float dot, len = DaoxVector3D_Dist( & point0, & point1 );
 	int i;
 
-	for(i=0; i<3; ++i){
-		float z = triangle->points[i]->pos.z;
-		points[i].x = triangle->points[i]->pos.x;
-		points[i].y = triangle->points[i]->pos.y;
-	}
+	for(i=0; i<3; ++i) points[i] = triangle->points[i]->pos;
 
-	DaoxTerrain_FindMinMaxPixel( self, points, & min, & max, & point0, & normal );
-	if( (max - min) < 0.1 * self->height && (max - min) < (0.1 * len + 0.1) ){ // XXX
+	dot = DaoxTerrain_FindMaxNormDiff( self, points, & normal, 1.0 );
+	if( dot >= MIN_DOT_PRODUCT ){
 		DaoxTerrainTriangle_DeleteSplits( triangle );
 		return;
 	}
