@@ -1316,6 +1316,8 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 	float maxdiff = 0.1;
 
 	if( self->mesh->points->size ) return;
+
+	self->length = 0;
 	DaoxPathMesh_Reset( self->mesh );
 	DaoxOBBox2D_ResetBox( & self->obbox, NULL, 0 );
 	if( self->first->first->bezier == 0 ) return;
@@ -1332,6 +1334,7 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		seg = com->refined.first;
 		do {
 			DList_PushBack( segments, seg );
+			self->length += DaoxPathSegment_Length( seg );
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
 	}

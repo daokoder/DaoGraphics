@@ -102,6 +102,7 @@ struct DaoxPath
 
 	uint_t       mode;
 	uint_t       hash;
+	float        length;
 	DaoxOBBox2D  obbox;
 
 	DaoxPathComponent  *first;
