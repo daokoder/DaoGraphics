@@ -104,6 +104,8 @@ DaoxImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *
 	DString *file = DString_Copy( fname );
 	DString *source = DString_New();
 
+	DString_Change( file, "\\\\", "/", 0 );
+	DString_Change( file, "\\", "/", 0 );
 	if( DaoxResource_SearchFile( self, file, path ) ){
 		DNode *it = DMap_Find( self->images, file );
 		if( it != NULL ){

@@ -83,8 +83,9 @@ routine main()
 	
 	if( Graphics::Backend() == $OpenGL ){
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+        #No need to SDL2-2.0.3 for MacOSX:
+		#SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+		#SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	}else if( Graphics::Backend() == $OpenGLES ){
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES );
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);

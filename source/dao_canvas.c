@@ -105,6 +105,15 @@ void DaoxGradient_Add( DaoxGradient *self, float stop, DaoxColor color )
 	DArray_PushFloat( self->stops, stop );
 	*C = color;
 }
+void DaoxGradient_Copy( DaoxGradient *self, DaoxGradient *other )
+{
+	self->gradient = other->gradient;
+	self->radius = other->radius;
+	self->points[0] = other->points[0];
+	self->points[1] = other->points[1];
+	DArray_Assign( self->stops, other->stops );
+	DArray_Assign( self->colors, other->colors );
+}
 
 
 void DaoxColor_FromDaoValues( DaoxColor *self, DaoValue *values[] )
@@ -144,7 +153,7 @@ static DaoFuncItem DaoxGradientMeths[]=
 
 DaoTypeBase DaoxGradient_Typer =
 {
-	"ColorGradient", NULL, NULL, (DaoFuncItem*) DaoxGradientMeths, {0}, {0},
+	"ColorGradient", NULL, NULL, (DaoFuncItem*) DaoxGradientMeths, {NULL}, {NULL},
 	(FuncPtrDel)DaoxGradient_Delete, NULL
 };
 
@@ -172,7 +181,7 @@ static DaoFuncItem DaoxLinearGradientMeths[]=
 DaoTypeBase DaoxLinearGradient_Typer =
 {
 	"LinearGradient", NULL, NULL, (DaoFuncItem*) DaoxLinearGradientMeths,
-	{ & DaoxGradient_Typer, 0}, {0},
+	{ & DaoxGradient_Typer, NULL }, {NULL},
 	(FuncPtrDel)DaoxGradient_Delete, NULL
 };
 
@@ -194,7 +203,7 @@ static DaoFuncItem DaoxRadialGradientMeths[]=
 DaoTypeBase DaoxRadialGradient_Typer =
 {
 	"RadialGradient", NULL, NULL, (DaoFuncItem*) DaoxRadialGradientMeths,
-	{ & DaoxGradient_Typer, 0}, {0},
+	{ & DaoxGradient_Typer, NULL }, {NULL},
 	(FuncPtrDel)DaoxGradient_Delete, NULL
 };
 
@@ -211,7 +220,7 @@ static DaoFuncItem DaoxPathGradientMeths[]=
 DaoTypeBase DaoxPathGradient_Typer =
 {
 	"PathGradient", NULL, NULL, (DaoFuncItem*) DaoxPathGradientMeths,
-	{ & DaoxGradient_Typer, 0}, {0},
+	{ & DaoxGradient_Typer, NULL}, {NULL},
 	(FuncPtrDel)DaoxGradient_Delete, NULL
 };
 
@@ -237,15 +246,14 @@ DaoxBrush* DaoxBrush_New()
 void DaoxBrush_Delete( DaoxBrush *self )
 {
 	if( self->strokeGradient ) DaoxGradient_Delete( self->strokeGradient );
+	if( self->fillGradient ) DaoxGradient_Delete( self->fillGradient );
 	if( self->font ) DaoGC_DecRC( (DaoValue*) self->font );
-	if( self->parent ) DaoGC_DecRC( (DaoValue*) self->parent );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 void DaoxBrush_Copy( DaoxBrush *self, DaoxBrush *other )
 {
 	GC_Assign( & self->font, other->font );
-	GC_Assign( & self->parent, other->parent );
 	self->dash = other->dash;
 	self->junction = other->junction;
 	self->fontSize = other->fontSize;
@@ -253,6 +261,26 @@ void DaoxBrush_Copy( DaoxBrush *self, DaoxBrush *other )
 	self->strokeColor = other->strokeColor;
 	self->fillColor = other->fillColor;
 	memcpy( self->dashPattern, other->dashPattern, other->dash*sizeof(float) );
+	if( other->strokeGradient ){
+		self->strokeGradient = DaoxGradient_New(0);
+		DaoxGradient_Copy( self->strokeGradient, other->strokeGradient );
+	}
+	if( other->fillGradient ){
+		self->fillGradient = DaoxGradient_New(0);
+		DaoxGradient_Copy( self->fillGradient, other->fillGradient );
+	}
+}
+void DaoxBrush_SetStrokeWidth( DaoxBrush *self, float width )
+{
+	self->strokeWidth = width;
+}
+void DaoxBrush_SetStrokeColor( DaoxBrush *self, DaoxColor color )
+{
+	self->strokeColor = color;
+}
+void DaoxBrush_SetFillColor( DaoxBrush *self, DaoxColor color )
+{
+	self->fillColor = color;
 }
 void DaoxBrush_SetDashPattern( DaoxBrush *self, float pat[], int n )
 {
@@ -264,10 +292,6 @@ void DaoxBrush_SetFont( DaoxBrush *self, DaoxFont *font, float size )
 {
 	GC_Assign( & self->font, font );
 	self->fontSize = size;
-}
-void DaoxBrush_SetParentItem( DaoxBrush *self, DaoxCanvasNode *item )
-{
-	GC_Assign( & self->parent, item );
 }
 
 
@@ -731,6 +755,7 @@ void DaoxCanvas_Delete( DaoxCanvas *self )
 {
 	DaoxSceneNode_Free( (DaoxSceneNode*) self );
 	DaoxTriangulator_Delete( self->triangulator );
+	DaoGC_DecRC( (DaoValue*) self->activeNode );
 	DaoGC_DecRC( (DaoValue*) self->unitLine );
 	DaoGC_DecRC( (DaoValue*) self->unitRect );
 	DaoGC_DecRC( (DaoValue*) self->unitCircle1 );
@@ -790,42 +815,15 @@ void DaoxCanvas_PopBrush( DaoxCanvas *self )
 	DList_PopBack( self->brushes );
 }
 
-void DaoxCanvas_SetStrokeWidth( DaoxCanvas *self, float width )
-{
-	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
-	brush->strokeWidth = width;
-}
-void DaoxCanvas_SetStrokeColor( DaoxCanvas *self, DaoxColor color )
-{
-	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
-	brush->strokeColor = color;
-}
-void DaoxCanvas_SetFillColor( DaoxCanvas *self, DaoxColor color )
-{
-	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
-	brush->fillColor = color;
-}
-void DaoxCanvas_SetDashPattern( DaoxCanvas *self, float pat[], int n )
-{
-	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
-	if( n > 10 ) n = 10;
-	brush->dash = n;
-	memcpy( brush->dashPattern, pat, n*sizeof(float) );
-}
-void DaoxCanvas_SetFont( DaoxCanvas *self, DaoxFont *font, float size )
-{
-	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
-	GC_Assign( & brush->font, font );
-	brush->fontSize = size;
-}
 
 void DaoxCanvas_AddNode( DaoxCanvas *self, DaoxCanvasNode *node )
 {
 	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
-	if( brush->parent ){
-		if( brush->parent->children == NULL ) brush->parent->children = DList_New( DAO_DATA_VALUE );
-		DList_PushBack( brush->parent->children, node );
-		DaoxCanvasNode_MarkDataChanged( brush->parent );
+	if( self->activeNode ){
+		DaoxCanvasNode *activeNode = self->activeNode;
+		if( activeNode->children == NULL ) activeNode->children = DList_New( DAO_DATA_VALUE );
+		DList_PushBack( activeNode->children, node );
+		DaoxCanvasNode_MarkDataChanged( activeNode );
 	}else{
 		DList_PushBack( self->nodes, node );
 	}
@@ -989,7 +987,6 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 	charRotation = rotation;
 
 	brush = DaoxCanvas_PushBrush( self, -1 );
-	DaoxBrush_SetParentItem( brush, textItem );
 
 	offset = x;
 	for(i=0; i<text->size; ++i){
@@ -1183,7 +1180,7 @@ static DaoFuncItem DaoxCanvasNodeMeths[]=
 
 DaoTypeBase DaoxCanvasNode_Typer =
 {
-	"CanvasNode", NULL, NULL, (DaoFuncItem*) DaoxCanvasNodeMeths, {0}, {0},
+	"CanvasNode", NULL, NULL, (DaoFuncItem*) DaoxCanvasNodeMeths, {NULL}, {NULL},
 	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
 };
 
@@ -1720,13 +1717,13 @@ static void CANVAS_PopBrush( DaoProcess *proc, DaoValue *p[], int N )
 
 
 
-static void STATE_SetStrokeWidth( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetStrokeWidth( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	self->strokeWidth = p[1]->xFloat.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void STATE_SetStrokeColor( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetStrokeColor( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	self->strokeColor.red   = p[1]->xFloat.value;
@@ -1735,7 +1732,7 @@ static void STATE_SetStrokeColor( DaoProcess *proc, DaoValue *p[], int N )
 	self->strokeColor.alpha = p[4]->xFloat.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void STATE_SetFillColor( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetFillColor( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	self->fillColor.red   = p[1]->xFloat.value;
@@ -1744,19 +1741,19 @@ static void STATE_SetFillColor( DaoProcess *proc, DaoValue *p[], int N )
 	self->fillColor.alpha = p[4]->xFloat.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void STATE_SetLineCap( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetLineCap( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	self->linecap = p[1]->xEnum.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void STATE_SetJunction( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetJunction( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	self->junction = p[1]->xEnum.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void STATE_SetDash( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetDash( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	DaoArray *array = (DaoArray*) p[1];
@@ -1764,7 +1761,7 @@ static void STATE_SetDash( DaoProcess *proc, DaoValue *p[], int N )
 	DaoArray_FromFloat32( array );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
-static void STATE_SetStrokeGradient( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetStrokeGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	if( self->strokeGradient == NULL ){
@@ -1773,7 +1770,7 @@ static void STATE_SetStrokeGradient( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	DaoProcess_PutValue( proc, (DaoValue*) self->strokeGradient );
 }
-static void STATE_SetFillGradient( DaoProcess *proc, DaoValue *p[], int N, int type )
+static void BRUSH_SetFillGradient( DaoProcess *proc, DaoValue *p[], int N, int type )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	if( self->fillGradient == NULL ){
@@ -1782,30 +1779,24 @@ static void STATE_SetFillGradient( DaoProcess *proc, DaoValue *p[], int N, int t
 	}
 	DaoProcess_PutValue( proc, (DaoValue*) self->fillGradient );
 }
-static void STATE_SetLinearGradient( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetLinearGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
-	STATE_SetFillGradient( proc, p, N, DAOX_GRADIENT_LINEAR );
+	BRUSH_SetFillGradient( proc, p, N, DAOX_GRADIENT_LINEAR );
 }
-static void STATE_SetRadialGradient( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetRadialGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
-	STATE_SetFillGradient( proc, p, N, DAOX_GRADIENT_RADIAL );
+	BRUSH_SetFillGradient( proc, p, N, DAOX_GRADIENT_RADIAL );
 }
-static void STATE_SetPathGradient( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetPathGradient( DaoProcess *proc, DaoValue *p[], int N )
 {
-	STATE_SetFillGradient( proc, p, N, DAOX_GRADIENT_PATH );
+	BRUSH_SetFillGradient( proc, p, N, DAOX_GRADIENT_PATH );
 }
-static void STATE_SetFont( DaoProcess *proc, DaoValue *p[], int N )
+static void BRUSH_SetFont( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
 	DaoxFont *font = (DaoxFont*) p[1];
 	DaoxBrush_SetFont( self, font, p[2]->xFloat.value );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
-static void STATE_SetParentItem( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxBrush *self = (DaoxBrush*) p[0];
-	DaoxCanvasNode *item = (DaoxCanvasNode*) p[1];
-	GC_Assign( & self->parent, item );
 }
 static void CANVAS_Test( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1871,41 +1862,40 @@ extern DaoTypeBase DaoxSceneNode_Typer;
 DaoTypeBase DaoxCanvas_Typer =
 {
 	"Canvas", NULL, NULL, (DaoFuncItem*) DaoxCanvasMeths,
-	{ & DaoxSceneNode_Typer, 0 }, {0},
+	{ & DaoxSceneNode_Typer, NULL }, {NULL},
 	(FuncPtrDel)DaoxCanvas_Delete, DaoxCanvas_GetGCFields
 };
 
 
 static DaoFuncItem DaoxBrushMeths[]=
 {
-	{ STATE_SetStrokeWidth,  "SetStrokeWidth( self: Brush, width = 1.0 ) => Brush" },
+	{ BRUSH_SetStrokeWidth,  "SetStrokeWidth( self: Brush, width = 1.0 ) => Brush" },
 
-	{ STATE_SetStrokeColor,  "SetStrokeColor( self: Brush, red: float, green: float, blue: float, alpha = 1.0 ) => Brush" },
+	{ BRUSH_SetStrokeColor,  "SetStrokeColor( self: Brush, red: float, green: float, blue: float, alpha = 1.0 ) => Brush" },
 
-	{ STATE_SetFillColor,  "SetFillColor( self: Brush, red: float, green: float, blue: float, alpha = 1.0 ) => Brush" },
+	{ BRUSH_SetFillColor,  "SetFillColor( self: Brush, red: float, green: float, blue: float, alpha = 1.0 ) => Brush" },
 
-	{ STATE_SetLineCap, "SetLineCap( self: Brush, cap: enum<none,flat,sharp,round> = $none ) => Brush" },
-	{ STATE_SetJunction, "SetJunction( self: Brush, junction: enum<none,flat,sharp,round> = $sharp ) => Brush" },
+	{ BRUSH_SetLineCap, "SetLineCap( self: Brush, cap: enum<none,flat,sharp,round> = $none ) => Brush" },
+	{ BRUSH_SetJunction, "SetJunction( self: Brush, junction: enum<none,flat,sharp,round> = $sharp ) => Brush" },
 
-	{ STATE_SetDash, "SetDashPattern( self: Brush, pattern = [3.0,2.0] ) => Brush" },
+	{ BRUSH_SetDash, "SetDashPattern( self: Brush, pattern = [3.0,2.0] ) => Brush" },
 
-	{ STATE_SetStrokeGradient, "SetStrokeGradient( self: Brush ) => ColorGradient" },
+	{ BRUSH_SetStrokeGradient, "SetStrokeGradient( self: Brush ) => ColorGradient" },
 
-	{ STATE_SetLinearGradient, "SetLinearGradient( self: Brush ) => LinearGradient" },
+	{ BRUSH_SetLinearGradient, "SetLinearGradient( self: Brush ) => LinearGradient" },
 
-	{ STATE_SetRadialGradient, "SetRadialGradient( self: Brush ) => RadialGradient" },
+	{ BRUSH_SetRadialGradient, "SetRadialGradient( self: Brush ) => RadialGradient" },
 
-	//{ STATE_SetPathGradient,   "SetPathGradient( self: Brush ) => PathGradient" },
+	//{ BRUSH_SetPathGradient,   "SetPathGradient( self: Brush ) => PathGradient" },
 
-	{ STATE_SetFont,      "SetFont( self: Brush, font: Font, size = 12.0 ) => Brush" },
-	{ STATE_SetParentItem,   "SetParentItem( self: Brush, item: CanvasNode )" },
+	{ BRUSH_SetFont,      "SetFont( self: Brush, font: Font, size = 12.0 ) => Brush" },
 	{ NULL, NULL }
 };
 
 
 DaoTypeBase DaoxBrush_Typer =
 {
-	"Brush", NULL, NULL, (DaoFuncItem*) DaoxBrushMeths, {0}, {0},
+	"Brush", NULL, NULL, (DaoFuncItem*) DaoxBrushMeths, {NULL}, {NULL},
 	(FuncPtrDel)DaoxBrush_Delete, NULL
 };
 

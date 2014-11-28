@@ -64,6 +64,10 @@ void DaoxImage_Resize( DaoxImage *self, int width, int height )
 	self->imageSize = widthStep * height;
 	self->imageData = (uchar_t*)dao_realloc( self->imageData, self->imageSize*sizeof(uchar_t) );
 }
+int DaoxImage_Convert( DaoxImage *self, int dep )
+{
+	if( self->depth == dep ) return 1;
+}
 
 
 int dao_read_int( uchar_t *data )
@@ -250,7 +254,6 @@ int DaoxImage_DecodeJPEG( DaoxImage *self, DString *data )
 	DaoxImage_SetData( self, buffer, ujGetWidth(im), ujGetWidth(im), DAOX_IMAGE_BIT24 );
 
 	ujDestroy( im );
-	dao_free( buffer );
 	return 1;
 }
 int DaoxImage_LoadJPEG( DaoxImage *self, const char *file )
@@ -264,7 +267,6 @@ int DaoxImage_LoadJPEG( DaoxImage *self, const char *file )
 	DaoxImage_SetData( self, buffer, ujGetWidth(im), ujGetWidth(im), DAOX_IMAGE_BIT24 );
 
 	ujDestroy( im );
-	dao_free( buffer );
 	return 1;
 }
 int DaoxImage_Decode( DaoxImage *self, DString *data )

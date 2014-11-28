@@ -515,14 +515,20 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 		vec3 camDir2 = normalize( vec3( cdx, cdy, cdz ) );\n\
 		vec3 normal2 = vec3( texture( bumpTexture, varTexCoord ) );\n\
 		normal2 = (normal2 - 0.5) * 2.0;\n\
-		//normal2 = normalize( normal2 );\n\
-		float factor = 0.5;\n\
-		if( terrainTileType != 0 && tileTextureInfo.y < tileBlendingWidth ){ \n\
-			factor *= tileTextureInfo.y / tileBlendingWidth;\n\
+		if( terrainTileType == 0 ){\n\
+			normal = normal2;\n\
+			lightDir = lightDir2;\n\
+			camDir = camDir2;\n\
+		}else{\n\
+			float factor = 0.5;\n\
+			if( tileTextureInfo.y < tileBlendingWidth ){ \n\
+				factor *= tileTextureInfo.y / tileBlendingWidth;\n\
+			}\n\
+			normal2 = normalize( normal2 ); // Must be normalized for slerp;\n\
+			normal = Slerp3( normal, normal2, factor );\n\
+			lightDir = Slerp3( lightDir, lightDir2, factor );\n\
+			camDir = Slerp3( camDir, camDir2, factor );\n\
 		}\n\
-		normal = Slerp3( normal, normal2, factor );\n\
-		lightDir = Slerp3( lightDir, lightDir2, factor );\n\
-		camDir = Slerp3( camDir, camDir2, factor );\n\
 	}\n\
 	float cosAngIncidence = dot( normal, lightDir );\n\
 	cosAngIncidence = clamp(cosAngIncidence, 0.0, 1.0);\n\

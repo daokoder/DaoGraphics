@@ -34,14 +34,18 @@
 #include "dao_triangulator.h"
 
 
-typedef struct DaoxTexturedPoint   DaoxTexturedPoint;
-typedef struct DaoxPathMesh        DaoxPathMesh;
-
 typedef struct DaoxPathSegment     DaoxPathSegment;
 typedef struct DaoxPathComponent   DaoxPathComponent;
 typedef struct DaoxPath            DaoxPath;
+typedef struct DaoxPathMesh        DaoxPathMesh;
+typedef struct DaoxTexturedPoint   DaoxTexturedPoint;
 
 
+enum DaoxPathCommandModes
+{
+	DAOX_PATH_CMD_ABS ,
+	DAOX_PATH_CMD_REL
+};
 enum DaoxPathJunctions
 {
 	DAOX_JUNCTION_NONE ,
@@ -56,6 +60,95 @@ enum DaoxLineCaps
 	DAOX_LINECAP_SHARP ,
 	DAOX_LINECAP_ROUND
 };
+
+
+struct DaoxPathSegment
+{
+	char  bezier;      /* 0: open; 1: linear; 2: quadratic; 3: cubic; */
+	char  convexness;  /* 0: flat; 1: locally convex; -1: locally concave; */
+	char  refined;
+	char  subStart : 4;
+	char  subEnd   : 4;
+
+	DaoxVector2D  P1; /* start point; */
+	DaoxVector2D  P2; /* end point; */
+	DaoxVector2D  C1; /* first control point; */
+	DaoxVector2D  C2; /* second control point; */
+
+	DaoxPathSegment  *first;   /* first subdivided segment; */
+	DaoxPathSegment  *second;  /* second subdivided segment; */
+	DaoxPathSegment  *next;    /* next segment in the path; */
+};
+
+struct DaoxPathComponent
+{
+	uint_t     hash;
+	DaoxPath  *path;
+
+	DaoxPathSegment  *first;
+	DaoxPathSegment  *last;
+
+	struct {
+		DaoxPathSegment  *first;
+		DaoxPathSegment  *last;
+	} refined;
+
+	DaoxPathComponent  *next;
+};
+
+struct DaoxPath
+{
+	DAO_CSTRUCT_COMMON;
+
+	uint_t       mode;
+	uint_t       hash;
+	DaoxOBBox2D  obbox;
+
+	DaoxPathComponent  *first;
+	DaoxPathComponent  *last;
+
+	DaoxPathComponent  *freeComponents;
+	DaoxPathSegment    *freeSegments;
+
+	DaoxPathMesh  *mesh;
+
+	DMap  *strokes;
+};
+extern DaoType* daox_type_path;
+
+DaoxPathSegment* DaoxPathSegment_New();
+void DaoxPathSegment_Delete( DaoxPathSegment *self );
+double DaoxPathSegment_Length( DaoxPathSegment *self );
+
+DaoxPath* DaoxPath_New();
+void DaoxPath_Delete( DaoxPath *self );
+void DaoxPath_Reset( DaoxPath *self );
+
+uint_t DaoxPath_UpdateHash( DaoxPath *self );
+
+DAO_DLL void DaoxPath_SetRelativeMode( DaoxPath *self, int relative );
+DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, float x, float y );
+DAO_DLL void DaoxPath_Close( DaoxPath *self );
+DAO_DLL void DaoxPath_LineTo( DaoxPath *self, float x, float y );
+DAO_DLL void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y );
+DAO_DLL void DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y );
+DAO_DLL void DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 );
+DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees );
+DAO_DLL void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg2 );
+DAO_DLL void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees );
+
+void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxMatrix3D *transform );
+
+void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator );
+
+void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff );
+
+
+DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p );
+
+void DaoxPathSegment_Divide( DaoxPathSegment *self, float at );
+
+
 
 
 
@@ -81,9 +174,6 @@ struct DaoxTexturedPoint
 
 
 
-
-
-
 struct DaoxPathMesh
 {
 	DArray  *points;    /* <DaoxVector3D>: x, y, offset; */
@@ -98,95 +188,7 @@ void DaoxPathMesh_Reset( DaoxPathMesh *self );
 
 
 
-struct DaoxPathSegment
-{
-	char  bezier;      /* 0: open; 1: linear; 2: quadratic; 3: cubic; */
-	char  convexness;  /* 0: flat; 1: locally convex; -1: locally concave; */
-	char  refined;
-	char  subStart : 4;
-	char  subEnd   : 4;
-
-	DaoxVector2D  P1; /* start point; */
-	DaoxVector2D  P2; /* end point; */
-	DaoxVector2D  C1; /* first control point; */
-	DaoxVector2D  C2; /* second control point; */
-
-	DaoxPathSegment  *first;   /* first subdivided segment; */
-	DaoxPathSegment  *second;  /* second subdivided segment; */
-	DaoxPathSegment  *next;    /* next segment in the path; */
-};
-
-struct DaoxPathComponent
-{
-	DaoxPath  *path;
-
-	DaoxPathSegment  *first;
-	DaoxPathSegment  *last;
-
-	struct {
-		DaoxPathSegment  *first;
-		DaoxPathSegment  *last;
-	} refined;
-
-	DaoxPathComponent  *next;
-};
-
-struct DaoxPath
-{
-	DAO_CSTRUCT_COMMON;
-
-	DaoxOBBox2D  obbox;
-
-	DaoxPathComponent  *first;
-	DaoxPathComponent  *last;
-
-	DaoxPathComponent  *freeComponents;
-	DaoxPathSegment    *freeSegments;
-
-	DaoxPathMesh  *mesh;
-
-	DMap  *strokes;
-
-	float  length;
-
-	uchar_t cmdRelative;
-};
-extern DaoType* daox_type_path;
-
-DaoxPathSegment* DaoxPathSegment_New();
-void DaoxPathSegment_Delete( DaoxPathSegment *self );
-double DaoxPathSegment_Length( DaoxPathSegment *self );
-
-DaoxPath* DaoxPath_New();
-void DaoxPath_Delete( DaoxPath *self );
-void DaoxPath_Reset( DaoxPath *self );
-
-
-DAO_DLL void DaoxPath_SetRelativeMode( DaoxPath *self, int relative );
-DAO_DLL void DaoxPath_MoveTo( DaoxPath *self, float x, float y );
-DAO_DLL DaoxPathSegment* DaoxPath_Close( DaoxPath *self );
-DAO_DLL DaoxPathSegment* DaoxPath_LineTo( DaoxPath *self, float x, float y );
-DAO_DLL DaoxPathSegment* DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y );
-DAO_DLL DaoxPathSegment* DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y );
-DAO_DLL DaoxPathSegment* DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 );
-DAO_DLL void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees );
-DAO_DLL void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg2 );
-DAO_DLL void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees );
-
-void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxMatrix3D *transform );
-
-void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator );
-
-void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff );
-
 void DaoxPath_ComputeStroke( DaoxPath *self, DaoxPathMesh *strokes, float width, int cap, int junction, int refine );
-
-
-DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p );
-DaoxPathSegment DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, float *p );
-
-void DaoxPathSegment_Divide( DaoxPathSegment *self, float at );
-void DaoxPathSegment_ComputeLengthAndDelta( DaoxPathSegment *self );
 
 DaoxPathMesh* DaoxPath_GetStrokes( DaoxPath *self, float width, int cap, int junction, int refine );
 

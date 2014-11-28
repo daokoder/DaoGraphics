@@ -282,10 +282,6 @@ struct DaoxScene
 
 	DList  *nodes;
 	DList  *lights;
-	DList  *materials;
-	DList  *textures;
-	DMap   *materialNames;
-	DMap   *textureNames;
 };
 extern DaoType *daox_type_scene;
 

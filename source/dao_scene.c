@@ -734,22 +734,6 @@ DaoxScene* DaoxScene_New()
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
 	self->nodes = DList_New( DAO_DATA_VALUE );
 	self->lights = DList_New(0);
-	self->materialNames = DMap_New( DAO_DATA_STRING, 0 );
-	self->textureNames = DMap_New( DAO_DATA_STRING, 0 );
-	self->materials = DList_New( DAO_DATA_VALUE );
-	self->textures = DList_New( DAO_DATA_VALUE );
-
-	colors[0] = daox_black_color;
-	colors[1] = daox_white_color;
-	colors[2] = daox_red_color;
-	colors[3] = daox_green_color;
-	colors[4] = daox_blue_color;
-	colors[5] = daox_gray_color;
-	for(i=0; i<6; ++i){
-		material = DaoxMaterial_New();
-		material->ambient = material->diffuse = material->specular = colors[i];
-		DList_Append( self->materials, material );
-	}
 	return self;
 }
 void DaoxScene_Delete( DaoxScene *self )
@@ -758,10 +742,6 @@ void DaoxScene_Delete( DaoxScene *self )
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DList_Delete( self->nodes );
 	DList_Delete( self->lights );
-	DList_Delete( self->materials );
-	DList_Delete( self->textures );
-	DMap_Delete( self->materialNames );
-	DMap_Delete( self->textureNames );
 	dao_free( self );
 }
 
@@ -769,11 +749,6 @@ void DaoxScene_AddNode( DaoxScene *self, DaoxSceneNode *node )
 {
 	DList_Append( self->nodes, node );
 	if( node->ctype == daox_type_light ) DList_Append( self->lights, node );
-}
-void DaoxScene_AddMaterial( DaoxScene *self, DString *name, DaoxMaterial *material )
-{
-	MAP_Insert( self->materialNames, name, self->materials->size );
-	DList_Append( self->materials, material );
 }
 
 

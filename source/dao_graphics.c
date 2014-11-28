@@ -63,7 +63,7 @@ static void DaoxMeshUnit_GetGCFields( void *p, DList *values, DList *lists, DLis
 }
 DaoTypeBase DaoxMeshUnit_Typer =
 {
-	"MeshUnit", NULL, NULL, (DaoFuncItem*) DaoxMeshUnitMeths, {0}, {0},
+	"MeshUnit", NULL, NULL, (DaoFuncItem*) DaoxMeshUnitMeths, {NULL}, {NULL},
 	(FuncPtrDel)DaoxMeshUnit_Delete, DaoxMeshUnit_GetGCFields
 };
 
@@ -73,7 +73,7 @@ static DaoFuncItem DaoxMeshMeths[]=
 };
 DaoTypeBase DaoxMesh_Typer =
 {
-	"Mesh", NULL, NULL, (DaoFuncItem*) DaoxMeshMeths, {0}, {0},
+	"Mesh", NULL, NULL, (DaoFuncItem*) DaoxMeshMeths, {NULL}, {NULL},
 	(FuncPtrDel)DaoxMesh_Delete, NULL
 };
 
@@ -111,7 +111,7 @@ static void DaoxTexture_GetGCFields( void *p, DList *values, DList *lists, DList
 }
 DaoTypeBase DaoxTexture_Typer =
 {
-	"Texture", NULL, NULL, (DaoFuncItem*) DaoxTextureMeths, {0}, {0},
+	"Texture", NULL, NULL, (DaoFuncItem*) DaoxTextureMeths, {NULL}, {NULL},
 	(FuncPtrDel)DaoxTexture_Delete, DaoxTexture_GetGCFields
 };
 
@@ -172,7 +172,7 @@ static void DaoxMaterial_GetGCFields( void *p, DList *values, DList *lists, DLis
 }
 DaoTypeBase DaoxMaterial_Typer =
 {
-	"Material", NULL, NULL, (DaoFuncItem*) DaoxMaterialMeths, {0}, {0},
+	"Material", NULL, NULL, (DaoFuncItem*) DaoxMaterialMeths, {NULL}, {NULL},
 	(FuncPtrDel)DaoxMaterial_Delete, DaoxMaterial_GetGCFields
 };
 
@@ -208,10 +208,19 @@ static DaoFuncItem DaoxSceneNodeMeths[]=
 	{ SNODE_Trans,   ".translation( self: SceneNode ) => tuple<x:float,y:float,z:float>" },
 	{ NULL, NULL }
 };
+static void DaoxSceneNode_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxSceneNode *self = (DaoxSceneNode*) p;
+	DList_Append( lists, self->children );
+	if( self->parent ) DList_Append( values, self->parent );
+	if( remove ){
+		self->parent = NULL;
+	}
+}
 DaoTypeBase DaoxSceneNode_Typer =
 {
-	"SceneNode", NULL, NULL, (DaoFuncItem*) DaoxSceneNodeMeths, {0}, {0},
-	(FuncPtrDel)DaoxSceneNode_Delete, NULL
+	"SceneNode", NULL, NULL, (DaoFuncItem*) DaoxSceneNodeMeths, {NULL}, {NULL},
+	(FuncPtrDel)DaoxSceneNode_Delete, DaoxSceneNode_GetGCFields
 };
 
 
@@ -306,8 +315,8 @@ static DaoFuncItem DaoxCameraMeths[]=
 DaoTypeBase DaoxCamera_Typer =
 {
 	"Camera", NULL, NULL, (DaoFuncItem*) DaoxCameraMeths,
-	{ & DaoxSceneNode_Typer, 0 }, {0},
-	(FuncPtrDel)DaoxCamera_Delete, NULL
+	{ & DaoxSceneNode_Typer, NULL }, {NULL},
+	(FuncPtrDel)DaoxCamera_Delete, DaoxSceneNode_GetGCFields
 };
 
 
@@ -331,8 +340,8 @@ static DaoFuncItem DaoxLightMeths[]=
 DaoTypeBase DaoxLight_Typer =
 {
 	"Light", NULL, NULL, (DaoFuncItem*) DaoxLightMeths,
-	{ & DaoxSceneNode_Typer, 0 }, {0},
-	(FuncPtrDel)DaoxLight_Delete, NULL
+	{ & DaoxSceneNode_Typer, NULL }, {NULL},
+	(FuncPtrDel)DaoxLight_Delete, DaoxSceneNode_GetGCFields
 };
 
 static void MOD_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
@@ -348,11 +357,20 @@ static DaoFuncItem DaoxModelMeths[]=
 	},
 	{ NULL, NULL }
 };
+static void DaoxModel_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxModel *self = (DaoxModel*) p;
+	DaoxSceneNode_GetGCFields( p, values, lists, maps, remove );
+	if( self->mesh ) DList_Append( values, self->mesh );
+	if( remove ){
+		self->mesh = NULL;
+	}
+}
 DaoTypeBase DaoxModel_Typer =
 {
 	"Model", NULL, NULL, (DaoFuncItem*) DaoxModelMeths,
-	{ & DaoxSceneNode_Typer, 0 }, {0},
-	(FuncPtrDel)DaoxModel_Delete, NULL
+	{ & DaoxSceneNode_Typer, NULL }, {NULL},
+	(FuncPtrDel)DaoxModel_Delete, DaoxModel_GetGCFields
 };
 
 
@@ -372,11 +390,18 @@ static DaoFuncItem DaoxTerrainBlockMeths[]=
 	},
 	{ NULL, NULL }
 };
+static void DaoxTerrainBlock_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxTerrainBlock *self = (DaoxTerrainBlock*) p;
+	if( self->mesh ) DList_Append( values, self->mesh );
+	if( remove ){
+		self->mesh = NULL;
+	}
+}
 DaoTypeBase DaoxTerrainBlock_Typer =
 {
-	"TerrainBlock", NULL, NULL, (DaoFuncItem*) DaoxTerrainBlockMeths,
-	{ & DaoxModel_Typer, 0 }, {0},
-	(FuncPtrDel)DaoxTerrainBlock_Delete, NULL
+	"TerrainBlock", NULL, NULL, (DaoFuncItem*) DaoxTerrainBlockMeths, {NULL}, {NULL},
+	(FuncPtrDel)DaoxTerrainBlock_Delete, DaoxTerrainBlock_GetGCFields
 };
 
 
@@ -433,11 +458,17 @@ static DaoFuncItem DaoxTerrainMeths[]=
 	},
 	{ NULL, NULL }
 };
+static void DaoxTerrain_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxTerrain *self = (DaoxTerrain*) p;
+	DaoxModel_GetGCFields( p, values, lists, maps, remove );
+	// TODO:
+}
 DaoTypeBase DaoxTerrain_Typer =
 {
 	"Terrain", NULL, NULL, (DaoFuncItem*) DaoxTerrainMeths,
-	{ & DaoxModel_Typer, 0 }, {0},
-	(FuncPtrDel)DaoxTerrain_Delete, NULL
+	{ & DaoxModel_Typer, NULL }, {NULL},
+	(FuncPtrDel)DaoxTerrain_Delete, DaoxTerrain_GetGCFields
 };
 
 
@@ -537,7 +568,7 @@ static DaoFuncItem DaoxSceneMeths[] =
 };
 DaoTypeBase DaoxScene_Typer =
 {
-	"Scene", NULL, NULL, (DaoFuncItem*) DaoxSceneMeths, {0}, {0},
+	"Scene", NULL, NULL, (DaoFuncItem*) DaoxSceneMeths, {NULL}, {NULL},
 	(FuncPtrDel)DaoxScene_Delete, NULL
 };
 

@@ -164,30 +164,6 @@ int DaoxLine_Intersect( DaoxVector2D A, DaoxVector2D B, DaoxVector2D C, DaoxVect
 
 
 
-DaoxPathMesh* DaoxPathMesh_New()
-{
-	DaoxPathMesh *self = (DaoxPathMesh*) dao_calloc(1,sizeof(DaoxPathMesh));
-	self->points    = DArray_New( sizeof(DaoxVector3D) );
-	self->triangles = DArray_New( sizeof(DaoxTriangle) );
-	self->patches   = DArray_New( sizeof(DaoxTexturedPoint) );
-	return self;
-}
-void DaoxPathMesh_Delete( DaoxPathMesh *self )
-{
-	DArray_Delete( self->points );
-	DArray_Delete( self->triangles );
-	DArray_Delete( self->patches );
-	dao_free( self );
-}
-void DaoxPathMesh_Reset( DaoxPathMesh *self )
-{
-	self->points->size = 0;
-	self->triangles->size = 0;
-	self->patches->size = 0;
-}
-
-
-
 
 
 DaoxPathSegment* DaoxPathSegment_New( DaoxPathComponent *component )
@@ -315,13 +291,13 @@ void DaoxPath_Reset( DaoxPath *self )
 		com->next = self->freeComponents;
 		self->freeComponents = com;
 	}
-	self->cmdRelative = 0;
+	self->mode = DAOX_PATH_CMD_ABS;
 	self->first = self->last = NULL;
 	DaoxPath_PushComponent( self );
 }
 void DaoxPath_SetRelativeMode( DaoxPath *self, int relative )
 {
-	self->cmdRelative = relative;
+	self->mode = DAOX_PATH_CMD_REL;
 }
 void DaoxPath_MoveTo( DaoxPath *self, float x, float y )
 {
@@ -338,7 +314,7 @@ void DaoxPath_MoveTo( DaoxPath *self, float x, float y )
 	self->last = com;
 }
 /* If MoveTo() is not called, line from (0,0). */
-DaoxPathSegment* DaoxPath_LineTo( DaoxPath *self, float x, float y )
+void DaoxPath_LineTo( DaoxPath *self, float x, float y )
 {
 	DaoxVector2D start;
 	DaoxPathSegment *segment = NULL;
@@ -350,14 +326,13 @@ DaoxPathSegment* DaoxPath_LineTo( DaoxPath *self, float x, float y )
 		segment = DaoxPathComponent_PushSegment( self->last );
 		segment->P1 = start;
 	}
-	if( self->cmdRelative ){
+	if( self->mode == DAOX_PATH_CMD_REL ){
 		x += start.x;
 		y += start.y;
 	}
 	segment->bezier = 1;
 	segment->P2.x = x;
 	segment->P2.y = y;
-	return segment;
 }
 /*
 // Quoted from: http://en.wikipedia.org/wiki/Bezier_spline
@@ -429,7 +404,7 @@ void DaoxPath_ArcBy2( DaoxPath *self, float cx, float cy, float degrees, float d
 		segment->P1 = start;
 	}
 	first = segment;
-	if( self->cmdRelative == 0 ){
+	if( self->mode == DAOX_PATH_CMD_ABS ){
 		cx -= start.x;
 		cy -= start.y;
 	}
@@ -496,7 +471,7 @@ void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg
 	}else{
 		start = self->last->last->P2;
 	}
-	if( self->cmdRelative == 0 ){
+	if( self->mode == DAOX_PATH_CMD_ABS ){
 		x -= start.x;
 		y -= start.y;
 	}
@@ -523,7 +498,7 @@ void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg
 		cx += - dR * dy / dL;
 		cy += + dR * dx / dL;
 	}
-	if( self->cmdRelative == 0 ){
+	if( self->mode == DAOX_PATH_CMD_ABS ){
 		cx += start.x;
 		cy += start.y;
 	}
@@ -538,7 +513,7 @@ void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees )
 {
 	DaoxPath_ArcBy2( self, cx, cy, degrees, 30.0 );
 }
-DaoxPathSegment* DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y )
+void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y )
 {
 	DaoxPathSegment *segment = NULL;
 	DaoxVector2D start = {0.0,0.0};
@@ -551,7 +526,7 @@ DaoxPathSegment* DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, f
 		segment = DaoxPathComponent_PushSegment( self->last );
 		segment->P1 = start;
 	}
-	if( self->cmdRelative ){
+	if( self->mode == DAOX_PATH_CMD_REL ){
 		cx += start.x;
 		cy += start.y;
 		x += start.x;
@@ -563,9 +538,8 @@ DaoxPathSegment* DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, f
 	segment->P2.x = x;
 	segment->P2.y = y;
 	segment->C2 = segment->C1;
-	return segment;
 }
-DaoxPathSegment* DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y )
+void DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y )
 {
 	DaoxPathSegment *segment = NULL;
 	DaoxVector2D control = self->last->last->C2;
@@ -574,7 +548,7 @@ DaoxPathSegment* DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, 
 	assert( self->last->last->bezier >= 2 );
 	control.x = 2.0 * start.x - control.x;
 	control.y = 2.0 * start.y - control.y;
-	if( self->cmdRelative ){
+	if( self->mode == DAOX_PATH_CMD_REL ){
 		cx += start.x + x;
 		cy += start.y + y;
 		x += start.x;
@@ -588,9 +562,8 @@ DaoxPathSegment* DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, 
 	segment->C2.y = cy;
 	segment->P2.x = x;
 	segment->P2.y = y;
-	return segment;
 }
-DaoxPathSegment* DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 )
+void DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float cx2, float cy2, float x2, float y2 )
 {
 	DaoxPathSegment *segment = NULL;
 	DaoxVector2D start = {0.0,0.0};
@@ -603,7 +576,7 @@ DaoxPathSegment* DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float 
 		segment = DaoxPathComponent_PushSegment( self->last );
 		segment->P1 = start;
 	}
-	if( self->cmdRelative ){
+	if( self->mode == DAOX_PATH_CMD_REL ){
 		cx1 += start.x;
 		cy1 += start.y;
 		cx2 += start.x + x2;
@@ -618,25 +591,23 @@ DaoxPathSegment* DaoxPath_CubicTo2( DaoxPath *self, float cx1, float cy1, float 
 	segment->C2.y = cy2;
 	segment->P2.x = x2;
 	segment->P2.y = y2;
-	return segment;
 }
-DaoxPathSegment* DaoxPath_Close( DaoxPath *self )
+void DaoxPath_Close( DaoxPath *self )
 {
 	DaoxPathSegment *last = self->last->last;
 	DaoxPathSegment *segment = NULL;
 	if( self->last->first == self->last->last ){
-		if( self->last->first->bezier == 0 ) return NULL;  /* no component data; */
+		if( self->last->first->bezier == 0 ) return;  /* no component data; */
 	}
 	if( DaoxVector2D_Dist( self->last->last->P2, self->last->first->P1 ) < 1E-16 ){
 		self->last->last->next = self->last->first;
-		return self->last->last;
+		return;
 	}
 	segment = DaoxPathComponent_PushSegment( self->last );
 	segment->bezier = 1;
 	segment->P1 = last->P2;
 	segment->P2 = self->last->first->P1;
 	segment->next = self->last->first;
-	return segment;
 }
 
 
@@ -1071,9 +1042,36 @@ void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff )
 	for(com=self->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
 		DaoxPathComponent_Refine( com, maxlen, maxdiff );
-		//self->length += com->length;
 	}
 }
+
+
+
+
+
+
+DaoxPathMesh* DaoxPathMesh_New()
+{
+	DaoxPathMesh *self = (DaoxPathMesh*) dao_calloc(1,sizeof(DaoxPathMesh));
+	self->points    = DArray_New( sizeof(DaoxVector3D) );
+	self->triangles = DArray_New( sizeof(DaoxTriangle) );
+	self->patches   = DArray_New( sizeof(DaoxTexturedPoint) );
+	return self;
+}
+void DaoxPathMesh_Delete( DaoxPathMesh *self )
+{
+	DArray_Delete( self->points );
+	DArray_Delete( self->triangles );
+	DArray_Delete( self->patches );
+	dao_free( self );
+}
+void DaoxPathMesh_Reset( DaoxPathMesh *self )
+{
+	self->points->size = 0;
+	self->triangles->size = 0;
+	self->patches->size = 0;
+}
+
 
 DaoxVectorD4 DaoxPathSegment_ComputeDeterminantVector( DaoxPathSegment *self )
 {
@@ -1317,7 +1315,6 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 	float len, maxlen = 100.0;
 	float maxdiff = 0.1;
 
-	self->length = 0;
 	if( self->mesh->points->size ) return;
 	DaoxPathMesh_Reset( self->mesh );
 	DaoxOBBox2D_ResetBox( & self->obbox, NULL, 0 );
@@ -1335,7 +1332,6 @@ void DaoxPath_Preprocess( DaoxPath *self, DaoxTriangulator *triangulator )
 		seg = com->refined.first;
 		do {
 			DList_PushBack( segments, seg );
-			self->length += DaoxPathSegment_Length( seg );
 			seg = seg->next;
 		} while( seg && seg != com->refined.first );
 	}

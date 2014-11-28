@@ -560,7 +560,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 		if( colorTexture->tid ){
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, colorTexture->tid);
-			glUniform1i(self->shader.uniforms.colorTexture, 0);
+			glUniform1i(self->shader.uniforms.colorTexture, 0 );
 			hasColorTexture = 1;
 		}
 	}
@@ -570,7 +570,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 		if( bumpTexture->tid ){
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, bumpTexture->tid);
-			glUniform1i(self->shader.uniforms.bumpTexture, 0);
+			glUniform1i(self->shader.uniforms.bumpTexture, 1 );
 			hasBumpTexture = 1;
 		}
 	}
