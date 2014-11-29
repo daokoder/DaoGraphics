@@ -42,6 +42,7 @@ project_sources =
 	"source/dao_jpeg.c" ,
 	"source/dao_format.c" ,
 	"source/dao_opengl.c" ,
+	"source/dao_window.c" ,
 }
 
 
@@ -53,6 +54,11 @@ glut   = DaoMake::FindPackage( "GLUT",   $OPTIONAL )
 if( daovm == none or (opengl == none and gles == none) ) return
 
 project = DaoMake::Project( "DaoGraphics" ) 
+
+project.AddDirectory( "glfw", "deps/glfw" )
+glfw = DaoMake::FindPackage( "GLFW", $REQUIRED )
+
+project.UseStaticLibrary( glfw )
 
 # In Linux, one may place GL/gl3.h under the current directory:
 DaoMake::Includes += project.SourcePath() + ";"
@@ -72,6 +78,7 @@ if( glut != none ){
 	project.AddDefinition( "DAO_GRAPHICS_USE_GLUT" )
 }
 
+project.AddIncludePath( "deps/glfw/include" )
 project.SetTargetPath( "../../lib/dao/modules" )
 
 project_objs = project.AddObjects( project_sources, project_headers )

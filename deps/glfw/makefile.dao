@@ -1,0 +1,209 @@
+
+project = DaoMake::Project( "GLFW" )
+
+headers = { "src/internal.h", "include/GLFW/glfw3.h", "include/GLFW/glfw3native.h" }
+sources = { "src/context.c", "src/init.c", "src/input.c", "src/monitor.c", "src/window.c" }
+
+project.AddIncludePath( "include", "src" )
+
+objects = project.AddObjects( sources, headers )
+
+lib = project.AddStaticLibrary( "glfw", objects )
+
+#{
+if (GLFW_USE_WAYLAND)
+    set(GLFW_USE_EGL ON)
+elseif (GLFW_USE_MIR)
+    set(GLFW_USE_EGL ON)
+endif()
+#}
+
+
+opengl = DaoMake::FindPackage( "OpenGL", $REQUIRED )
+project.UseSharedLibrary( opengl )
+
+#{
+if (GLFW_USE_EGL)
+    set(GLFW_CLIENT_LIBRARY "opengl" CACHE STRING
+        "The client library to use; one of opengl, glesv1 or glesv2")
+
+    if (${GLFW_CLIENT_LIBRARY} STREQUAL "opengl")
+        set(_GLFW_USE_OPENGL 1)
+    elseif (${GLFW_CLIENT_LIBRARY} STREQUAL "glesv1")
+        set(_GLFW_USE_GLESV1 1)
+    elseif (${GLFW_CLIENT_LIBRARY} STREQUAL "glesv2")
+        set(_GLFW_USE_GLESV2 1)
+    else()
+        message(FATAL_ERROR "Unsupported client library")
+    endif()
+
+    set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMake/modules")
+    find_package(EGL REQUIRED)
+
+    if (NOT _GLFW_USE_OPENGL)
+        set(GLFW_BUILD_EXAMPLES OFF)
+        set(GLFW_BUILD_TESTS OFF)
+        message(STATUS "NOTE: Examples and tests require OpenGL")
+    endif()
+else()
+    set(_GLFW_USE_OPENGL 1)
+endif()
+
+if (_GLFW_USE_OPENGL)
+    find_package(OpenGL REQUIRED)
+elseif (_GLFW_USE_GLESV1)
+    find_package(GLESv1 REQUIRED)
+elseif (_GLFW_USE_GLESV2)
+    find_package(GLESv2 REQUIRED)
+endif()
+#}
+
+#find_package(Threads REQUIRED)
+
+
+#--------------------------------------------------------------------
+# Set compiler specific flags
+#--------------------------------------------------------------------
+
+#--------------------------------------------------------------------
+# Detect and select backend APIs
+#--------------------------------------------------------------------
+
+project.AddDefinition( "_GLFW_HAS_DLOPEN", "1" )
+if( DaoMake::IsPlatform( "WIN32" ) ){
+	project.AddDefinition( "_GLFW_WIN32", "1" )
+	project.AddDefinition( "_GLFW_WGL", "1" )
+}else if( DaoMake::IsPlatform( "MACOSX" ) ){
+	project.AddDefinition( "_GLFW_COCOA", "1" )
+	project.AddDefinition( "_GLFW_NSGL", "1" )
+	project.AddDefinition( "_GLFW_USE_OPENGL", "1" )
+
+	objects.AddHeaders( "src/cocoa_platform.h", "src/iokit_joystick.h", "src/posix_tls.h" )
+	objects.AddSources( "src/cocoa_init.m", "src/cocoa_monitor.m", "src/cocoa_window.m")
+	objects.AddSources( "src/iokit_joystick.m", "src/mach_time.c", "src/posix_tls.c" )
+	objects.AddHeaders( "src/nsgl_context.h" )
+	objects.AddSources( "src/nsgl_context.m" )
+
+	names = { "Cocoa", "OpenGL", "IOKit", "CoreFoundation", "CoreVideo" }
+	names.iterate { [name]
+		framework = DaoMake::FindPackage( name, $REQUIRED )
+		project.UseSharedLibrary( framework )
+	}
+}else if( DaoMake::IsPlatform( "UNIX" ) ){
+	project.AddDefinition( "_GLFW_X11", "1")
+	project.AddDefinition( "_GLFW_GLX", "1" )
+	x11 = DaoMake::FindPackage( "X11", $REQUIRED )
+	project.UseSharedLibrary( x11 )
+}else{
+	std.error( "No supported platform was detected" )
+}
+
+
+
+#--------------------------------------------------------------------
+# Use Win32 for window creation
+#--------------------------------------------------------------------
+#{
+if (_GLFW_WIN32)
+
+    set(GLFW_PKG_LIBS "${GLFW_PKG_LIBS} -lgdi32")
+
+    if (GLFW_USE_DWM_SWAP_INTERVAL)
+        set(_GLFW_USE_DWM_SWAP_INTERVAL 1)
+    endif()
+    if (GLFW_USE_OPTIMUS_HPG)
+        set(_GLFW_USE_OPTIMUS_HPG 1)
+    endif()
+
+endif()
+#}
+
+#--------------------------------------------------------------------
+# Use WGL for context creation
+#--------------------------------------------------------------------
+#{
+if (_GLFW_WGL)
+
+    set(GLFW_PKG_LIBS "${GLFW_PKG_LIBS} -lopengl32")
+
+    list(APPEND glfw_INCLUDE_DIRS "${OPENGL_INCLUDE_DIR}")
+    list(APPEND glfw_LIBRARIES "${OPENGL_gl_LIBRARY}")
+endif()
+#}
+
+#--------------------------------------------------------------------
+# Use X11 for window creation
+#--------------------------------------------------------------------
+
+
+#--------------------------------------------------------------------
+# Use GLX for context creation
+#--------------------------------------------------------------------
+#{
+if (_GLFW_GLX)
+
+    list(APPEND glfw_INCLUDE_DIRS "${OPENGL_INCLUDE_DIR}")
+    list(APPEND glfw_LIBRARIES "${OPENGL_gl_LIBRARY}")
+
+    set(GLFW_PKG_DEPS "${GLFW_PKG_DEPS} gl")
+
+    include(CheckFunctionExists)
+
+    set(CMAKE_REQUIRED_LIBRARIES "${OPENGL_gl_LIBRARY}")
+    check_function_exists(glXGetProcAddress _GLFW_HAS_GLXGETPROCADDRESS)
+    check_function_exists(glXGetProcAddressARB _GLFW_HAS_GLXGETPROCADDRESSARB)
+    check_function_exists(glXGetProcAddressEXT _GLFW_HAS_GLXGETPROCADDRESSEXT)
+
+    if (NOT _GLFW_HAS_GLXGETPROCADDRESS AND
+        NOT _GLFW_HAS_GLXGETPROCADDRESSARB AND
+        NOT _GLFW_HAS_GLXGETPROCADDRESSEXT)
+        message(WARNING "No glXGetProcAddressXXX variant found")
+
+        # Check for dlopen support as a fallback
+
+        set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_DL_LIBS}")
+        check_function_exists(dlopen _GLFW_HAS_DLOPEN)
+        if (NOT _GLFW_HAS_DLOPEN)
+            message(FATAL_ERROR "No entry point retrieval mechanism found")
+        endif()
+
+        if (CMAKE_DL_LIBS)
+            list(APPEND glfw_LIBRARIES "${CMAKE_DL_LIBS}")
+            set(GLFW_PKG_LIBS "${GLFW_PKG_LIBS} -l${CMAKE_DL_LIBS}")
+        endif()
+    endif()
+
+endif()
+#}
+
+#--------------------------------------------------------------------
+# Use EGL for context creation
+#--------------------------------------------------------------------
+#{
+if (_GLFW_EGL)
+
+    list(APPEND glfw_INCLUDE_DIRS "${EGL_INCLUDE_DIR}")
+    list(APPEND glfw_LIBRARIES "${EGL_LIBRARY}")
+
+    set(GLFW_PKG_DEPS "${GLFW_PKG_DEPS} egl")
+
+    if (_GLFW_USE_OPENGL)
+        list(APPEND glfw_LIBRARIES "${OPENGL_gl_LIBRARY}")
+        list(APPEND glfw_INCLUDE_DIRS "${OPENGL_INCLUDE_DIR}")
+        set(GLFW_PKG_DEPS "${GLFW_PKG_DEPS} gl")
+    elseif (_GLFW_USE_GLESV1)
+        list(APPEND glfw_LIBRARIES "${GLESv1_LIBRARY}")
+        list(APPEND glfw_INCLUDE_DIRS "${GLESv1_INCLUDE_DIR}")
+        set(GLFW_PKG_DEPS "${GLFW_PKG_DEPS} glesv1_cm")
+    elseif (_GLFW_USE_GLESV2)
+        list(APPEND glfw_LIBRARIES "${GLESv2_LIBRARY}")
+        list(APPEND glfw_INCLUDE_DIRS "${GLESv2_INCLUDE_DIR}")
+        set(GLFW_PKG_DEPS "${GLFW_PKG_DEPS} glesv2")
+    endif()
+
+endif()
+#}
+
+
+
+

@@ -905,6 +905,7 @@ DAO_DLL void DaoGraphics_DrawTest()
 
 DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
+DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
 DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
@@ -934,6 +935,7 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 #ifdef DAO_GRAPHICS_USE_GLUT
 	DaoGLUT_OnLoad( vmSpace, ns );
 #endif
+	DaoWindow_OnLoad( vmSpace, ns );
 	return 0;
 }
 
