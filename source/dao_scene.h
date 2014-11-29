@@ -280,6 +280,8 @@ struct DaoxScene
 {
 	DAO_CSTRUCT_COMMON;
 
+	DaoxCamera *camera;
+
 	DList  *nodes;
 	DList  *lights;
 };

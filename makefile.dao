@@ -55,7 +55,7 @@ if( daovm == none or (opengl == none and gles == none) ) return
 project = DaoMake::Project( "DaoGraphics" ) 
 
 # In Linux, one may place GL/gl3.h under the current directory:
-DaoMake::Includes.append( project.SourcePath() )
+DaoMake::Includes += project.SourcePath() + ";"
 
 project.UseImportLibrary( daovm )
 

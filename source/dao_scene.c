@@ -749,6 +749,7 @@ void DaoxScene_AddNode( DaoxScene *self, DaoxSceneNode *node )
 {
 	DList_Append( self->nodes, node );
 	if( node->ctype == daox_type_light ) DList_Append( self->lights, node );
+	if( node->ctype == daox_type_camera ) self->camera = (DaoxCamera*) node;
 }
 
 

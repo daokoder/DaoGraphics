@@ -297,7 +297,7 @@ void DaoxPath_Reset( DaoxPath *self )
 }
 void DaoxPath_SetRelativeMode( DaoxPath *self, int relative )
 {
-	self->mode = DAOX_PATH_CMD_REL;
+	self->mode = relative ? DAOX_PATH_CMD_REL : DAOX_PATH_CMD_ABS;
 }
 void DaoxPath_MoveTo( DaoxPath *self, float x, float y )
 {

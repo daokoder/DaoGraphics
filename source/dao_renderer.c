@@ -439,9 +439,9 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self )
 		vertexCount += drawtask->vcount;
 		triangleCount += drawtask->tcount;
 	}
-	printf( "DaoxRenderer_UpdateBuffer: %i %i\n", vertexCount, triangleCount );
 	glvertices = DaoxBuffer_MapVertices3D( & self->buffer, vertexCount );
 	gltriangles = DaoxBuffer_MapTriangles( & self->buffer, triangleCount );
+	printf( "DaoxRenderer_UpdateBuffer: %i %i, %p %p\n", vertexCount, triangleCount, glvertices, gltriangles );
 
 	vertexCount = 0;
 	triangleCount = 0;
@@ -600,6 +600,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	if( scene != self->scene ){
 		GC_Assign( & self->scene, scene );
 	}
+	if( cam == NULL ) cam = scene->camera;
 	if( cam == NULL && self->camera == NULL ){
 		self->camera = DaoxCamera_New();
 		DaoGC_IncRC( (DaoValue*) self->camera );
