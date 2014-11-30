@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dao_jpeg.h"
+#include "micro_jpeg.h"
 
 /* UJ_NODECODE_BLOCK_SIZE: if #defined, this specifies the amount of bytes
  * to load from disk if ujDecodeFile() is used after ujDisableDecoding().

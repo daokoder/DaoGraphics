@@ -1058,6 +1058,7 @@ void DaoxPath_Print( DaoxPath *self, int id, int a, int b, int c )
 			printf( "## %1i: %6.0f %6.0f; %6.0f %6.0f; %6.0f %6.0f; %6.0f %6.0f;\n",
 					S->bezier, S->P1.x, S->P1.y, S->P2.x, S->P2.y,
 					S->C1.x, S->C1.y, S->C2.x, S->C2.y );
+			S = S->next;
 		} while( S && S != com->first );
 		if( com->last->next == com->first ) printf( "## 0: ;\n" );
 	}

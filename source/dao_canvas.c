@@ -986,7 +986,7 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 		DaoxAABBox2D bounds = {0.0,0.0,0.0,0.0};
 		DaoxMatrix3D rotmat = {0.0,0.0,0.0,0.0,0.0,0.0};
 		size_t ch = text->data.uints[i];
-		glyph = DaoxFont_GetCharGlyph( font, ch );
+		glyph = DaoxFont_GetGlyph( font, ch );
 		if( glyph == NULL ) break;
 
 		rotmat.A11 = rotmat.A22 = rotation.x;

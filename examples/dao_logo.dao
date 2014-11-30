@@ -22,10 +22,10 @@ brush.SetStrokeWidth( 0.5 );
 brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
 brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
-text = canvas.AddText( "Dao", -100, 250 );
+text = canvas.AddText( "Dao", -120, 240 );
 
 brush = canvas.PushBrush()
-brush.SetFont( fontRoboto, 60 );
+brush.SetFont( fontRoboto, 45 );
 brush.SetStrokeWidth( 0.5 );
 brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
 brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );

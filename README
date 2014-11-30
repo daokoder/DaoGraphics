@@ -16,6 +16,7 @@ Dependency resolved by including the sources:
 1. GLFW for window and context creation;
 2. LodePNG library for PNG decoding and encoding;
 3. MicroJPEG (uJEPG) for JPEG decoding;
+4. stb_truetype.h for TrueType font loading;
 
 
 License

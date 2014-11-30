@@ -16,10 +16,11 @@ project_headers =
 #	"source/dao_graphics.h" ,
 	"source/dao_resource.h" ,
 	"source/dao_xml.h" ,
-	"source/dao_png.h" ,
-	"source/dao_jpeg.h" ,
 	"source/dao_format.h" ,
 	"source/dao_opengl.h" ,
+	"source/lode_png.h" ,
+	"source/micro_jpeg.h" ,
+	"source/stb_truetype.h" ,
 }
 
 project_sources = 
@@ -38,11 +39,11 @@ project_sources =
 	"source/dao_graphics.c" ,
 	"source/dao_resource.c" ,
 	"source/dao_xml.c" ,
-	"source/dao_png.c" ,
-	"source/dao_jpeg.c" ,
 	"source/dao_format.c" ,
 	"source/dao_opengl.c" ,
 	"source/dao_window.c" ,
+	"source/lode_png.c" ,
+	"source/micro_jpeg.c" ,
 }
 
 

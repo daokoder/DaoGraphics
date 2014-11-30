@@ -30,6 +30,9 @@
 #include <string.h>
 #include "dao_font.h"
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
 typedef unsigned long  ulong_t;
 
 
@@ -71,436 +74,6 @@ ulong_t daox_tt_ulong( uchar_t *data )
 }
 
 
-DaoxFont* DaoxFont_New()
-{
-	DaoxFont *self = (DaoxFont*) dao_calloc( 1, sizeof(DaoxFont) );
-	DaoCstruct_Init( (DaoCstruct*)self, daox_type_font );
-	self->buffer = DString_New(0);
-	self->glyphs = DMap_New(0,0);
-	self->glyphs2 = DMap_New(0,0);
-	self->triangulator = DaoxTriangulator_New();
-	return self;
-}
-void DaoxFont_Delete( DaoxFont *self )
-{
-	DNode *it;
-	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
-		DaoxGlyph_Delete( (DaoxGlyph*) it->value.pVoid );
-	}
-	if( self->points ) dao_free( self->points );
-	DMap_Delete( self->glyphs );
-	DMap_Delete( self->glyphs2 );
-	DString_Delete( self->buffer );
-	DaoxTriangulator_Delete( self->triangulator );
-	DaoCstruct_Free( (DaoCstruct*) self );
-	dao_free( self );
-}
-
-void DaoxFont_ResetGlyphs( DaoxFont *self )
-{
-	DNode *it;
-	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
-		DaoxGlyph *glyph = (DaoxGlyph*) it->value.pVoid;
-		// TODO: reset glyph shape;
-	}
-}
-int DaoxFont_Open( DaoxFont *self, const char *file )
-{
-	FILE *fin = fopen( file, "r" );
-	char tag[5] = {0};
-	uchar_t *cmap;
-	int numberSubtables;
-	int i, numTables;
-
-	DaoxFont_ResetGlyphs( self );
-	DString_Reset( self->buffer, 0 );
-
-	if( fin == NULL ) return 0;
-
-	DaoFile_ReadAll( fin, self->buffer, 1 );
-	self->fontData = (uchar_t*)DString_GetData( self->buffer );
-	self->fontStart = 0;
-
-	if( strncmp( (char*)self->fontData, "ttcf", 4 ) == 0 ){
-		int v = daox_tt_ulong( self->fontData + 4 );
-		if( v == 0x00010000 || v == 0x00020000 ){
-			int n = daox_tt_ulong( self->fontData + 8 );
-			if( n > 0 ) self->fontStart = daox_tt_ulong( self->fontData + 12 + 14*0 );
-			printf( "n = %i\n", n );
-		}
-	}
-
-	numTables = daox_tt_ushort( self->fontData + 4 );
-	printf( "numTables = %i\n", numTables );
-	for(i=0; i<numTables; ++i){
-		uchar_t *dir = self->fontData + 12 + 16*i;
-		strncpy( tag, (char*) dir, 4 );
-		printf( "%3i: %s\n", (int)i, tag );
-	}
-#if 0
-#endif
-
-	self->head = DaoxFont_FindTable( self, "head" );
-	self->cmap = DaoxFont_FindTable( self, "cmap" );
-	self->loca = DaoxFont_FindTable( self, "loca" );
-	self->glyf = DaoxFont_FindTable( self, "glyf" );
-	self->hhea = DaoxFont_FindTable( self, "hhea" );
-	self->hmtx = DaoxFont_FindTable( self, "hmtx" );
-	if( self->head == 0 || self->cmap == 0 || self->loca == 0 || self->glyf == 0 ) return 0;
-
-	self->fontHeight = daox_tt_short( self->fontData + self->hhea + 2 );
-	self->fontHeight += daox_tt_short( self->fontData + self->hhea + 4 );
-	self->lineSpace = self->fontHeight + daox_tt_short( self->fontData + self->hhea + 8 );
-
-	self->indexToLocFormat = daox_tt_ushort( self->fontData + self->head + 50 );
-	printf( "cmap: %i\n", self->cmap );
-	printf( "indexToLocFormat: %i\n", self->indexToLocFormat );
-	printf( "fontHeight: %i\n", self->fontHeight );
-
-	self->enc_map = -1;
-	cmap = self->fontData + self->cmap;
-	numberSubtables = daox_tt_ushort( cmap + 2 );
-	printf( "numberSubtables = %i\n", numberSubtables );
-	for(i=0; i<numberSubtables; ++i){
-		ushort_t pid = daox_tt_ushort( cmap + 4 + 8*i );
-		ushort_t enc = daox_tt_ushort( cmap + 4 + 8*i + 2 );
-		printf( "%3i: %3i %3i\n", i, (int)pid, (int)enc );
-		if( pid == DAOTT_PLATFORM_ID_UNICODE && enc == DAOTT_UNICODE_2_0 ){
-			self->enc_map = self->cmap + daox_tt_ulong( cmap + 4 + 8*i + 4 );
-			break;
-		}else if( pid == DAOTT_PLATFORM_ID_MICROSOFT && enc == DAOTT_UNICODE_DEFAULT ){
-			self->enc_map = self->cmap + daox_tt_ulong( cmap + 4 + 8*i + 4 );
-			break;
-		}else if( pid == DAOTT_PLATFORM_ID_MAC && enc == DAOTT_UNICODE_DEFAULT ){
-			self->enc_map = self->cmap + daox_tt_ulong( cmap + 4 + 8*i + 4 );
-			break;
-		}
-	}
-	printf( "enc_map = %i\n", self->enc_map );
-	if( self->enc_map < 0 ) return 0;
-	self->enc_format = daox_tt_ushort( self->fontData + self->enc_map );
-	printf( "format = %i\n", (int) self->enc_format );
-
-	return 1;
-}
-int DaoxFont_FindTable( DaoxFont *self, const char *tag )
-{
-	uchar_t *fontData = self->fontData + self->fontStart;
-	int numTables = daox_tt_ushort( fontData + 4 );
-	int cmp, mid, first = 0, last = numTables - 1;
-
-	while( first <= last ){
-		mid = (first + last) / 2;
-		cmp = strncmp( tag, (char*) fontData + 12 + 16*mid, 4 );
-		if( cmp == 0 ){
-			return daox_tt_ulong( fontData + 12 + 16 * mid + 8 );
-		}else if( cmp < 0 ){
-			last = mid - 1;
-		}else{
-			first = mid + 1;
-		}
-	}
-	return 0;
-}
-int DaoxFont_FindGlyphIndexF0( DaoxFont *self, size_t ch )
-{
-	return 0;
-}
-int DaoxFont_FindGlyphIndexF2( DaoxFont *self, size_t ch )
-{
-	return 0;
-}
-int DaoxFont_FindGlyphIndexF4( DaoxFont *self, size_t ch )
-{
-	uchar_t *enc_map = self->fontData + self->enc_map;
-	ushort_t segCount = daox_tt_ushort( enc_map + 6 ) >> 1;
-	uchar_t *endCodes = enc_map + 14;
-	uchar_t *startCodes = enc_map + 16 + 2*segCount;
-	uchar_t *idDeltas = enc_map + 16 + 4*segCount;
-	uchar_t *idRangeOffsets = enc_map + 16 + 6*segCount;
-	ushort_t code = (ushort_t) ch;
-	int first = 0, last = segCount - 1;
-	if( ch > 0xffff ) return 0;
-	while( first <= last ){
-		int i = (first + last) / 2;
-		ushort_t startCode = daox_tt_ushort( startCodes + 2*i );
-		ushort_t endCode = daox_tt_ushort( endCodes + 2*i );
-		printf( "%6i: %6i %6i\n", i, (int)startCode, (int)endCode );
-		if( code < startCode ){
-			last = i - 1;
-		}else if( code > endCode ){
-			first = i + 1;
-		}else{
-			ushort_t idRangeOffset = daox_tt_ushort( idRangeOffsets + 2*i );
-			ushort_t idDelta = daox_tt_ushort( idDeltas + 2*i );
-			if( idRangeOffset == 0 ) return (idDelta + code) & 0xffff;
-			return daox_tt_ushort(idRangeOffsets + 2*i + idRangeOffset / 2 + (code - startCode));
-		}
-	}
-	return 0;
-}
-int DaoxFont_FindGlyphIndexF6( DaoxFont *self, size_t ch )
-{
-	return 0;
-}
-int DaoxFont_FindGlyphIndexF12( DaoxFont *self, size_t ch )
-{
-	return 0;
-}
-int DaoxFont_FindGlyphIndex( DaoxFont *self, size_t ch )
-{
-	switch( self->enc_format ){
-	case 0 : return DaoxFont_FindGlyphIndexF0( self, ch );
-	case 2 : return DaoxFont_FindGlyphIndexF2( self, ch );
-	case 4 : return DaoxFont_FindGlyphIndexF4( self, ch );
-	case 6 : return DaoxFont_FindGlyphIndexF6( self, ch );
-	case 12 : return DaoxFont_FindGlyphIndexF12( self, ch );
-	}
-	return 0;
-}
-int DaoxFont_FindGlyphLocation( DaoxFont *self, int glyph_index )
-{
-	int location = 0;
-	int location2 = 0;
-	uchar_t *loca = self->fontData + self->loca;
-	if( self->indexToLocFormat ){
-		location = daox_tt_ulong( loca + 4*glyph_index );
-		location2 = daox_tt_ulong( loca + 4*glyph_index + 4 );
-	}else{
-		location = daox_tt_ushort( loca + 2*glyph_index ) * 2;
-		location2 = daox_tt_ushort( loca + 2*glyph_index + 2 ) * 2;
-	}
-	return location == location2 ? -1 : location;
-}
-
-
-int DaoxFont_MakeGlyph2( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
-{
-	int gloc = DaoxFont_FindGlyphLocation( self, glyph_index );
-	uchar_t *glyf = self->fontData + self->glyf + gloc;
-	uchar_t *cpart = glyf + 10;
-	int i, more = 1;
-	if( gloc < 0 ) return 1;
-	while( more ){
-		DaoxGlyph *subglyph = DaoxFont_GetGlyph( self, daox_tt_ushort(cpart+2) );
-		ushort_t flags = daox_tt_ushort( cpart );
-		DaoxMatrix3D tmat = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0 };
-		double m, n;
-		more = flags & (1<<5);
-		cpart += 4;
-		if( flags & 2 ){ /* ARGS_ARE_XY_VALUES */
-			if( flags & 1 ){ /* ARG_1_AND_2_ARE_WORDS */
-				tmat.B1 = daox_tt_short( cpart );
-				tmat.B2 = daox_tt_short( cpart+2 );
-				cpart += 4;
-			}else{
-				//tmat.B1 = (char)*cpart++;
-				//tmat.B2 = (char)*cpart++;
-				tmat.B1 = *(char*)cpart;
-				tmat.B2 = *(char*)(cpart+1);
-				cpart += 2;
-			}
-		}else{
-			printf( "!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
-			return 0;
-		}
-		if( flags & (1<<3) ){ /* WE_HAVE_A_SCALE */
-			printf( "here: %i\n", daox_tt_short( cpart ) );
-			tmat.A11 = tmat.A22 = daox_tt_short( cpart ) / 16384.0f;
-			cpart += 2;
-		}else if( flags & (1<<6) ){ /* WE_HAVE_AN_X_AND_Y_SCALE */
-			tmat.A11 = daox_tt_short( cpart+0 ) / 16384.0f;
-			tmat.A22 = daox_tt_short( cpart+2 ) / 16384.0f;
-			cpart += 4;
-		}else if( flags & (1<<7) ){ /* WE_HAVE_A_TWO_BY_TWO */
-			tmat.A11 = daox_tt_short( cpart+0 ) / 16384.0f;
-			tmat.A21 = daox_tt_short( cpart+2 ) / 16384.0f;
-			tmat.A12 = daox_tt_short( cpart+4 ) / 16384.0f;
-			tmat.A22 = daox_tt_short( cpart+6 ) / 16384.0f;
-			cpart += 8;
-		}
-		m = fabs(tmat.A11) > fabs(tmat.A21) ? fabs(tmat.A11) : fabs(tmat.A21);
-		n = fabs(tmat.A12) > fabs(tmat.A22) ? fabs(tmat.A12) : fabs(tmat.A22);
-		if( fabs( fabs(tmat.A11) - fabs(tmat.A21) ) < 33.0/65536.0 ) m = m + m;
-		if( fabs( fabs(tmat.A12) - fabs(tmat.A22) ) < 33.0/65536.0 ) n = n + n;
-		tmat.B1 *= m;
-		tmat.B2 *= n;
-
-		DaoxPath_ImportPath( glyph->shape, subglyph->shape, & tmat );
-
-		printf( "%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n", tmat.A11, tmat.A21, tmat.A12, tmat.A22, tmat.B1, tmat.B2 );
-	}
-	DaoxPath_Preprocess( glyph->shape, self->triangulator );
-	return 1;
-}
-int DaoxFont_MakeGlyph( DaoxFont *self, int glyph_index, DaoxGlyph *glyph )
-{
-	int gloc = DaoxFont_FindGlyphLocation( self, glyph_index );
-	uchar_t *hmtx = self->fontData + self->hmtx;
-	uchar_t *glyf = self->fontData + self->glyf + gloc;
-	uchar_t *simdata = glyf + 10;
-	uchar_t *endPtsOfContours, *flags, *points, *xCoordinates, *yCoordinates;
-	ushort_t numOfLongHorMetrics = daox_tt_ushort( self->fontData + self->hhea + 34 );
-	short numberOfContours, instructionLength, pointCount;
-	short i, dx, dy, x = 0, y = 0, flagCount = 0;
-	uchar_t flag = 0;
-
-	printf( "DaoxFont_MakeGlyph: %i\n", glyph_index );
-
-	DaoxPath_Reset( glyph->shape );
-	if( glyph_index < numOfLongHorMetrics ){
-		glyph->advanceWidth = daox_tt_short( hmtx + 4*glyph_index );
-		glyph->leftSideBearing = daox_tt_short( hmtx + 4*glyph_index + 2 );
-	}else{
-		glyph->advanceWidth = daox_tt_short( hmtx + 4*(numOfLongHorMetrics - 1) );
-		glyph->leftSideBearing = daox_tt_short( hmtx + 4*numOfLongHorMetrics + 2*(glyph_index - numOfLongHorMetrics) );
-	}
-	if( gloc < 0 ) return 1;
-
-	numberOfContours = daox_tt_short( glyf );
-	if( numberOfContours < 0 ) return DaoxFont_MakeGlyph2( self, glyph_index, glyph );
-
-	instructionLength = daox_tt_ushort( simdata + 2*numberOfContours );
-	endPtsOfContours = simdata;
-	flags = simdata + 2*numberOfContours + 2 + instructionLength;
-	pointCount = 1 + daox_tt_ushort( endPtsOfContours + 2*numberOfContours - 2 );
-
-	printf( "glyph index = %i\n", glyph_index );
-	printf( "glyph loation = %i\n", gloc );
-	printf( "numberOfContours = %i\n", numberOfContours );
-	printf( "pointCount = %i\n", pointCount );
-
-	/* load flags and coordinates into the self->points: */
-	self->points = (DaoxGlyphPoint*) dao_realloc( self->points, pointCount*sizeof(DaoxGlyphPoint) );
-
-	for(i=0; i<pointCount; ++i){
-		if( flagCount == 0 ){
-			flag = *flags++;
-			if( flag & 8 ) flagCount = *flags++; /* repeats; */
-		}else{
-			flagCount -= 1;
-		}
-		self->points[i].flag = flag;
-	}
-	points = flags;
-	for(i=0; i<pointCount; ++i){
-		flag = self->points[i].flag;
-		if( flag & 2 ){ /* 1 byte long x-coordinate: */
-			dx = *points++;
-			x += (flag & 16) ? dx : -dx; /* ??? */
-		}else{
-			if( !(flag & 16) ){
-				x += daox_tt_short( points );
-				points += 2;
-			}
-		}
-		self->points[i].x = x;
-	}
-	for(i=0; i<pointCount; ++i){
-		flag = self->points[i].flag;
-		if( flag & 4 ){ /* 1 byte long x-coordinate: */
-			dy = *points++;
-			y += (flag & 32) ? dy : -dy;
-		}else{
-			if( !(flag & 32) ){
-				y += daox_tt_short( points );
-				points += 2;
-			}
-		}
-		self->points[i].y = y;
-	}
-
-	DaoxPath_SetRelativeMode( glyph->shape, 0 );
-	for(i=0; i<numberOfContours; ++i){
-		int start = i == 0 ? 0 : 1 + daox_tt_ushort( endPtsOfContours + 2*(i-1) );
-		int end = daox_tt_ushort( endPtsOfContours + 2*i );
-		int xnext, ynext;
-		int j, x0, y0, start2 = start;
-		int cx0 = -1, cy0 = -1;
-		flag = self->points[start].flag;
-		x0 = self->points[start].x;
-		y0 = self->points[start].y;
-		if( ! (flag & 1) ){ /* off curve point: */
-			cx0 = x0;
-			cy0 = y0;
-			x = self->points[start].x;
-			y = self->points[start].y;
-			if( self->points[start].flag & 1 ){ /* on curve: */
-				x0 = x;
-				y0 = y;
-				start2 += 1;
-			}else{ /* also off curve, interpolate on-curve point: */
-				x0 = (cx0 + x) >> 1;
-				y0 = (cy0 + y) >> 1;
-			}
-		}
-		DaoxPath_MoveTo( glyph->shape, x0, y0 );
-		for(j=start2+1; j<=end; j++){
-			ushort_t next = start + ((j+1-start) % (end - start + 1));
-			flag = self->points[j].flag;
-			x = self->points[j].x;
-			y = self->points[j].y;
-			if( flag & 1 ){ /* on curve point: */
-				DaoxPath_LineTo( glyph->shape, x, y );
-			}else if( self->points[next].flag & 1 ){ /* on curve point: */
-				xnext = self->points[next].x;
-				ynext = self->points[next].y;
-				DaoxPath_QuadTo( glyph->shape, x, y, xnext, ynext );
-				j += 1;
-			}else{ /* off curve point, interpolate on-curve point: */
-				xnext = (x + self->points[next].x) >> 1;
-				ynext = (y + self->points[next].y) >> 1;
-				DaoxPath_QuadTo( glyph->shape, x, y, xnext, ynext );
-			}
-		}
-		if( cx0 >= 0 ){
-			DaoxPath_QuadTo( glyph->shape, cx0, cy0, x0, y0 );
-		}
-		DaoxPath_Close( glyph->shape );
-	}
-#if 0
-	for(i=0; i<pointCount; ++i){
-		flag = self->points[i].flag;
-		x = self->points[i].x;
-		y = self->points[i].y;
-		printf( "%3i: %2i %5i %5i\n", i, flag&1, x, y );
-	}
-#endif
-	DaoxPath_Preprocess( glyph->shape, self->triangulator );
-	return 1;
-}
-
-DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, int glyph_index )
-{
-	DNode *node = DMap_Find( self->glyphs, (void*)(size_t) glyph_index );
-	DaoxGlyph *glyph = node ? (DaoxGlyph*) node->value.pVoid : NULL;
-	if( glyph && glyph->shape->mesh->triangles->size ) return glyph;
-	if( self->buffer->size == 0 ) return NULL;
-	if( glyph == NULL ){
-		glyph = DaoxGlyph_New();
-		DMap_Insert( self->glyphs, (void*)(size_t) glyph_index, glyph );
-	}
-	DaoxFont_MakeGlyph( self, glyph_index, glyph );
-	return glyph;
-}
-DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, size_t ch )
-{
-	DNode *node = DMap_Find( self->glyphs2, (void*)(size_t) ch );
-	DaoxGlyph *glyph = node ? (DaoxGlyph*) node->value.pVoid : NULL;
-	if( glyph && glyph->shape->mesh->triangles->size ) return glyph;
-	glyph = DaoxFont_GetGlyph( self, DaoxFont_FindGlyphIndex( self, ch ) );
-	if( glyph == NULL ) return NULL;
-	glyph->codepoint = ch;
-	if( node == NULL ) DMap_Insert( self->glyphs2, (void*)(size_t) ch, glyph );
-	return glyph;
-}
-
-
-
-
-
-
-
 
 DaoxGlyph* DaoxGlyph_New()
 {
@@ -520,6 +93,99 @@ void DaoxGlyph_Delete( DaoxGlyph *self )
 
 
 
+
+DaoxFont* DaoxFont_New()
+{
+	DaoxFont *self = (DaoxFont*) dao_calloc( 1, sizeof(DaoxFont) );
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_font );
+	self->buffer = DString_New(0);
+	self->glyphs = DMap_New(0,0);
+	return self;
+}
+void DaoxFont_Delete( DaoxFont *self )
+{
+	DNode *it;
+	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
+		DaoxGlyph_Delete( (DaoxGlyph*) it->value.pVoid );
+	}
+	DMap_Delete( self->glyphs );
+	DString_Delete( self->buffer );
+	DaoCstruct_Free( (DaoCstruct*) self );
+	dao_free( self );
+}
+
+void DaoxFont_ResetGlyphs( DaoxFont *self )
+{
+	DNode *it;
+	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
+		DaoxGlyph *glyph = (DaoxGlyph*) it->value.pVoid;
+		// TODO: reset glyph shape;
+	}
+}
+int DaoxFont_Init( DaoxFont *self, DString *ttfData )
+{
+	DString_Assign( self->buffer, ttfData );
+	if( stbtt_InitFont( & self->info, self->buffer->chars, 0 ) == 0 ) return 0;
+	stbtt_GetFontVMetrics( & self->info, & self->ascent, & self->descent, & self->lineSpace );
+	self->fontHeight = self->ascent + self->descent;
+	self->lineSpace += self->fontHeight;
+	return 1;
+}
+DaoxGlyph* DaoxFont_LoadGlyph( DaoxFont *self, size_t codepoint )
+{
+	DaoxGlyph *glyph = DaoxGlyph_New();
+	stbtt_vertex *vertices = NULL;
+	int id = stbtt_FindGlyphIndex( & self->info, codepoint );
+	int i, num_verts = stbtt_GetGlyphShape( & self->info, id, & vertices );
+
+	stbtt_GetGlyphHMetrics( & self->info, id, & glyph->advanceWidth, & glyph->leftSideBearing );
+
+	DMap_Insert( self->glyphs, (void*) codepoint, glyph );
+	DaoxPath_SetRelativeMode( glyph->shape, 0 );
+	for(i=0; i<num_verts; ++i){
+		stbtt_vertex_type x = vertices[i].x;
+		stbtt_vertex_type y = vertices[i].y;
+		stbtt_vertex_type cx = vertices[i].cx;
+		stbtt_vertex_type cy = vertices[i].cy;
+		switch( vertices[i].type ){
+		case STBTT_vmove :
+			if( i ) DaoxPath_Close( glyph->shape );
+			DaoxPath_MoveTo( glyph->shape, x, y );
+			break;
+		case STBTT_vline :
+			DaoxPath_LineTo( glyph->shape, x, y );
+			break;
+		case STBTT_vcurve :
+			DaoxPath_QuadTo( glyph->shape, cx, cy, x, y );
+			break;
+		}
+	}
+	if( i ) DaoxPath_Close( glyph->shape );
+
+	return glyph;
+}
+
+DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, size_t codepoint )
+{
+	DNode *node = DMap_Find( self->glyphs, (void*) codepoint );
+
+	if( node ) return (DaoxGlyph*) node->value.pVoid;
+	return DaoxFont_LoadGlyph( self, codepoint );
+}
+
+
+int DaoxFont_Open( DaoxFont *self, const char *file )
+{
+	FILE *fin = fopen( file, "r" );
+
+	DaoxFont_ResetGlyphs( self );
+	DString_Reset( self->buffer, 0 );
+
+	if( fin == NULL ) return 0;
+
+	DaoFile_ReadAll( fin, self->buffer, 1 );
+	return DaoxFont_Init( self, self->buffer );
+}
 
 
 

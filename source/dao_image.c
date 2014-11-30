@@ -30,8 +30,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "dao_image.h"
-#include "dao_png.h"
-#include "dao_jpeg.h"
+#include "lode_png.h"
+#include "micro_jpeg.h"
 
 
 DaoType *daox_type_image = NULL;

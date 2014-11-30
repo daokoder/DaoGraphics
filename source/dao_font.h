@@ -32,62 +32,13 @@
 #include "dao_triangulator.h"
 #include "dao_path.h"
 #include "daoStdtype.h"
+#include "stb_truetype.h"
 
 
-typedef struct DaoxFont   DaoxFont;
+typedef stbtt_fontinfo  DFontInfo;
+
 typedef struct DaoxGlyph  DaoxGlyph;
-
-typedef struct DaoxGlyphPoint  DaoxGlyphPoint;
-
-
-struct DaoxGlyphPoint
-{
-	uchar_t flag;
-	short   x, y;
-};
-
-
-
-
-struct DaoxFont
-{
-	DAO_CSTRUCT_COMMON;
-
-	DString  *buffer;
-	uchar_t  *fontData;
-
-	int  fontStart;
-	int  fontHeight;
-	int  lineSpace;
-
-	int  head;  /* font header table; */
-	int  cmap;  /* character code mapping table; */
-	int  loca;  /* glyph location table; */
-	int  glyf;  /* glyph outline table; */
-	int  hhea;  /* horizontal header table; */
-	int  hmtx;  /* horizontal metrics table; */
-
-	int      enc_map;
-	uchar_t  enc_format;
-	uchar_t  indexToLocFormat;
-
-	DMap  *glyphs;  /* Glyph index to glyph; */
-	DMap  *glyphs2; /* Unicode to glyph; */
-
-	DaoxGlyphPoint  *points;
-	DaoxTriangulator  *triangulator;
-};
-extern DaoType* daox_type_font;
-
-
-
-DaoxFont* DaoxFont_New();
-int DaoxFont_Open( DaoxFont *self, const char *file );
-int DaoxFont_FindTable( DaoxFont *self, const char *tag );
-int DaoxFont_FindGlyphIndex( DaoxFont *self, size_t ch );
-
-DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, int glyph_index );
-DaoxGlyph* DaoxFont_GetCharGlyph( DaoxFont *self, size_t ch );
+typedef struct DaoxFont   DaoxFont;
 
 
 
@@ -106,6 +57,30 @@ extern DaoType* daox_type_glyph;
 
 DaoxGlyph* DaoxGlyph_New();
 void DaoxGlyph_Delete( DaoxGlyph *self );
+
+
+
+
+struct DaoxFont
+{
+	DAO_CSTRUCT_COMMON;
+
+	DFontInfo  info;
+	DString   *buffer;
+	DMap      *glyphs;  /* Codepoint to glyph; */
+
+	int  ascent;
+	int  descent;
+	int  fontHeight;
+	int  lineSpace;
+};
+extern DaoType* daox_type_font;
+
+
+DaoxFont* DaoxFont_New();
+int DaoxFont_Init( DaoxFont *self, DString *ttfData );
+
+DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, size_t codepoint );
 
 
 
