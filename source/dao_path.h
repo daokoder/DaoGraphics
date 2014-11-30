@@ -149,8 +149,6 @@ DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float
 
 void DaoxPathSegment_Divide( DaoxPathSegment *self, float at );
 
-void DaoxPath_Print( DaoxPath *self, int id, int a, int b, int c );
-
 
 
 

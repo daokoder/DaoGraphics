@@ -82,6 +82,7 @@ int DaoxFont_Init( DaoxFont *self, DString *ttfData );
 
 DaoxGlyph* DaoxFont_GetGlyph( DaoxFont *self, size_t codepoint );
 
+DaoxFont* DaoxFont_GetDefault();
 
 
 #endif

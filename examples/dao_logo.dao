@@ -15,6 +15,7 @@ canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 
 fontRoboto = Graphics::Font( "fonts/Roboto-Bold.ttf" );
 
+fontRoboto = Graphics::DefaultFont
 
 brush = canvas.PushBrush()
 brush.SetFont( fontRoboto, 100 );

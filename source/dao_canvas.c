@@ -1005,8 +1005,6 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 		chitem->path = glyph->shape;
 		chitem->magnitude = scale;
 		
-		//DaoxPath_Print( glyph->shape, ch, font->fontHeight, font->lineSpace, glyph->advanceWidth );
-
 		if( textPath ){
 			float len1, len2, dist;
 			float p = 0.0, adv = 0.5 * (scale * advance + width);
