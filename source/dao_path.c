@@ -1144,6 +1144,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	DaoxVectorD4 dets;
 	DaoxVector2D SP2, SC1, norm;
 	double d0, d1, d2, d3, delta, dot;
+	double epsilon = 0.01;
 	float len1, len2, len3;
 	float at1 = 0.5;
 	float at2 = 0.5;
@@ -1210,7 +1211,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		return;
 	}
 
-	if( d1 != 0.0 && delta >= 0.0 ){ /* Serpentine, or Cusp with inflection at infinity: */
+	if( fabs(d1) > epsilon && delta >= 0.0 ){ /* Serpentine, or Cusp with inflection at infinity: */
 		double root = sqrt( delta / 3.0 );
 		double tl = d2 + root, sl = 2*d1;
 		double tm = d2 - root, sm = 2*d1;
@@ -1232,7 +1233,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		F.A.A33 = 3*sm*sm*tm;
 		F.A.A42 = -sl*sl*sl;
 		F.A.A43 = -sm*sm*sm;
-	}else if( d1 != 0.0 && delta < 0.0 ){ /* Loop: */
+	}else if( fabs(d1) > epsilon && delta < 0.0 ){ /* Loop: */
 		double root = sqrt( - delta );
 		double td = d2 + root, sd = 2*d1;
 		double te = d2 - root, se = 2*d1;
@@ -1253,7 +1254,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		F.A.A33 = td*se*se + 2*sd*te*se;
 		F.A.A42 = -sd*sd*se;
 		F.A.A43 = -sd*se*se;
-	}else if( d1 == 0.0 && d2 != 0.0 ){ /* Cusp with cusp at infinity */
+	}else if( fabs(d1) <= epsilon && fabs(d2) > epsilon ){ /* Cusp with cusp at infinity */
 		double tl = d3, sl = 3*d2;
 		F.A.A11 = tl;
 		F.A.A12 = tl*tl*tl;
@@ -1262,7 +1263,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		F.A.A22 = -3*sl*tl*tl;
 		F.A.A32 = 3*sl*sl*tl;
 		F.A.A42 = -sl*sl*sl;
-	}else if( d1 == 0.0 && d2 == 0.0 && d3 != 0.0 ){ /* quadratic */
+	}else if( fabs(d1) <= epsilon && fabs(d2) <= epsilon && d3 != 0.0 ){ /* quadratic */
 	}else{ /* d1 == d2 == d3 == 0.0, line */
 		return;
 	}
@@ -1293,14 +1294,14 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	P1->klm.x = M3F.A.A21;  P1->klm.y = M3F.A.A22;  P1->klm.z = M3F.A.A23;
 	P2->klm.x = M3F.A.A31;  P2->klm.y = M3F.A.A32;  P2->klm.z = M3F.A.A33;
 	P3->klm.x = M3F.A.A41;  P3->klm.y = M3F.A.A42;  P3->klm.z = M3F.A.A43;
-	if( d1 != 0.0 && delta > 0.0 ){ /* serpentine curve: */
+	if( fabs(d1) > epsilon && delta > 0.0 ){ /* serpentine curve: */
 		if( d1 < 0.0 ){
 			P0->klm.x = - P0->klm.x;  P0->klm.y = - P0->klm.y;
 			P1->klm.x = - P1->klm.x;  P1->klm.y = - P1->klm.y;
 			P2->klm.x = - P2->klm.x;  P2->klm.y = - P2->klm.y;
 			P3->klm.x = - P3->klm.x;  P3->klm.y = - P3->klm.y;
 		}
-	}else if( d1 != 0.0 && delta < 0.0 ){ /* Loop: */
+	}else if( fabs(d1) > epsilon && delta < 0.0 ){ /* Loop: */
 		double H0 = d3*d1 - d2*d2; /* H(s,t)/(36*s^2) for t/s=0; */
 		double H1 = (d3*d1 - d2*d2) + d1*d2 - d1*d1; /* H(s,t)/(36*s^2) for t/s=1; */
 		double H = fabs( H0 ) > fabs( H1 ) ? H0 : H1;
@@ -1310,7 +1311,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 			P2->klm.x = - P2->klm.x;  P2->klm.y = - P2->klm.y;
 			P3->klm.x = - P3->klm.x;  P3->klm.y = - P3->klm.y;
 		}
-	}else if( d1 == 0.0 && d2 == 0.0 && d3 != 0.0 ){ /* quadratic */
+	}else if( fabs(d1) <= epsilon && fabs(d2) <= epsilon && d3 != 0.0 ){ /* quadratic */
 		P0->klm.x = P0->klm.y = P0->klm.z = 0.0;
 		P1->klm.x = P1->klm.z = 1.0/3.0; P1->klm.y = 0.0;
 		P2->klm.x = P2->klm.z = 2.0/3.0; P2->klm.y = 1.0/3.0;
