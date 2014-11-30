@@ -904,7 +904,6 @@ DAO_DLL void DaoGraphics_DrawTest()
 
 
 DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
-DAO_DLL int DaoGLUT_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
 DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
@@ -932,9 +931,6 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_terrain_block = DaoNamespace_WrapType( ns, & DaoxTerrainBlock_Typer, 0 );
 	daox_type_terrain_generator = DaoNamespace_WrapType( ns, & DaoxTerrainGenerator_Typer, 0 );
 	DaoVectorGraphics_OnLoad( vmSpace, ns );
-#ifdef DAO_GRAPHICS_USE_GLUT
-	DaoGLUT_OnLoad( vmSpace, ns );
-#endif
 	DaoWindow_OnLoad( vmSpace, ns );
 	return 0;
 }

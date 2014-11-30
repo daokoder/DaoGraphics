@@ -445,7 +445,10 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self )
 	}
 	glvertices = DaoxBuffer_MapVertices3D( & self->buffer, vertexCount );
 	gltriangles = DaoxBuffer_MapTriangles( & self->buffer, triangleCount );
+
+#ifdef DEBUG
 	printf( "DaoxRenderer_UpdateBuffer: %i %i, %p %p\n", vertexCount, triangleCount, glvertices, gltriangles );
+#endif
 
 	vertexCount = 0;
 	triangleCount = 0;

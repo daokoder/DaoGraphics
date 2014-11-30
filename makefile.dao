@@ -49,7 +49,6 @@ project_sources =
 daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
 opengl = DaoMake::FindPackage( "OpenGL3", $OPTIONAL )
 gles   = DaoMake::FindPackage( "OpenGLES", $OPTIONAL )
-glut   = DaoMake::FindPackage( "GLUT",   $OPTIONAL )
 
 if( daovm == none or (opengl == none and gles == none) ) return
 
@@ -58,12 +57,15 @@ project = DaoMake::Project( "DaoGraphics" )
 project.AddDirectory( "glfw", "deps/glfw" )
 glfw = DaoMake::FindPackage( "GLFW", $REQUIRED )
 
-project.UseStaticLibrary( glfw )
-
 # In Linux, one may place GL/gl3.h under the current directory:
 DaoMake::Includes += project.SourcePath() + ";"
 
+project_objs = project.AddObjects( project_sources, project_headers )
+project_dll  = project.AddSharedLibrary( "dao_graphics", project_objs )
+project_lib  = project.AddStaticLibrary( "dao_graphics", project_objs )
+
 project.UseImportLibrary( daovm )
+project.UseStaticLibrary( glfw )
 
 if( gles != none ){
 	project.AddDefinition( "DAO_GRAPHICS_USE_GLES" )
@@ -71,19 +73,9 @@ if( gles != none ){
 }else{
 	project.UseSharedLibrary( opengl )
 }
-if( glut != none ){
-	project_headers.append( "source/dao_glut.h" )
-	project_sources.append( "source/dao_glut.c" )
-	project.UseSharedLibrary( glut )
-	project.AddDefinition( "DAO_GRAPHICS_USE_GLUT" )
-}
 
 project.AddIncludePath( "deps/glfw/include" )
 project.SetTargetPath( "../../lib/dao/modules" )
-
-project_objs = project.AddObjects( project_sources, project_headers )
-project_dll  = project.AddSharedLibrary( "dao_graphics", project_objs )
-project_lib  = project.AddStaticLibrary( "dao_graphics", project_objs )
 
 
 project.GenerateFinder( $TRUE );
