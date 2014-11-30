@@ -612,8 +612,8 @@ DaoTypeBase DaoxPainter_Typer =
 static void RENDR_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxRenderer *self = DaoxRenderer_New();
-	self->targetWidth  = p[0]->xInteger.value;
-	self->targetHeight = p[1]->xInteger.value;
+	self->deviceWidth  = p[0]->xInteger.value;
+	self->deviceHeight = p[1]->xInteger.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void RENDR_SetCurrentCamera( DaoProcess *proc, DaoValue *p[], int N )
@@ -891,8 +891,8 @@ DAO_DLL void DaoGraphics_InitTest()
 	DaoxScene_AddNode( scene, (DaoxSceneNode*) terrain->terrain );
 
 	renderer = DaoxRenderer_New();
-	renderer->targetWidth  = 200;
-	renderer->targetHeight = 500;
+	renderer->deviceWidth  = 200;
+	renderer->deviceHeight = 500;
 
 	DaoGC_IncRC( (DaoValue*) scene );
 	DaoGC_IncRC( (DaoValue*) renderer );

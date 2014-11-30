@@ -195,17 +195,13 @@ struct DaoxCanvas
 {
 	DaoxSceneNode  base;
 
-	float  defaultWidth;
-	float  defaultHeight;
-
 	DaoxAABBox2D  viewport;
 	DaoxMatrix3D  transform;
 
 	DaoxColor  background;
 
-	DaoxCanvasNode *activeNode;
-
 	DList  *nodes;
+	DList  *actives;
 	DList  *brushes;
 
 	DMap  *rects;

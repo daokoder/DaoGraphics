@@ -150,7 +150,7 @@ void DaoxCanvas_glutReshape( int width, int height )
 {
 }
 
-void DaoxCanvas_Zoom( int zoomin )
+static void DaoxCanvas_Zoom( int zoomin )
 {
 	DaoxAABBox2D box = daox_current_canvas->viewport;
 	float width, height, dw, dh;
@@ -380,8 +380,8 @@ static void GLUT_SetGraphics( DaoProcess *proc, DaoValue *p[], int N )
 {
 	daox_current_painter = (DaoxPainter*) p[0];
 	daox_current_canvas = (DaoxCanvas*) p[1];
-	daox_current_canvas->defaultWidth = window_width;
-	daox_current_canvas->defaultHeight = window_height;
+	daox_current_painter->deviceWidth = window_width;
+	daox_current_painter->deviceHeight = window_height;
 }
 
 static void GLUT_Paint( DaoProcess *proc, DaoValue *p[], int N )
@@ -394,8 +394,8 @@ static void GLUT_Render( DaoProcess *proc, DaoValue *p[], int N )
 	daox_current_renderer = (DaoxRenderer*) p[0];
 	daox_current_scene = (DaoxScene*) p[1];
 
-	daox_current_renderer->targetWidth  = window_width;
-	daox_current_renderer->targetHeight = window_height;
+	daox_current_renderer->deviceWidth  = window_width;
+	daox_current_renderer->deviceHeight = window_height;
 
 #if 0
 	if( daox_current_renderer->buffer.vertexOffset == 0 ){

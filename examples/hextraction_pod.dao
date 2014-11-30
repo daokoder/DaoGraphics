@@ -25,8 +25,4 @@ camera.Orient( $Y );
 scene.AddNode( camera );
 
 
-renderer = Graphics::Renderer();
-renderer.SetCurrentCamera( camera )
-#renderer.Enable( $axis );
-
-window.Show( scene )
+window.Show( scene, 100, 1 )

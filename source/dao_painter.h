@@ -51,6 +51,9 @@ struct DaoxPainter
 {
 	DAO_CSTRUCT_COMMON;
 
+	float  deviceWidth;
+	float  deviceHeight;
+
 	DaoxOBBox2D   obbox;
 	DaoxVector3D  campos;
 

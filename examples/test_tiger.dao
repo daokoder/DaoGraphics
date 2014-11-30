@@ -8,7 +8,6 @@ routine LoadTiger( canvas : Graphics::Canvas )
 	group.Rotate( 180 );
 	group.Move( 100, 100 );
 	brush = canvas.PushBrush()
-	brush.SetParentItem( group );
 	for( i = 0 : pathCount-1 ){
 	#for( i = pathCount-60 : pathCount-50 ){
 		commands = commandArrays[i]
@@ -48,19 +47,18 @@ routine LoadTiger( canvas : Graphics::Canvas )
 
 routine main( fps_limit = 30, compute_fps = 0 )
 {
-	Graphics::glutInit( 1000, 800, "Dao Graphics Demo: Tiger", fps_limit, compute_fps )
+	window = Graphics::Window( 960, 640, 'Graphics Demo: Tiger' )
 	canvas = Graphics::Canvas();
 	canvas.SetViewport( -500, 500, -400, 400 );
 	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 	LoadTiger( canvas );
 
-	painter = Graphics::Painter();
-	Graphics::glutDisplay( painter, canvas )
+	window.Show( canvas, fps_limit, compute_fps )
 }
 routine main( save : string, width = 1200, height = 900 )
 {
     # Must be called before Graphics::Canvas():
-	Graphics::glutInit( 800, 600, "Dao Graphics Demo: Tiger", 1, 0 )
+	window = Graphics::Window( 800, 600, 'Graphics Demo: Tiger' )
 
 	painter = Graphics::Painter();
 	canvas = Graphics::Canvas();

@@ -700,10 +700,9 @@ DaoxCanvas* DaoxCanvas_New()
 {
 	DaoxCanvas *self = (DaoxCanvas*) dao_calloc( 1, sizeof(DaoxCanvas) );
 	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_canvas );
-	self->defaultWidth = daox_graphics_device_width;
-	self->defaultHeight = daox_graphics_device_height;
 	self->triangulator = DaoxTriangulator_New();
 	self->nodes = DList_New( DAO_DATA_VALUE );
+	self->actives = DList_New( DAO_DATA_VALUE );
 	self->brushes = DList_New( DAO_DATA_VALUE );
 	self->rects = DMap_New(0,DAO_DATA_VALUE);
 	self->ellipses = DMap_New(0,DAO_DATA_VALUE);
@@ -755,13 +754,13 @@ void DaoxCanvas_Delete( DaoxCanvas *self )
 {
 	DaoxSceneNode_Free( (DaoxSceneNode*) self );
 	DaoxTriangulator_Delete( self->triangulator );
-	DaoGC_DecRC( (DaoValue*) self->activeNode );
 	DaoGC_DecRC( (DaoValue*) self->unitLine );
 	DaoGC_DecRC( (DaoValue*) self->unitRect );
 	DaoGC_DecRC( (DaoValue*) self->unitCircle1 );
 	DaoGC_DecRC( (DaoValue*) self->unitCircle2 );
 	DaoGC_DecRC( (DaoValue*) self->unitCircle3 );
 	DList_Delete( self->nodes );
+	DList_Delete( self->actives );
 	DList_Delete( self->brushes );
 	DMap_Delete( self->ellipses );
 	DMap_Delete( self->rects );
@@ -775,13 +774,6 @@ void DaoxCanvas_SetViewport( DaoxCanvas *self, float left, float right, float bo
 	self->viewport.right = right;
 	self->viewport.bottom = bottom;
 	self->viewport.top = top;
-}
-float DaoxCanvas_Scale( DaoxCanvas *self )
-{
-	DaoxAABBox2D box = self->viewport;
-	float xscale = fabs( box.right - box.left ) / (self->defaultWidth + 1);
-	float yscale = fabs( box.top - box.bottom ) / (self->defaultHeight + 1);
-	return 0.5 * (xscale + yscale);
 }
 void DaoxCanvas_SetBackground( DaoxCanvas *self, DaoxColor color )
 {
@@ -819,8 +811,8 @@ void DaoxCanvas_PopBrush( DaoxCanvas *self )
 void DaoxCanvas_AddNode( DaoxCanvas *self, DaoxCanvasNode *node )
 {
 	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
-	if( self->activeNode ){
-		DaoxCanvasNode *activeNode = self->activeNode;
+	if( self->actives->size ){
+		DaoxCanvasNode *activeNode = (DaoxCanvasNode*) DList_Back( self->actives );
 		if( activeNode->children == NULL ) activeNode->children = DList_New( DAO_DATA_VALUE );
 		DList_PushBack( activeNode->children, node );
 		DaoxCanvasNode_MarkDataChanged( activeNode );
@@ -834,6 +826,7 @@ DaoxCanvasNode* DaoxCanvas_AddGroup( DaoxCanvas *self )
 {
 	DaoxCanvasLine *node = DaoxCanvasNode_New( daox_type_canvas_node );
 	DaoxCanvas_AddNode( self, node );
+	DList_PushBack( self->actives, node );
 	return node;
 }
 
@@ -986,7 +979,7 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 	rotation.y = sin( angle );
 	charRotation = rotation;
 
-	brush = DaoxCanvas_PushBrush( self, -1 );
+	DList_PushBack( self->actives, textItem );
 
 	offset = x;
 	for(i=0; i<text->size; ++i){
@@ -1011,6 +1004,8 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 		DaoGC_IncRC( (DaoValue*) glyph->shape );
 		chitem->path = glyph->shape;
 		chitem->magnitude = scale;
+		
+		//DaoxPath_Print( glyph->shape, ch, font->fontHeight, font->lineSpace, glyph->advanceWidth );
 
 		if( textPath ){
 			float len1, len2, dist;
@@ -1045,7 +1040,7 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 		offset += scale * advance + width;
 		chitem = NULL;
 	}
-	DaoxCanvas_PopBrush( self );
+	DList_PopBack( self->actives );
 }
 DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, float x, float y, float degrees )
 {

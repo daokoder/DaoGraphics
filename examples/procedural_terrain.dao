@@ -50,9 +50,9 @@ var terrain: Graphics::Terrain
 
 if( 1 ){
 	generator = Graphics::TerrainGenerator( $rectangle, 2*circles, 2*circles, radius )
-	generator.Configure( amplitude = 1.0 )
-	generator.ConfigureBlock( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
-	generator.Generate( 50, 0 )
+	#generator.Configure( amplitude = 1.0 )
+	#generator.ConfigureBlock( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
+	generator.Generate( 20, 0 )
 	#terrain = generator.GetTerrain()
 	terrain = generator.ExportRectTerrain( circles, circles, 2*radius );
 	scene.AddNode( terrain )
@@ -60,7 +60,7 @@ if( 1 ){
 	generator = Graphics::TerrainGenerator( $hexagon, circles, radius )
 	generator.Configure( amplitude = 2.0 )
 	generator.ConfigureBlock( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
-	generator.Generate( 80, 1 )
+	generator.Generate( 20, 1 )
 	#terrain = generator.GetTerrain()
 	terrain = generator.ExportHexTerrain( circles, radius );
 	scene.AddNode( terrain )
@@ -96,8 +96,13 @@ scene.AddNode( light2 );
 scene.AddNode( light3 );
 scene.AddNode( light4 );
 
+window = Graphics::Window( 960, 640, "Terrain" )
+window.Show( scene, 10, 1 )
+
+#{
 Graphics::glutInit( 900, 600, 'Tank', 15, 1 )
 renderer = Graphics::Renderer();
 renderer.SetCurrentCamera( camera )
 #renderer.Enable( $axis );
 Graphics::glutDisplay( renderer, scene )
+#}

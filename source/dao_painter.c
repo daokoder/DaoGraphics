@@ -34,6 +34,8 @@ DaoxPainter* DaoxPainter_New()
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_painter );
 	DaoxPainter_InitShaders( self );
 	DaoxPainter_InitBuffers( self );
+	self->deviceWidth = 300;
+	self->deviceHeight = 200;
 	return self;
 }
 void DaoxPainter_Delete( DaoxPainter *self )
@@ -52,6 +54,13 @@ void DaoxPainter_InitBuffers( DaoxPainter *self )
 	int pos  = self->shader.attributes.position;
 	int texKLMO = self->shader.attributes.texKLMO;
 	DaoxBuffer_Init2D( & self->buffer, pos, texKLMO );
+}
+float DaoxPainter_CanvasScale( DaoxPainter *self, DaoxCanvas *canvas )
+{
+	DaoxAABBox2D box = canvas->viewport;
+	float xscale = fabs( box.right - box.left ) / (self->deviceWidth + 1);
+	float yscale = fabs( box.top - box.bottom ) / (self->deviceHeight + 1);
+	return 0.5 * (xscale + yscale);
 }
 
 
@@ -161,10 +170,12 @@ void DaoxVG_BufferTriangles( DaoGLTriangle *gltriangles, DArray *triangles, int 
 }
 
 #define USE_STENCIL
-void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *canvas, DaoxCanvasNode *item )
+void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNode *item )
 {
+	DaoxShader *shader = & self->shader;
+	DaoxBuffer *buffer = & self->buffer;
 	DaoxBrush *brush = item->brush;
-	float resolution = DaoxCanvas_Scale( canvas );
+	float resolution = DaoxPainter_CanvasScale( self, canvas );
 	float scale = item->magnitude;
 	float stroke = brush->strokeWidth / (resolution + 1E-16);
 	int i, fill = item->path != NULL;
@@ -373,7 +384,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	DaoxMatrix3D transform2 = DaoxCanvasNode_GetLocalTransform( item );
 	GLfloat modelMatrix[16] = {0};
 	float distance, diameter;
-	float scale = DaoxCanvas_Scale( canvas );
+	float scale = DaoxPainter_CanvasScale( self, canvas );
 	float stroke = item->brush->strokeWidth / (scale + 1E-16);
 	int n = item->children ? item->children->size : 0;
 	int k = stroke >= 1.0;
@@ -397,7 +408,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 	if( item->visible ){
-		DaoxVG_PaintItemData( & self->shader, & self->buffer, canvas, item );
+		DaoxPainter_PaintItemData( self, canvas, item );
 		if( item->ctype == daox_type_canvas_image && item->data.texture )
 			DaoxPainter_PaintImageItem( self, item );
 	}
@@ -563,23 +574,23 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor( bgcolor.red, bgcolor.green, bgcolor.blue, bgcolor.alpha );
 
-	if( width > canvas->defaultWidth ){
-		xmoreWin = width - canvas->defaultWidth;
+	if( width > self->deviceWidth ){
+		xmoreWin = width - self->deviceWidth;
 		xmoreScene = xmoreWin * canvasWidth / width;
-		destWidth = canvas->defaultWidth;
+		destWidth = self->deviceWidth;
 		subViewport.right = right - xmoreScene;
 	}else{
-		xwin = (canvas->defaultWidth - width);
+		xwin = (self->deviceWidth - width);
 		margin = xwin * canvasWidth / width;
 		subViewport.right += margin;
 	}
-	if( height > canvas->defaultHeight ){
-		ymoreWin = height - canvas->defaultHeight;
+	if( height > self->deviceHeight ){
+		ymoreWin = height - self->deviceHeight;
 		ymoreScene = ymoreWin * canvasHeight / height;
-		destHeight = canvas->defaultHeight;
+		destHeight = self->deviceHeight;
 		subViewport.top = top - ymoreScene;
 	}else{
-		ywin = (canvas->defaultHeight - height);
+		ywin = (self->deviceHeight - height);
 		margin = ywin * canvasHeight / height;
 		subViewport.top += margin;
 	}
@@ -593,7 +604,7 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 		subViewport = viewport;
 		subViewport.left = canvasRight;
 		rect2 = rect;
-		rect2.left += canvas->defaultWidth;
+		rect2.left += self->deviceWidth;
 		DaoxPainter_PaintSubSceneImage( self, canvas, subViewport, image, rect2 );
 	}
 
@@ -601,7 +612,7 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 		subViewport = viewport;
 		subViewport.bottom = canvasTop;
 		rect2 = rect;
-		rect2.bottom += canvas->defaultHeight;
+		rect2.bottom += self->deviceHeight;
 		DaoxPainter_PaintSubSceneImage( self, canvas, subViewport, image, rect2 );
 	}
 
@@ -610,8 +621,8 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 		subViewport.left = canvasRight;
 		subViewport.bottom = canvasTop;
 		rect2 = rect;
-		rect2.left += canvas->defaultWidth;
-		rect2.bottom += canvas->defaultHeight;
+		rect2.left += self->deviceWidth;
+		rect2.bottom += self->deviceHeight;
 		DaoxPainter_PaintSubSceneImage( self, canvas, subViewport, image, rect2 );
 	}
 }

@@ -2,7 +2,6 @@
 load math;
 load graphics;
 
-Graphics::glutInit( 900, 600, 'Tank', 15, 1 )
 
 length = 1
 width = 0.1
@@ -97,7 +96,6 @@ scene.AddNode( light2 );
 scene.AddNode( light3 );
 scene.AddNode( light4 );
 
-renderer = Graphics::Renderer();
-renderer.SetCurrentCamera( camera )
-#renderer.Enable( $axis );
-Graphics::glutDisplay( renderer, scene )
+window = Graphics::Window( 960, 640, "Terrain" )
+window.Show( scene, 10, 1 )
+

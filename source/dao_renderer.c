@@ -30,6 +30,7 @@
 #include <math.h>
 #include "dao_terrain.h"
 #include "dao_renderer.h"
+#include "dao_painter.h"
 
 
 
@@ -60,8 +61,8 @@ DaoxRenderer* DaoxRenderer_New()
 
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_renderer );
 
-	self->targetWidth  = 300;
-	self->targetHeight = 200;
+	self->deviceWidth  = 300;
+	self->deviceHeight = 200;
 	self->dynamicTasks = DList_New(0);
 	self->staticTasks = DList_New(0);
 	self->taskCache = DList_New(0);
@@ -355,7 +356,7 @@ void MakeOrthographicMatrix( DaoxViewFrustum *frustum, DaoxCamera *cam, GLfloat 
 }
 
 
-void DaoxVG_PaintItemData( DaoxShader *shader, DaoxBuffer *buffer, DaoxCanvas *canvas, DaoxCanvasNode *item );
+void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNode *item );
 void DaoxRenderer_RenderCanvasNode( DaoxRenderer *self, DaoxCanvas *canvas, DaoxCanvasNode *item, DaoxMatrix3D transform )
 {
 	DaoxOBBox2D obbox;
@@ -387,7 +388,10 @@ void DaoxRenderer_RenderCanvasNode( DaoxRenderer *self, DaoxCanvas *canvas, Daox
 
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 	if( item->visible ){
-		DaoxVG_PaintItemData( & self->shader, & self->bufferVG, canvas, item );
+		DaoxPainter painter;
+		painter.deviceWidth = self->deviceWidth;
+		painter.deviceHeight = self->deviceHeight;
+		DaoxPainter_PaintItemData( & painter, canvas, item );
 		//if( item->ctype == daox_type_canvas_image && item->data.texture )
 		//	DaoxPainter_PaintImageItem( self, item );
 	}
@@ -610,7 +614,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		GC_Assign( & self->camera, cam );
 	}
 	cam = self->camera;
-	cam->aspectRatio = self->targetWidth / (float) self->targetHeight;
+	cam->aspectRatio = self->deviceWidth / (float) self->deviceHeight;
 
 	//printf( "DaoxRenderer_Render: %i %i %i %i\n", scene->nodes->size, self->drawLists->size, self->buffer.vertexOffset, self->buffer.triangleOffset );
 
@@ -657,7 +661,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	//DaoxMatrix4D_Print( & objectToWorld );
 
 	DaoxViewFrustum_Init( & fm, cam );
-	fm.ratio = self->targetWidth / (fm.right - fm.left);
+	fm.ratio = self->deviceWidth / (fm.right - fm.left);
 
 	if( self->showAxis ) DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, fm.axisOrigin );
 

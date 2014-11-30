@@ -61,8 +61,8 @@ struct DaoxRenderer
 
 	uchar_t  showAxis;
 	uchar_t  showMesh;
-	uint_t   targetWidth;
-	uint_t   targetHeight;
+	uint_t   deviceWidth;
+	uint_t   deviceHeight;
 
 	DaoxScene       *scene;
 	DaoxCamera      *camera;
