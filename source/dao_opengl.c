@@ -256,7 +256,7 @@ vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, vec2 texUV, floa
 	if( hasColorTexture > 0 ) fragColor = texture( colorTexture, texUV ); \n\
 	float klm = abs( bezierKLM[0] ) + abs( bezierKLM[1] ) + abs( bezierKLM[2] ); \n\
 	if( klm > 1E-16 ) fragColor = ComputeCubicBezier( bezierKLM, fragColor ); \n\
-	//fragColor = ComputeQuadraticBezier( vec2( texcoord ), fragColor ); \n\
+	//fragColor = ComputeQuadraticBezier( vec2( bezierKLM ), fragColor ); \n\
 	fragColor.a *= alphaBlending2; \n\
 	return fragColor; \n\
 }";

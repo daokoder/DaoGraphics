@@ -513,6 +513,7 @@ void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees )
 {
 	DaoxPath_ArcBy2( self, cx, cy, degrees, 30.0 );
 }
+#define DAOX_PATH_QUAD_TO_CUBIC 1
 void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y )
 {
 	DaoxPathSegment *segment = NULL;
@@ -532,12 +533,20 @@ void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y )
 		x += start.x;
 		y += start.y;
 	}
+#ifndef DAOX_PATH_QUAD_TO_CUBIC
 	segment->bezier = 2;
 	segment->C1.x = cx;
 	segment->C1.y = cy;
 	segment->P2.x = x;
 	segment->P2.y = y;
 	segment->C2 = segment->C1;
+#else
+	segment->bezier = 3;
+	segment->P2.x = x;
+	segment->P2.y = y;
+	segment->C1 = DaoxVector2D_Interpolate( segment->P1, DaoxVector2D_XY( cx, cy ), 2.0/3.0 );
+	segment->C2 = DaoxVector2D_Interpolate( segment->P2, DaoxVector2D_XY( cx, cy ), 2.0/3.0 );
+#endif
 }
 void DaoxPath_CubicTo( DaoxPath *self, float cx, float cy, float x, float y )
 {
@@ -695,6 +704,8 @@ void DaoxPathSegment_DivideQuadratic( DaoxPathSegment *self, float at )
 	self->second->C1 = DaoxVector2D_Interpolate( self->C1, self->P2, at );
 	self->first->P2 = DaoxVector2D_Interpolate( self->first->C1, self->second->C1, at );
 	self->second->P1 = self->first->P2;
+	self->first->C2 = self->first->C1;
+	self->second->C2 = self->second->C1;
 }
 void DaoxPathSegment_DivideCubic( DaoxPathSegment *self, float at )
 {
@@ -1207,8 +1218,13 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		P1->klm.x = P1->klm.y = P1->klm.z = 1.0;
 		P2->klm.x = P2->klm.z = 0.5;  P2->klm.y = 0.0;
 		P0->offset = start;
-		P1->offset = (1.0 - at1) * start + at1 * end;
-		P2->offset = end;
+		P1->offset = end;
+		P2->offset = (1.0 - at1) * start + at1 * end;
+		if( d3 < 0.0 ){
+			P0->klm.x = - P0->klm.x;  P0->klm.y = - P0->klm.y;
+			P1->klm.x = - P1->klm.x;  P1->klm.y = - P1->klm.y;
+			P2->klm.x = - P2->klm.x;  P2->klm.y = - P2->klm.y;
+		}
 		return;
 	}
 
@@ -1314,9 +1330,15 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 		}
 	}else if( d1 == 0.0 && d2 == 0.0 && d3 != 0.0 ){ /* quadratic */
 		P0->klm.x = P0->klm.y = P0->klm.z = 0.0;
-		P1->klm.x = P1->klm.z = 0.5;  P1->klm.y = 0.0;
-		P2->klm.x = P2->klm.z = 0.5;  P2->klm.y = 0.0;
+		P1->klm.x = P1->klm.z = 1.0/3.0; P1->klm.y = 0.0;
+		P2->klm.x = P2->klm.z = 2.0/3.0; P2->klm.y = 1.0/3.0;
 		P3->klm.x = P3->klm.y = P3->klm.z = 1.0;
+		if( d3 < 0.0 ){
+			P0->klm.x = - P0->klm.x;  P0->klm.y = - P0->klm.y;
+			P1->klm.x = - P1->klm.x;  P1->klm.y = - P1->klm.y;
+			P2->klm.x = - P2->klm.x;  P2->klm.y = - P2->klm.y;
+			P3->klm.x = - P3->klm.x;  P3->klm.y = - P3->klm.y;
+		}
 	}
 	*P4 = *P0;
 	*P5 = *P2;
