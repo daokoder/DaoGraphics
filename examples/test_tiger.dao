@@ -50,7 +50,7 @@ routine main( fps_limit = 30, compute_fps = 0 )
 	window = Graphics::Window( 960, 640, 'Graphics Demo: Tiger' )
 	canvas = Graphics::Canvas();
 	canvas.SetViewport( -500, 500, -400, 400 );
-	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
+	canvas.SetBackground( 1.0, 1.0, 1.0, 1.0 );
 	LoadTiger( canvas );
 
 	window.Show( canvas, fps_limit, compute_fps )

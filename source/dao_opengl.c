@@ -882,10 +882,10 @@ void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush )
 		return;
 	}
 
-	n = brush->dash;
+	n = brush->strokeStyle.dash;
 	if( n > DAOX_MAX_DASH ) n = DAOX_MAX_DASH;
 	memset( dash, 0, n*sizeof(GLfloat) );
-	for(i=0; i<n; ++i) dash[i] = brush->dashPattern[i];
+	for(i=0; i<n; ++i) dash[i] = brush->strokeStyle.dashes[i];
 
 	//printf( "DaoxShader_MakeDashSampler: %i\n", n );
 

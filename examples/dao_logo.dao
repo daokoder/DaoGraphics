@@ -11,7 +11,7 @@ canvas = Graphics::Canvas();
 
 canvas.SetViewport( -500, 500, -400, 400 );
 
-canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
+canvas.SetBackground( 1.0, 1.0, 1.0, 1.0 );
 
 fontRoboto = Graphics::Font( "fonts/Roboto-Bold.ttf" );
 

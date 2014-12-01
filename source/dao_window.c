@@ -46,6 +46,7 @@ struct DaoxWindow
 
 	DaoxPainter  *painter;
 	DaoxRenderer *renderer;
+	DaoxCanvas   *widget;
 	DaoValue     *model;
 
 	DString *title;
@@ -56,6 +57,7 @@ struct DaoxWindow
 
 	float cursorPosX;
 	float cursorPosY;
+	DaoxCanvasText *fpsLabel;
 };
 DaoType *daox_type_window = NULL;
 
@@ -270,23 +272,37 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxWindow *self = (DaoxWindow*) p[0];
 	DaoxCanvas *canvas = (DaoxCanvas*) DaoValue_CastCstruct( p[1], daox_type_canvas );
 	DaoxScene *scene = (DaoxScene*) DaoValue_CastCstruct( p[1], daox_type_scene );
-	DaoStream *stream = proc->stdioStream;
+	DaoxFont *font = DaoxFont_GetDefault();
 	int fpsLimit = p[2]->xInteger.value;
-	int fpsTest = p[3]->xInteger.value;
+	int fpsTest = p[3]->xBoolean.value;
 	double fpsTestTime = 0.0;
 	double timeInterval = 0.0;
 	float currentFPS = 0.0;
 	size_t fpsCount = 0;
 	char chars[32];
 
-	if( stream == NULL ) stream = proc->vmSpace->stdioStream;
-	if( canvas != NULL && self->painter == NULL ){
+	if( fpsTest && self->widget == NULL ){
+		char *fpsText = "FPS:       ";
+		DaoxColor bgcolor = {0.0,0.0,0.0,0.0};
+		DaoxBrush *brush;
+		self->widget = DaoxCanvas_New();
+		self->widget->viewport.right = self->width;
+		self->widget->viewport.top = self->height;
+		DaoxCanvas_SetBackground( self->widget, bgcolor );
+		brush = DaoxCanvas_PushBrush( self->widget, 0 );
+		brush->strokeColor.blue = 1.0;
+		brush->fillColor.blue = 1.0;
+		brush->fillColor.alpha = 1.0;
+		brush->fontSize = 10;
+		self->fpsLabel = DaoxCanvas_AddText( self->widget, fpsText, 10, self->height - 20, 0 );
+	}
+	if( self->painter == NULL && (canvas != NULL || self->widget != NULL) ){
 		self->painter = DaoxPainter_New();
 		self->painter->deviceWidth = self->width;
 		self->painter->deviceHeight = self->height;
 		DaoGC_IncRC( (DaoValue*) self->painter );
 	}
-	if( scene != NULL && self->renderer == NULL ){
+	if( self->renderer == NULL && scene != NULL ){
 		self->renderer = DaoxRenderer_New();
 		self->renderer->deviceWidth = self->width;
 		self->renderer->deviceHeight = self->height;
@@ -316,6 +332,18 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 		if( fpsTest ) frameStartTime = glfwGetTime();
 		if( canvas ) DaoxPainter_Paint( self->painter, canvas, canvas->viewport );
 		if( scene )  DaoxRenderer_Render( self->renderer, scene, scene->camera );
+		if( fpsTest ){
+			if( fpsCount % 10 == 0 ){
+				int i, n = sprintf( chars, "%3.1f", currentFPS );
+				for(i=0; i<n; ++i){
+					DaoxGlyph *glyph = DaoxFont_GetGlyph( font, chars[i] );
+					DaoxCanvasNode *chnode = self->fpsLabel->children->items.pCanvasNode[i+5];
+					chnode->path = glyph->shape;
+					DaoxCanvasNode_MarkDataChanged( chnode );
+				}
+			}
+			DaoxPainter_Paint( self->painter, self->widget, self->widget->viewport );
+		}
 		glfwSwapBuffers( self->handle );
 		glfwPollEvents();
 
@@ -328,9 +356,7 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 		currentFPS = fpsCount / (frameEndTime - fpsTestTime);
 		if( frameEndTime > (fpsTestTime + 3) ){
 			fpsTestTime = frameEndTime - 1.0;
-			fpsCount = currentFPS; /* Frame count estimation in past second; */
-			sprintf( chars, "FPS: %9.1f\n", currentFPS );
-			DaoStream_WriteChars( stream, chars );
+			fpsCount = currentFPS; /* Frame count estimation in the past second; */
 		}
 	}
 }

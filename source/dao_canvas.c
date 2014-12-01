@@ -32,7 +32,6 @@
 #include "dao_canvas.h"
 
 
-#define UNIT 128.0
 
 
 DaoType *daox_type_gradient = NULL;
@@ -47,7 +46,6 @@ DaoType *daox_type_canvas_line = NULL;
 DaoType *daox_type_canvas_rect = NULL;
 DaoType *daox_type_canvas_circle = NULL;
 DaoType *daox_type_canvas_ellipse = NULL;
-DaoType *daox_type_canvas_polyline = NULL;
 DaoType *daox_type_canvas_polygon = NULL;
 DaoType *daox_type_canvas_path = NULL;
 DaoType *daox_type_canvas_text = NULL;
@@ -236,9 +234,7 @@ DaoxBrush* DaoxBrush_New()
 {
 	DaoxBrush *self = (DaoxBrush*) dao_calloc(1,sizeof(DaoxBrush));
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_brush );
-	self->linecap = DAOX_LINECAP_NONE;
-	self->junction = DAOX_JUNCTION_FLAT;
-	self->strokeWidth = 1.0;
+	DaoxPathStyle_Init( & self->strokeStyle );
 	self->strokeColor.alpha = 1.0;
 	self->fontSize = 12.0;
 	return self;
@@ -253,14 +249,11 @@ void DaoxBrush_Delete( DaoxBrush *self )
 }
 void DaoxBrush_Copy( DaoxBrush *self, DaoxBrush *other )
 {
-	GC_Assign( & self->font, other->font );
-	self->dash = other->dash;
-	self->junction = other->junction;
+	self->strokeStyle = other->strokeStyle;
 	self->fontSize = other->fontSize;
-	self->strokeWidth = other->strokeWidth;
 	self->strokeColor = other->strokeColor;
 	self->fillColor = other->fillColor;
-	memcpy( self->dashPattern, other->dashPattern, other->dash*sizeof(float) );
+	GC_Assign( & self->font, other->font );
 	if( other->strokeGradient ){
 		self->strokeGradient = DaoxGradient_New(0);
 		DaoxGradient_Copy( self->strokeGradient, other->strokeGradient );
@@ -272,7 +265,7 @@ void DaoxBrush_Copy( DaoxBrush *self, DaoxBrush *other )
 }
 void DaoxBrush_SetStrokeWidth( DaoxBrush *self, float width )
 {
-	self->strokeWidth = width;
+	self->strokeStyle.width = width;
 }
 void DaoxBrush_SetStrokeColor( DaoxBrush *self, DaoxColor color )
 {
@@ -284,9 +277,7 @@ void DaoxBrush_SetFillColor( DaoxBrush *self, DaoxColor color )
 }
 void DaoxBrush_SetDashPattern( DaoxBrush *self, float pat[], int n )
 {
-	if( n > 10 ) n = 10;
-	self->dash = n;
-	memcpy( self->dashPattern, pat, n*sizeof(float) );
+	DaoxPathStyle_SetDashes( & self->strokeStyle, n, pat );
 }
 void DaoxBrush_SetFont( DaoxBrush *self, DaoxFont *font, float size )
 {
@@ -299,7 +290,6 @@ void DaoxBrush_SetFont( DaoxBrush *self, DaoxFont *font, float size )
 
 void DaoxCanvasNode_ResetTransform( DaoxCanvasNode *self )
 {
-	self->scale = DaoxVector2D_XY( 1.0, 1.0 );
 	self->rotation = DaoxVector2D_XY( 1.0, 0.0 );
 	self->translation = DaoxVector2D_XY( 0.0, 0.0 );
 }
@@ -307,19 +297,17 @@ void DaoxCanvasNode_Init( DaoxCanvasNode *self, DaoType *type )
 {
 	memset( self, 0, sizeof(DaoxCanvasNode) );
 	DaoCstruct_Init( (DaoCstruct*)self, type );
-	self->magnitude = 1.0;
+	self->scale = 1.0;
 	self->visible = 1;
-	self->dataChanged = 1;
-	self->stateChanged = 1;
+	self->changed = 1;
+	self->moved = 1;
 	DaoxCanvasNode_ResetTransform( self );
 }
 void DaoxCanvasNode_Free( DaoxCanvasNode *self )
 {
-	if( self->strokes ){
-		if( self->path == NULL || self->path->strokes == NULL )
-			DaoxPathMesh_Delete( self->strokes );
-	}
 	if( self->path ) DaoGC_DecRC( (DaoValue*) self->path );
+	if( self->mesh ) DaoGC_DecRC( (DaoValue*) self->mesh );
+	if( self->texture ) DaoGC_DecRC( (DaoValue*) self->texture );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoGC_DecRC( (DaoValue*) self->parent );
 	DaoGC_DecRC( (DaoValue*) self->brush );
@@ -342,22 +330,22 @@ void DaoxCanvasNode_Delete( DaoxCanvasNode *self )
 }
 void DaoxCanvasNode_MarkDataChanged( DaoxCanvasNode *self )
 {
-	self->dataChanged = 1;
-	self->stateChanged = 1;
+	self->changed = 1;
+	self->moved = 1;
 	if( self->parent ) DaoxCanvasNode_MarkStateChanged( self->parent );
 }
 void DaoxCanvasNode_MarkStateChanged( DaoxCanvasNode *self )
 {
-	self->stateChanged = 1;
+	self->moved = 1;
 	if( self->parent ) DaoxCanvasNode_MarkStateChanged( self->parent );
 }
 DaoxMatrix3D DaoxCanvasNode_GetLocalTransform( DaoxCanvasNode *self )
 {
 	DaoxMatrix3D transform;
-	transform.A11 =   self->scale.x * self->rotation.x;
-	transform.A12 = - self->scale.y * self->rotation.y;
-	transform.A21 =   self->scale.x * self->rotation.y;
-	transform.A22 =   self->scale.y * self->rotation.x;
+	transform.A11 =   self->rotation.x;
+	transform.A12 = - self->rotation.y;
+	transform.A21 =   self->rotation.y;
+	transform.A22 =   self->rotation.x;
 	transform.B1 = self->translation.x;
 	transform.B2 = self->translation.y;
 	return transform;
@@ -378,45 +366,23 @@ void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 	DArray *points;
 	daoint i;
 
-	if( self->stateChanged == 0 ) return;
+	if( self->moved == 0 && self->changed == 0 ) return;
 	if( self->ctype == daox_type_canvas_image ) return;
 
-	if( self->dataChanged && self->brush ){
+	if( self->changed ){
 		DaoxPath *path = NULL;
 		DaoType *ctype = self->ctype;
 		DaoxBrush *brush = self->brush;
 		DaoxGradient *strokeGradient = brush->strokeGradient;
-		float strokeWidth = brush->strokeWidth / (self->magnitude + EPSILON);
+		float strokeWidth = brush->strokeStyle.width / (self->scale + EPSILON);
 		float strokeAlpha = brush->strokeColor.alpha;
-		int refine = brush->dash || strokeGradient != NULL;
-		int junction = brush->junction;
-		int cap = brush->linecap;
+		int refine = brush->strokeStyle.dash || strokeGradient != NULL;
+		int junction = brush->strokeStyle.junction;
+		int cap = brush->strokeStyle.cap;
 
-		if( ctype == daox_type_canvas_polyline || ctype == daox_type_canvas_polygon ){
-			if( self->path == NULL ){
-				self->path = path = DaoxPath_New();
-				DaoGC_IncRC( (DaoValue*) self->path );
-			}
-			DaoxPath_Reset( self->path );
-			if( self->ctype == daox_type_canvas_polyline ){
-				for(i=0; i<self->data.points->size; i+=2){
-					DaoxVector2D *points = self->data.points->data.vectors2d + i;
-					DaoxPath_MoveTo( self->path, points[0].x, points[0].y );
-					DaoxPath_LineTo( self->path, points[1].x, points[1].y );
-				}
-			}else{
-				if( self->data.points->size ){
-					DaoxVector2D point = self->data.points->data.vectors2d[0];
-					DaoxPath_MoveTo( self->path, point.x, point.y );
-				}
-				for(i=1; i<self->data.points->size; ++i){
-					DaoxVector2D point = self->data.points->data.vectors2d[i];
-					DaoxPath_LineTo( self->path, point.x, point.y );
-				}
-				DaoxPath_Close( self->path );
-			}
-			DaoxPath_Preprocess( path, canvas->triangulator );
-		}
+#warning TODO
+#if 0
+		DaoxPathMesh *mesh = DaoxPathCache_FindMesh();
 		path = self->path;
 		if( path ){
 			if( path->first->refined.first == NULL )
@@ -427,18 +393,21 @@ void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 				self->strokes = DaoxPath_GetStrokes( path, strokeWidth, cap, junction, refine );
 			}
 		}
-		self->dataChanged = 0;
+#endif
+		self->changed = 0;
 	}
-	self->stateChanged = self->dataChanged;
+	self->moved = 0;
 
 	points = DArray_New( sizeof(DaoxVector2D) );
 	if( self->path ){
-		DaoxOBBox2D obbox = DaoxOBBox2D_Scale( & self->path->obbox, self->magnitude );
+		DaoxOBBox2D obbox = DaoxOBBox2D_Scale( & self->path->obbox, self->scale );
+#if 0
 		if( self->strokes && self->strokes->points->size ){
-			float strokeWidth = self->brush ? self->brush->strokeWidth : 0;
-			strokeWidth *= self->magnitude + EPSILON;
+			float strokeWidth = self->brush ? self->brush->strokeStyle.width : 0;
+			strokeWidth *= self->scale + EPSILON;
 			obbox = DaoxOBBox2D_CopyWithMargin( & obbox, 0.5*strokeWidth );
 		}
+#endif
 		DArray_PushOBBoxVertexPoints2D( points, & obbox );
 	}
 	if( self->children ){
@@ -497,31 +466,14 @@ void DaoxCanvasEllipse_Delete( DaoxCanvasEllipse *self )
 }
 
 
-DaoxCanvasPolyline* DaoxCanvasPolyline_New()
-{
-	DaoxCanvasPolyline *self = (DaoxCanvasPolyline*)dao_calloc( 1, sizeof(DaoxCanvasPolyline));
-	DaoxCanvasNode_Init( self,  daox_type_canvas_polyline );
-	self->data.points = DArray_New( sizeof(DaoxVector2D) );
-	return self;
-}
-void DaoxCanvasPolyline_Delete( DaoxCanvasPolyline *self )
-{
-	DArray_Delete( self->data.points );
-	DaoxCanvasNode_Free( self );
-	dao_free( self );
-}
-
-
 DaoxCanvasPolygon* DaoxCanvasPolygon_New()
 {
 	DaoxCanvasPolygon *self = (DaoxCanvasPolygon*)dao_calloc( 1, sizeof(DaoxCanvasPolygon));
 	DaoxCanvasNode_Init( self,  daox_type_canvas_polygon );
-	self->data.points = DArray_New( sizeof(DaoxVector2D) );
 	return self;
 }
 void DaoxCanvasPolygon_Delete( DaoxCanvasPolygon *self )
 {
-	DArray_Delete( self->data.points );
 	DaoxCanvasNode_Free( self );
 	dao_free( self );
 }
@@ -549,7 +501,6 @@ DaoxCanvasImage* DaoxCanvasImage_New()
 void DaoxCanvasImage_Delete( DaoxCanvasImage *self )
 {
 	DaoxCanvasNode_Free( self );
-	DaoGC_DecRC( (DaoValue*) self->data.texture );
 	dao_free( self );
 }
 
@@ -558,13 +509,11 @@ DaoxCanvasText* DaoxCanvasText_New()
 {
 	DaoxCanvasText *self = (DaoxCanvasText*) dao_calloc( 1, sizeof(DaoxCanvasText) );
 	DaoxCanvasNode_Init( self, daox_type_canvas_text );
-	self->data.text = DString_New(0);
 	return self;
 }
 void DaoxCanvasText_Delete( DaoxCanvasText *self )
 {
 	DaoxCanvasNode_Free( self );
-	DString_Delete( self->data.text );
 	dao_free( self );
 }
 
@@ -582,12 +531,12 @@ void DaoxCanvasLine_Set( DaoxCanvasLine *self, float x1, float y1, float x2, flo
 	float sine = dy / (r + EPSILON);
 
 	assert( self->ctype == daox_type_canvas_line );
-	self->magnitude = r / UNIT;
+	self->scale = r / DAOX_PATH_UNIT;
 	self->rotation.x = cosine;
 	self->rotation.y = sine;
 	self->translation.x = x1;
 	self->translation.y = y1;
-	self->dataChanged = 1;
+	self->changed = 1;
 }
 
 void DaoxCanvasRect_Set( DaoxCanvasRect *self, float x1, float y1, float x2, float y2 )
@@ -598,44 +547,38 @@ void DaoxCanvasRect_Set( DaoxCanvasRect *self, float x1, float y1, float x2, flo
 	DaoxCanvasNode_ResetTransform( self );
 	self->translation.x = x1;
 	self->translation.y = y1;
-	self->dataChanged = 1;
-	self->magnitude = w / UNIT;
+	self->changed = 1;
+	self->scale = w / DAOX_PATH_UNIT;
 }
 
 void DaoxCanvasCircle_Set( DaoxCanvasCircle *self, float x, float y, float r )
 {
 	assert( self->ctype == daox_type_canvas_circle );
-	self->magnitude = r / UNIT;
+	self->scale = r / DAOX_PATH_UNIT;
 	DaoxCanvasNode_ResetTransform( self );
 	self->translation.x = x;
 	self->translation.y = y;
-	self->dataChanged = 1;
+	self->changed = 1;
 }
 
 void DaoxCanvasEllipse_Set( DaoxCanvasEllipse *self, float x, float y, float rx, float ry )
 {
 	assert( self->ctype == daox_type_canvas_ellipse );
-	self->magnitude = rx / UNIT;
+	self->scale = rx / DAOX_PATH_UNIT;
 	DaoxCanvasNode_ResetTransform( self );
 	self->translation.x = x;
 	self->translation.y = y;
-	self->dataChanged = 1;
+	self->changed = 1;
 }
 
 
-
-void DaoxCanvasPolyline_Add( DaoxCanvasPolyline *self, float x, float y )
-{
-	assert( self->ctype == daox_type_canvas_polyline );
-	DArray_PushVectorXY( self->data.points, x, y );
-	self->dataChanged = 1;
-}
 
 void DaoxCanvasPolygon_Add( DaoxCanvasPolygon *self, float x, float y )
 {
 	assert( self->ctype == daox_type_canvas_polygon );
-	DArray_PushVectorXY( self->data.points, x, y );
-	self->dataChanged = 1;
+	DaoxPath_LineTo( self->path, x, y );
+	DaoxPath_Close( self->path );
+	self->changed = 1;
 }
 
 #if 0
@@ -700,70 +643,24 @@ DaoxCanvas* DaoxCanvas_New()
 {
 	DaoxCanvas *self = (DaoxCanvas*) dao_calloc( 1, sizeof(DaoxCanvas) );
 	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_canvas );
-	self->triangulator = DaoxTriangulator_New();
 	self->nodes = DList_New( DAO_DATA_VALUE );
 	self->actives = DList_New( DAO_DATA_VALUE );
 	self->brushes = DList_New( DAO_DATA_VALUE );
-	self->rects = DMap_New(0,DAO_DATA_VALUE);
-	self->ellipses = DMap_New(0,DAO_DATA_VALUE);
 	self->transform = DaoxMatrix3D_Identity();
 
-	self->unitLine = DaoxPath_New();
-	self->unitLine->strokes = DMap_New(0,0);
-	DaoxPath_MoveTo( self->unitLine, 0, 0 );
-	DaoxPath_LineTo( self->unitLine, UNIT, 0 );
-	DaoGC_IncRC( (DaoValue*) self->unitLine );
-	DaoxPath_Preprocess( self->unitLine, self->triangulator );
+	self->auxPath = DaoxPath_New();
+	DaoGC_IncRC( (DaoValue*) self->auxPath );
 
-	self->unitRect = DaoxPath_New();
-	self->unitRect->strokes = DMap_New(0,0);
-	DaoxPath_MoveTo( self->unitRect, 0, 0 );
-	DaoxPath_LineTo( self->unitRect, UNIT, 0 );
-	DaoxPath_LineTo( self->unitRect, UNIT, UNIT );
-	DaoxPath_LineTo( self->unitRect, 0, UNIT );
-	DaoxPath_Close( self->unitRect );
-	DaoGC_IncRC( (DaoValue*) self->unitRect );
-	DaoxPath_Preprocess( self->unitRect, self->triangulator );
-
-	self->unitCircle1 = DaoxPath_New();
-	self->unitCircle1->strokes = DMap_New(0,0);
-	DaoxPath_MoveTo( self->unitCircle1, -UNIT, 0 );
-	DaoxPath_ArcTo2( self->unitCircle1,  UNIT, 0, 180, 180 );
-	DaoxPath_ArcTo2( self->unitCircle1, -UNIT, 0, 180, 180 );
-	DaoxPath_Close( self->unitCircle1 );
-	DaoxPath_Preprocess( self->unitCircle1, self->triangulator );
-
-	self->unitCircle2 = DaoxPath_New();
-	self->unitCircle2->strokes = DMap_New(0,0);
-	DaoxPath_MoveTo( self->unitCircle2, -UNIT, 0 );
-	DaoxPath_ArcTo2( self->unitCircle2,  UNIT, 0, 180, 60 );
-	DaoxPath_ArcTo2( self->unitCircle2, -UNIT, 0, 180, 60 );
-	DaoxPath_Close( self->unitCircle2 );
-	DaoxPath_Preprocess( self->unitCircle2, self->triangulator );
-
-	self->unitCircle3 = DaoxPath_New();
-	self->unitCircle3->strokes = DMap_New(0,0);
-	DaoxPath_MoveTo( self->unitCircle3, -UNIT, 0 );
-	DaoxPath_ArcTo2( self->unitCircle3,  UNIT, 0, 180, 20 );
-	DaoxPath_ArcTo2( self->unitCircle3, -UNIT, 0, 180, 20 );
-	DaoxPath_Close( self->unitCircle3 );
-	DaoxPath_Preprocess( self->unitCircle3, self->triangulator );
+#warning TODO
+	self->pathCache = DaoxPathCache_New();
 	return self;
 }
 void DaoxCanvas_Delete( DaoxCanvas *self )
 {
 	DaoxSceneNode_Free( (DaoxSceneNode*) self );
-	DaoxTriangulator_Delete( self->triangulator );
-	DaoGC_DecRC( (DaoValue*) self->unitLine );
-	DaoGC_DecRC( (DaoValue*) self->unitRect );
-	DaoGC_DecRC( (DaoValue*) self->unitCircle1 );
-	DaoGC_DecRC( (DaoValue*) self->unitCircle2 );
-	DaoGC_DecRC( (DaoValue*) self->unitCircle3 );
 	DList_Delete( self->nodes );
 	DList_Delete( self->actives );
 	DList_Delete( self->brushes );
-	DMap_Delete( self->ellipses );
-	DMap_Delete( self->rects );
 	dao_free( self );
 }
 
@@ -808,9 +705,24 @@ void DaoxCanvas_PopBrush( DaoxCanvas *self )
 }
 
 
+void DaoxCanvas_UpdatePathMesh( DaoxCanvas *self, DaoxCanvasNode *node )
+{
+	DaoxPathMesh *mesh;
+	DaoxPathStyle style = node->brush->strokeStyle;
+
+	style.width = style.width / (node->scale + EPSILON);
+	if( node->path == NULL ) return;
+
+	mesh = DaoxPathCache_FindMesh( self->pathCache, node->path, & style );
+	GC_Assign( & node->mesh, mesh );
+}
 void DaoxCanvas_AddNode( DaoxCanvas *self, DaoxCanvasNode *node )
 {
 	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
+
+	GC_Assign( & node->brush, brush );
+	DaoxCanvas_UpdatePathMesh( self, node );
+
 	if( self->actives->size ){
 		DaoxCanvasNode *activeNode = (DaoxCanvasNode*) DList_Back( self->actives );
 		if( activeNode->children == NULL ) activeNode->children = DList_New( DAO_DATA_VALUE );
@@ -819,12 +731,11 @@ void DaoxCanvas_AddNode( DaoxCanvas *self, DaoxCanvasNode *node )
 	}else{
 		DList_PushBack( self->nodes, node );
 	}
-	GC_Assign( & node->brush, brush );
 }
 
 DaoxCanvasNode* DaoxCanvas_AddGroup( DaoxCanvas *self )
 {
-	DaoxCanvasLine *node = DaoxCanvasNode_New( daox_type_canvas_node );
+	DaoxCanvasNode *node = DaoxCanvasNode_New( daox_type_canvas_node );
 	DaoxCanvas_AddNode( self, node );
 	DList_PushBack( self->actives, node );
 	return node;
@@ -835,8 +746,8 @@ DaoxCanvasLine* DaoxCanvas_AddLine( DaoxCanvas *self, float x1, float y1, float 
 	DaoxCanvasLine *node = DaoxCanvasLine_New();
 	DaoxCanvasLine_Set( node, x1, y1, x2, y2 );
 	DaoxCanvas_AddNode( self, node );
-	DaoGC_IncRC( (DaoValue*) self->unitLine );
-	node->path = self->unitLine;
+	DaoGC_IncRC( (DaoValue*) self->pathCache->unitLine );
+	node->path = self->pathCache->unitLine;
 	return node;
 }
 
@@ -847,127 +758,111 @@ DaoxCanvasRect* DaoxCanvas_AddRect( DaoxCanvas *self, float x1, float y1, float 
 	float r = h / (w + EPSILON);
 	float rx2 = fabs(rx) / (w + EPSILON);
 	float ry2 = fabs(ry) / (h + EPSILON);
-	size_t ratio1 = 0xffff * r;
-	size_t ratio2 = 0xff * rx2;
-	size_t ratio3 = 0xff * ry2;
-	size_t key = ratio1 | (ratio2<<16) | (ratio3<<24);
-	DNode *it = DMap_Find( self->rects, (void*) key );
-	DaoxCanvasRect *item = DaoxCanvasRect_New();
-	DaoxPath *path = NULL;
+	DaoxCanvasRect *node = DaoxCanvasRect_New();
+	DaoxPath *path = self->auxPath;
 
-	if( it == NULL ){
-		path = DaoxPath_New();
-		path->strokes = DMap_New(0,0);
-		DaoxPath_SetRelativeMode( path, 1 );
-		if( fabs( rx2 ) > 1E-3 && fabs( ry2 ) > 1E-3 ){
-			r *= UNIT;
-			ry2 *= r;
-			rx2 *= UNIT;
-			DaoxPath_MoveTo( path, 0.0, ry2 );
-			DaoxPath_CubicTo2( path, 0.0, -0.55*ry2, -0.55*rx2, 0.0, rx2, -ry2 );
-			DaoxPath_LineTo( path, UNIT - 2.0*rx2, 0.0 );
-			DaoxPath_CubicTo2( path, 0.55*rx2, 0.0, 0.0, -0.55*ry2, rx2, ry2 );
-			DaoxPath_LineTo( path, 0.0, r - 2.0*ry2 );
-			DaoxPath_CubicTo2( path, 0.0, 0.55*ry2, 0.55*rx2, 0.0, -rx2, ry2 );
-			DaoxPath_LineTo( path, -(UNIT - 2.0*rx2), 0.0 );
-			DaoxPath_CubicTo2( path, -0.55*rx2, 0.0, 0.0, 0.55*ry2, -rx2, -ry2 );
-		}else{
-			DaoxPath_MoveTo( path, 0.0, 0.0 );
-			DaoxPath_LineTo( path, UNIT, 0.0 );
-			DaoxPath_LineTo( path, 0.0, r*UNIT );
-			DaoxPath_LineTo( path, -UNIT, 0.0 );
-		}
-		DaoxPath_Close( path );
-		DaoxPath_Preprocess( path, self->triangulator );
+	DaoxPath_Reset( path );
+	DaoxPath_SetRelativeMode( path, 1 );
+	if( fabs( rx2 ) > 1E-3 && fabs( ry2 ) > 1E-3 ){
+		r *= DAOX_PATH_UNIT;
+		ry2 *= r;
+		rx2 *= DAOX_PATH_UNIT;
+		DaoxPath_MoveTo( path, 0.0, ry2 );
+		DaoxPath_CubicTo2( path, 0.0, -0.55*ry2, -0.55*rx2, 0.0, rx2, -ry2 );
+		DaoxPath_LineTo( path, DAOX_PATH_UNIT - 2.0*rx2, 0.0 );
+		DaoxPath_CubicTo2( path, 0.55*rx2, 0.0, 0.0, -0.55*ry2, rx2, ry2 );
+		DaoxPath_LineTo( path, 0.0, r - 2.0*ry2 );
+		DaoxPath_CubicTo2( path, 0.0, 0.55*ry2, 0.55*rx2, 0.0, -rx2, ry2 );
+		DaoxPath_LineTo( path, -(DAOX_PATH_UNIT - 2.0*rx2), 0.0 );
+		DaoxPath_CubicTo2( path, -0.55*rx2, 0.0, 0.0, 0.55*ry2, -rx2, -ry2 );
 	}else{
-		path = (DaoxPath*) it->value.pVoid;
+		DaoxPath_MoveTo( path, 0.0, 0.0 );
+		DaoxPath_LineTo( path, DAOX_PATH_UNIT, 0.0 );
+		DaoxPath_LineTo( path, 0.0, r*DAOX_PATH_UNIT );
+		DaoxPath_LineTo( path, -DAOX_PATH_UNIT, 0.0 );
 	}
+	DaoxPath_Close( path );
 
-	DaoxCanvasRect_Set( item, x1, y1, x2, y2 );
-	DaoxCanvas_AddNode( self, item );
-	DaoGC_IncRC( (DaoValue*) path );
-	item->path = path;
-	return item;
+	node->path = DaoxPathCache_FindPath( self->pathCache, path );
+	if( node->path == NULL ){
+		node->path = DaoxPath_New();
+		DaoxPath_Copy( node->path, path );
+		DaoxPathCache_InsertPath( self->pathCache, node->path );
+	}
+	DaoGC_IncRC( (DaoValue*) node->path );
+
+	DaoxCanvasRect_Set( node, x1, y1, x2, y2 );
+	DaoxCanvas_AddNode( self, node );
+	return node;
 }
 
 DaoxCanvasCircle* DaoxCanvas_AddCircle( DaoxCanvas *self, float x, float y, float r )
 {
-	daoint R1E6 = (daoint)( r * 1E6 );
-	DaoxCanvasCircle *item = DaoxCanvasCircle_New();
-	DaoxPath *circle = self->unitCircle3;
+	DaoxCanvasCircle *node = DaoxCanvasCircle_New();
+	DaoxPath *circle = self->pathCache->unitCircle3;
 
 	if( r < 8.0 ){
-		circle = self->unitCircle1;
+		circle = self->pathCache->unitCircle1;
 	}else if( r < 32.0 ){
-		circle = self->unitCircle2;
+		circle = self->pathCache->unitCircle2;
 	}
-
-	DaoxCanvasCircle_Set( item, x, y, r );
-	DaoxCanvas_AddNode( self, item );
 	DaoGC_IncRC( (DaoValue*) circle );
-	item->path = circle;
-	return item;
+	node->path = circle;
+
+	DaoxCanvasCircle_Set( node, x, y, r );
+	DaoxCanvas_AddNode( self, node );
+	return node;
 }
 
 DaoxCanvasEllipse* DaoxCanvas_AddEllipse( DaoxCanvas *self, float x, float y, float rx, float ry )
 {
-	float ratio = ry / (rx + EPSILON);
-	size_t key = 0xffff * ratio;
-	DNode *it = DMap_Find( self->ellipses, (void*) key );
-	DaoxCanvasEllipse *item = DaoxCanvasEllipse_New();
-	DaoxPath *path = NULL;
+	DaoxPath *path = self->auxPath;
+	DaoxCanvasEllipse *node = DaoxCanvasEllipse_New();
+	DaoxMatrix3D mat = DaoxMatrix3D_Identity();
 
-	if( it == NULL ){
-		DaoxMatrix3D mat = DaoxMatrix3D_Identity();
-		mat.A22 = ratio;
-		path = DaoxPath_New();
-		path->strokes = DMap_New(0,0);
-		DaoxPath_ImportPath( path, self->unitCircle3, & mat );
-		DaoxPath_Preprocess( path, self->triangulator );
-	}else{
-		path = (DaoxPath*) it->value.pVoid;
+	mat.A22 = ry / (rx + EPSILON);
+	DaoxPath_Reset( path );
+	DaoxPath_ImportPath( path, self->pathCache->unitCircle3, & mat );
+
+	node->path = DaoxPathCache_FindPath( self->pathCache, path );
+	if( node->path == NULL ){
+		node->path = DaoxPath_New();
+		DaoxPath_Copy( node->path, path );
+		DaoxPathCache_InsertPath( self->pathCache, node->path );
 	}
+	DaoGC_IncRC( (DaoValue*) node->path );
 
-	DaoxCanvasEllipse_Set( item, x, y, rx, ry );
-	DaoxCanvas_AddNode( self, item );
-	DaoGC_IncRC( (DaoValue*) path );
-	item->path = path;
-	return item;
-}
-
-DaoxCanvasPolyline* DaoxCanvas_AddPolyline( DaoxCanvas *self )
-{
-	DaoxCanvasPolyline *item = DaoxCanvasPolyline_New();
-	DaoxCanvas_AddNode( self, item );
-	return item;
+	DaoxCanvasEllipse_Set( node, x, y, rx, ry );
+	DaoxCanvas_AddNode( self, node );
+	return node;
 }
 
 DaoxCanvasPolygon* DaoxCanvas_AddPolygon( DaoxCanvas *self )
 {
-	DaoxCanvasPolygon *item = DaoxCanvasPolygon_New();
-	DaoxCanvas_AddNode( self, item );
-	return item;
+	DaoxCanvasPolygon *node = DaoxCanvasPolygon_New();
+	DaoxCanvas_AddNode( self, node );
+	return node;
 }
 
 DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path )
 {
-	DaoxCanvasPath *item = DaoxCanvasPath_New();
+	DaoxCanvasPath *node = DaoxCanvasPath_New();
 	DaoGC_IncRC( (DaoValue*) path );
-	item->path = path;
-	DaoxCanvas_AddNode( self, item );
-	return item;
+	node->path = path;
+	DaoxCanvas_AddNode( self, node );
+	return node;
 }
 void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray *text, float x, float y, float degrees )
 {
 	DaoxGlyph *glyph;
 	DaoxBrush *brush;
-	DaoxCanvasText *chitem;
+	DaoxCanvasText *chnode;
 	DaoxPath *textPath = textItem->path;
 	DaoxFont *font = textItem->brush->font;
 	DaoxVector2D rotation = {1.0, 0.0};
 	DaoxVector2D charRotation = {1.0, 0.0};
 	DaoxVector2D charTranslation = {0.0, 0.0};
-	float width = textItem->brush->strokeWidth;
+	float width = textItem->brush->strokeStyle.width;
 	float size = textItem->brush->fontSize;
 	float scale = size / (float)font->fontHeight;
 	float offset, advance, angle = degrees * M_PI / 180.0;
@@ -999,11 +894,11 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 
 		if( textItem->children == NULL ) textItem->children = DList_New( DAO_DATA_VALUE );
 
-		chitem = DaoxCanvasPath_New();
-		DaoxCanvas_AddNode( self, chitem );
+		chnode = DaoxCanvasPath_New();
+		DaoxCanvas_AddNode( self, chnode );
 		DaoGC_IncRC( (DaoValue*) glyph->shape );
-		chitem->path = glyph->shape;
-		chitem->magnitude = scale;
+		chnode->path = glyph->shape;
+		chnode->scale = scale;
 		
 		if( textPath ){
 			float len1, len2, dist;
@@ -1033,35 +928,35 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 			charTranslation.x = offset;
 			charTranslation.y = y;
 		}
-		chitem->rotation = charRotation;
-		chitem->translation = charTranslation;
+		chnode->rotation = charRotation;
+		chnode->translation = charTranslation;
 		offset += scale * advance + width;
-		chitem = NULL;
+		chnode = NULL;
 	}
 	DList_PopBack( self->actives );
 }
 DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, float x, float y, float degrees )
 {
-	DaoxCanvasPath *item;
+	DaoxCanvasPath *node;
 	DaoxBrush *brush;
 	DString str = DString_WrapChars( text );
 	DArray *codepoints;
 
 	if( self->brushes->size == 0 ) return NULL;
 	brush = DaoxCanvas_GetOrPushBrush( self );
-	if( brush->font == NULL ) return NULL;
+	if( brush->font == NULL ) GC_Assign( & brush->font, DaoxFont_GetDefault() );
 
-	item = DaoxCanvasText_New();
-	DaoxCanvas_AddNode( self, item );
+	node = DaoxCanvasText_New();
+	DaoxCanvas_AddNode( self, node );
 	codepoints = DArray_New( sizeof(uint_t) );
 	DString_DecodeUTF8( & str, codepoints );
-	DaoxCanvas_AddCharItems( self, item, codepoints, x, y, degrees );
+	DaoxCanvas_AddCharItems( self, node, codepoints, x, y, degrees );
 	DArray_Delete( codepoints );
-	return item;
+	return node;
 }
 DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, DaoxPath *path, float degrees )
 {
-	DaoxCanvasPath *item;
+	DaoxCanvasPath *node;
 	DaoxBrush *brush;
 	DString str = DString_WrapChars( text );
 	DArray *codepoints;
@@ -1070,37 +965,38 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, Daox
 	brush = DaoxCanvas_GetOrPushBrush( self );
 	if( brush->font == NULL ) return NULL;
 
-	item = DaoxCanvasText_New();
-	DaoxCanvas_AddNode( self, item );
+	node = DaoxCanvasText_New();
+	DaoxCanvas_AddNode( self, node );
 
-	DaoxPath_Preprocess( path, self->triangulator );
-	GC_Assign( & item->path, path );
-	item->visible = 0;
+#warning TODO
+	//DaoxPath_Preprocess( path, self->triangulator );
+	GC_Assign( & node->path, path );
+	node->visible = 0;
 
 	codepoints = DArray_New( sizeof(uint_t) );
 	DString_DecodeUTF8( & str, codepoints );
-	DaoxCanvas_AddCharItems( self, item, codepoints, 0, 0, degrees );
+	DaoxCanvas_AddCharItems( self, node, codepoints, 0, 0, degrees );
 	DArray_Delete( codepoints );
-	return item;
+	return node;
 }
 DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y )
 {
 	DaoxBrush *brush = DaoxCanvas_GetOrPushBrush( self );
-	DaoxCanvasPath *item = DaoxCanvasImage_New();
+	DaoxCanvasPath *node = DaoxCanvasImage_New();
 	DaoxTexture *texture = DaoxTexture_New();
 
-	item->translation.x = x;
-	item->translation.y = y;
-	item->obbox.O.x = item->obbox.O.y = 0;
-	item->obbox.X.x = item->obbox.X.y = 0;
-	item->obbox.Y.x = item->obbox.Y.y = 0;
-	item->obbox.X.x = image->width;
-	item->obbox.Y.y = image->height;
+	node->translation.x = x;
+	node->translation.y = y;
+	node->obbox.O.x = node->obbox.O.y = 0;
+	node->obbox.X.x = node->obbox.X.y = 0;
+	node->obbox.Y.x = node->obbox.Y.y = 0;
+	node->obbox.X.x = image->width;
+	node->obbox.Y.y = image->height;
 
 	DaoxTexture_SetImage( texture, image );
-	DaoxCanvas_AddNode( self, item );
-	GC_Assign( & item->data.texture, texture );
-	return item;
+	DaoxCanvas_AddNode( self, node );
+	GC_Assign( & node->texture, texture );
+	return node;
 }
 
 
@@ -1282,7 +1178,6 @@ DaoTypeBase DaoxCanvasCircle_Typer =
 
 
 
-
 static void ELLIPSE_SetData( DaoxCanvasEllipse *self, DaoValue *p[] )
 {
 	float x1 = p[0]->xFloat.value;
@@ -1306,31 +1201,6 @@ static DaoFuncItem DaoxCanvasEllipseMeths[]=
 DaoTypeBase DaoxCanvasEllipse_Typer =
 {
 	"CanvasEllipse", NULL, NULL, (DaoFuncItem*) DaoxCanvasEllipseMeths,
-	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
-	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
-};
-
-
-
-
-
-static void POLYLINE_Add( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxCanvasPolyline *self = (DaoxCanvasPolyline*) p[0];
-	float x = p[1]->xFloat.value;
-	float y = p[2]->xFloat.value;
-	DaoxCanvasPolyline_Add( self, x, y );
-	DaoProcess_PutValue( proc, (DaoValue*) self );
-}
-static DaoFuncItem DaoxCanvasPolylineMeths[]=
-{
-	{ POLYLINE_Add,  "Add( self: CanvasPolyline, x: float, y: float ) => CanvasPolyline" },
-	{ NULL, NULL }
-};
-
-DaoTypeBase DaoxCanvasPolyline_Typer =
-{
-	"CanvasPolyline", NULL, NULL, (DaoFuncItem*) DaoxCanvasPolylineMeths,
 	{ & DaoxCanvasNode_Typer, NULL }, { NULL },
 	(FuncPtrDel)DaoxCanvasNode_Delete, DaoxCanvasNode_GetGCFields
 };
@@ -1633,16 +1503,6 @@ static void CANVAS_AddEllipse( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvasEllipse *item = DaoxCanvas_AddEllipse( self, x, y, rx, ry );
 	DaoProcess_PutValue( proc, (DaoValue*) item );
 }
-static void CANVAS_AddPolyline( DaoProcess *proc, DaoValue *p[], int N )
-{
-	DaoxCanvas *self = (DaoxCanvas*) p[0];
-	DaoxCanvasPolyline *item = DaoxCanvas_AddPolyline( self );
-	float x1 = p[1]->xFloat.value, y1 = p[2]->xFloat.value;
-	float x2 = p[3]->xFloat.value, y2 = p[4]->xFloat.value;
-	DaoxCanvasPolyline_Add( item, x1, y1 );
-	DaoxCanvasPolyline_Add( item, x2, y2 );
-	DaoProcess_PutValue( proc, (DaoValue*) item );
-}
 static void CANVAS_AddPolygon( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
@@ -1713,7 +1573,7 @@ static void CANVAS_PopBrush( DaoProcess *proc, DaoValue *p[], int N )
 static void BRUSH_SetStrokeWidth( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
-	self->strokeWidth = p[1]->xFloat.value;
+	self->strokeStyle.width = p[1]->xFloat.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void BRUSH_SetStrokeColor( DaoProcess *proc, DaoValue *p[], int N )
@@ -1737,13 +1597,13 @@ static void BRUSH_SetFillColor( DaoProcess *proc, DaoValue *p[], int N )
 static void BRUSH_SetLineCap( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
-	self->linecap = p[1]->xEnum.value;
+	self->strokeStyle.cap = p[1]->xEnum.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void BRUSH_SetJunction( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
-	self->junction = p[1]->xEnum.value;
+	self->strokeStyle.junction = p[1]->xEnum.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void BRUSH_SetDash( DaoProcess *proc, DaoValue *p[], int N )
@@ -1832,8 +1692,6 @@ static DaoFuncItem DaoxCanvasMeths[]=
 
 
 	{ CANVAS_AddEllipse,   "AddEllipse( self: Canvas, x: float, y: float, rx: float, ry: float ) => CanvasEllipse" },
-
-	{ CANVAS_AddPolyline,  "AddPolyline( self: Canvas, x1: float, y1: float, x2: float, y2: float ) => CanvasPolyline" },
 
 	{ CANVAS_AddPolygon,   "AddPolygon( self: Canvas ) => CanvasPolygon" },
 
@@ -1961,7 +1819,6 @@ DAO_DLL int DaoVectorGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	daox_type_canvas_rect = DaoNamespace_WrapType( ns, & DaoxCanvasRect_Typer, 0 );
 	daox_type_canvas_circle = DaoNamespace_WrapType( ns, & DaoxCanvasCircle_Typer, 0 );
 	daox_type_canvas_ellipse = DaoNamespace_WrapType( ns, & DaoxCanvasEllipse_Typer, 0 );
-	daox_type_canvas_polyline = DaoNamespace_WrapType( ns, & DaoxCanvasPolyline_Typer, 0 );
 	daox_type_canvas_polygon = DaoNamespace_WrapType( ns, & DaoxCanvasPolygon_Typer, 0 );
 	daox_type_canvas_path = DaoNamespace_WrapType( ns, & DaoxCanvasPath_Typer, 0 );
 	daox_type_canvas_text = DaoNamespace_WrapType( ns, & DaoxCanvasText_Typer, 0 );

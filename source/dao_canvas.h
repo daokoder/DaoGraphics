@@ -47,7 +47,6 @@
 #include "daoStdtype.h"
 #include "daoValue.h"
 
-#define DAOX_MAX_DASH            16
 #define DAOX_MAX_GRADIENT_STOPS  64
 
 typedef struct DaoxBrush      DaoxBrush;
@@ -69,13 +68,13 @@ struct DaoxGradient
 {
 	DAO_CSTRUCT_COMMON;
 
-	int  gradient;
+	int           gradient;
+	float         radius;
+	DaoxVector2D  points[2];
 
 	DArray  *stops;  /* <float> */
 	DArray  *colors; /* <DaoxColor> */
 
-	DaoxVector2D  points[2];
-	float         radius;
 };
 DAO_DLL DaoType *daox_type_gradient;
 DAO_DLL DaoType *daox_type_linear_gradient;
@@ -89,19 +88,13 @@ struct DaoxBrush
 {
 	DAO_CSTRUCT_COMMON;
 
-	uchar_t  dash;
-	uchar_t  linecap;
-	uchar_t  junction;
-	float    fontSize;
-	float    strokeWidth;
-	float    dashPattern[DAOX_MAX_DASH];
-
-	DaoxColor  strokeColor;
-	DaoxColor  fillColor;
-
+	DaoxPathStyle  strokeStyle;
+	DaoxColor      strokeColor;
+	DaoxColor      fillColor;
 	DaoxGradient  *strokeGradient;
 	DaoxGradient  *fillGradient;
 	DaoxFont      *font;
+	float          fontSize;
 };
 DAO_DLL DaoType *daox_type_brush;
 
@@ -116,59 +109,51 @@ struct DaoxCanvasNode
 {
 	DAO_CSTRUCT_COMMON;
 
-	uint_t   hash;
-	uchar_t  visible;
-	uchar_t  dataChanged;  /* geometry changed; */
-	uchar_t  stateChanged; /* orientation, stroke width etc. changed; */
-	float    magnitude;    /* scale on the raw data, no effects on the strokes and children; */
+	uchar_t  visible;  /* visibility; */
+	uchar_t  changed;  /* geometry changed; */
+	uchar_t  moved;    /* orientation changed; */
+	float    scale;    /* path scale; */
 
-	DaoxOBBox2D       obbox;        /* local space; */
-	DaoxVector2D      scale;        /* local space; */
-	DaoxVector2D      rotation;     /* local space (cos,sin); */
-	DaoxVector2D      translation;  /* parent space; */
-	DaoxBrush        *brush;
+	DaoxOBBox2D   obbox;        /* local space; */
+	DaoxVector2D  rotation;     /* local space (cos,sin); */
+	DaoxVector2D  translation;  /* parent space; */
 
-	DaoxCanvasNode   *parent;     /* parent item; */
-	DList            *children;   /* children items; */
+	DaoxBrush     *brush;   /* brush for the node; */
+	DaoxPath      *path;    /* path for the canvas node; */
+	DaoxPathMesh  *mesh;    /* tessellation for the path; */
+	DaoxTexture   *texture; /* texture for image node; */
 
-	DaoxPath      *path;     /* may be filled with filling color; */
-	DaoxPathMesh  *strokes;  /* may be filled with stroking color; */
-
-	union {
-		DArray       *points;  /* polyline or polygon item; */
-		DaoxTexture  *texture; /* image item; */
-		DString      *text;    /* text item; */
-	} data;
+	DaoxCanvasNode  *parent;    /* parent node; */
+	DList           *children;  /* children nodes; */
 };
 
 
 
 /*
 // A line is always defined locally by (0,0)-(1,0).
-// Its actual length and orientation are determined by its transformations.
+// Its actual size and orientation are determined by its transformations.
 */
 typedef  DaoxCanvasNode  DaoxCanvasLine;
 
 /*
-// A rectable is always defined locally by (0,0)-(1,0)-(1,1)-(0,1).
-// Its actual shape and orientation are determined by its transformations.
+// A rectable is always defined locally by (0,0)-(1,0)-(1,y)-(0,y).
+// Its actual size and orientation are determined by its transformations.
 */
 typedef  DaoxCanvasNode  DaoxCanvasRect;
 
 /*
 // A circle is always defined locally as unit circle located at (0,0).
-// Its actual shape and orientation are determined by its transformations.
+// Its actual size and orientation are determined by its transformations.
 */
 typedef  DaoxCanvasNode  DaoxCanvasCircle;
 
 /*
 // An ellipse is always defined locally as unit circle located at (0,0).
-// Its actual shape and orientation are determined by its transformations.
+// Its actual size and orientation are determined by its transformations.
 */
 typedef  DaoxCanvasNode  DaoxCanvasEllipse;
 
 
-typedef DaoxCanvasNode  DaoxCanvasPolyline;
 typedef DaoxCanvasNode  DaoxCanvasPolygon;
 typedef DaoxCanvasNode  DaoxCanvasPath;
 typedef DaoxCanvasNode  DaoxCanvasImage;
@@ -181,7 +166,6 @@ DAO_DLL DaoType *daox_type_canvas_line;
 DAO_DLL DaoType *daox_type_canvas_rect;
 DAO_DLL DaoType *daox_type_canvas_circle;
 DAO_DLL DaoType *daox_type_canvas_ellipse;
-DAO_DLL DaoType *daox_type_canvas_polyline;
 DAO_DLL DaoType *daox_type_canvas_polygon;
 DAO_DLL DaoType *daox_type_canvas_path;
 DAO_DLL DaoType *daox_type_canvas_text;
@@ -204,22 +188,8 @@ struct DaoxCanvas
 	DList  *actives;
 	DList  *brushes;
 
-	DMap  *rects;
-	DMap  *ellipses;
-	DMap  *glyphs;
-
-	/*
-	// Map hash values of canvas items to lists of canvas items.
-	*/
-	DMap  *meshMap;  /* DMap<int,DList<DaoxCanvasNode*>>; */
-
-	DaoxPath  *unitLine;
-	DaoxPath  *unitRect;
-	DaoxPath  *unitCircle1;
-	DaoxPath  *unitCircle2;
-	DaoxPath  *unitCircle3;
-
-	DaoxTriangulator  *triangulator;
+	DaoxPath      *auxPath;
+	DaoxPathCache *pathCache;
 };
 DAO_DLL DaoType *daox_type_canvas;
 
@@ -272,12 +242,7 @@ DAO_DLL void DaoxCanvasCircle_Set( DaoxCanvasCircle *self, float x, float y, flo
 
 DAO_DLL void DaoxCanvasEllipse_Set( DaoxCanvasEllipse *self, float x, float y, float rx, float ry );
 
-DAO_DLL void DaoxCanvasPolyline_Add( DaoxCanvasPolyline *self, float x, float y );
-
 DAO_DLL void DaoxCanvasPolygon_Add( DaoxCanvasPolygon *self, float x, float y );
-
-
-
 
 
 
@@ -301,8 +266,6 @@ DAO_DLL DaoxCanvasRect* DaoxCanvas_AddRect( DaoxCanvas *self, float x1, float y1
 DAO_DLL DaoxCanvasCircle* DaoxCanvas_AddCircle( DaoxCanvas *self, float x, float y, float r );
 
 DAO_DLL DaoxCanvasEllipse* DaoxCanvas_AddEllipse( DaoxCanvas *self, float x, float y, float rx, float ry );
-
-DAO_DLL DaoxCanvasPolyline* DaoxCanvas_AddPolyline( DaoxCanvas *self );
 
 DAO_DLL DaoxCanvasPolygon* DaoxCanvas_AddPolygon( DaoxCanvas *self );
 
