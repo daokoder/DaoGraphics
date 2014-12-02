@@ -369,45 +369,37 @@ void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 	if( self->moved == 0 && self->changed == 0 ) return;
 	if( self->ctype == daox_type_canvas_image ) return;
 
-	if( self->changed ){
-		DaoxPath *path = NULL;
-		DaoType *ctype = self->ctype;
+	if( self->changed && self->path != NULL ){
+		DaoxPathStyle style = self->brush->strokeStyle;
+		DaoxPathMesh *mesh;
+
+		style.width = style.width / (self->scale + EPSILON);
+		mesh = DaoxPathCache_FindMesh( canvas->pathCache, self->path, & style );
+		GC_Assign( & self->mesh, mesh );
+		self->changed = 0;
+	}
+	if( self->mesh && self->mesh->fillPoints->size == 0 ){
 		DaoxBrush *brush = self->brush;
 		DaoxGradient *strokeGradient = brush->strokeGradient;
 		float strokeWidth = brush->strokeStyle.width / (self->scale + EPSILON);
 		float strokeAlpha = brush->strokeColor.alpha;
 		int refine = brush->strokeStyle.dash || strokeGradient != NULL;
-		int junction = brush->strokeStyle.junction;
-		int cap = brush->strokeStyle.cap;
 
-#warning TODO
-#if 0
-		DaoxPathMesh *mesh = DaoxPathCache_FindMesh();
-		path = self->path;
-		if( path ){
-			if( path->first->refined.first == NULL )
-				DaoxPath_Preprocess( path, canvas->triangulator );
-
-			if( strokeWidth > EPSILON && (strokeAlpha > EPSILON || strokeGradient != NULL) ){
-				if( path->strokes == NULL ) path->strokes = DMap_New(0,0);
-				self->strokes = DaoxPath_GetStrokes( path, strokeWidth, cap, junction, refine );
-			}
+		DaoxPathMesh_Preprocess( self->mesh, canvas->pathCache->triangulator );
+		if( strokeWidth > EPSILON && (strokeAlpha > EPSILON || strokeGradient != NULL) ){
+			DaoxMeshPath_ComputeStroke( self->mesh, refine );
 		}
-#endif
-		self->changed = 0;
 	}
 	self->moved = 0;
 
 	points = DArray_New( sizeof(DaoxVector2D) );
-	if( self->path ){
-		DaoxOBBox2D obbox = DaoxOBBox2D_Scale( & self->path->obbox, self->scale );
-#if 0
-		if( self->strokes && self->strokes->points->size ){
+	if( self->path && self->mesh ){
+		DaoxOBBox2D obbox = DaoxOBBox2D_Scale( & self->mesh->path->obbox, self->scale );
+		if( self->mesh->strokePoints->size ){
 			float strokeWidth = self->brush ? self->brush->strokeStyle.width : 0;
 			strokeWidth *= self->scale + EPSILON;
 			obbox = DaoxOBBox2D_CopyWithMargin( & obbox, 0.5*strokeWidth );
 		}
-#endif
 		DArray_PushOBBoxVertexPoints2D( points, & obbox );
 	}
 	if( self->children ){
@@ -784,11 +776,6 @@ DaoxCanvasRect* DaoxCanvas_AddRect( DaoxCanvas *self, float x1, float y1, float 
 	DaoxPath_Close( path );
 
 	node->path = DaoxPathCache_FindPath( self->pathCache, path );
-	if( node->path == NULL ){
-		node->path = DaoxPath_New();
-		DaoxPath_Copy( node->path, path );
-		DaoxPathCache_InsertPath( self->pathCache, node->path );
-	}
 	DaoGC_IncRC( (DaoValue*) node->path );
 
 	DaoxCanvasRect_Set( node, x1, y1, x2, y2 );
@@ -825,11 +812,6 @@ DaoxCanvasEllipse* DaoxCanvas_AddEllipse( DaoxCanvas *self, float x, float y, fl
 	DaoxPath_ImportPath( path, self->pathCache->unitCircle3, & mat );
 
 	node->path = DaoxPathCache_FindPath( self->pathCache, path );
-	if( node->path == NULL ){
-		node->path = DaoxPath_New();
-		DaoxPath_Copy( node->path, path );
-		DaoxPathCache_InsertPath( self->pathCache, node->path );
-	}
 	DaoGC_IncRC( (DaoValue*) node->path );
 
 	DaoxCanvasEllipse_Set( node, x, y, rx, ry );
@@ -852,7 +834,7 @@ DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path )
 	DaoxCanvas_AddNode( self, node );
 	return node;
 }
-void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray *text, float x, float y, float degrees )
+void DaoxCanvas_AddCharNodes( DaoxCanvas *self, DaoxCanvasText *textItem, DArray *text, float x, float y, float degrees )
 {
 	DaoxGlyph *glyph;
 	DaoxBrush *brush;
@@ -862,10 +844,10 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 	DaoxVector2D rotation = {1.0, 0.0};
 	DaoxVector2D charRotation = {1.0, 0.0};
 	DaoxVector2D charTranslation = {0.0, 0.0};
-	float width = textItem->brush->strokeStyle.width;
-	float size = textItem->brush->fontSize;
-	float scale = size / (float)font->fontHeight;
-	float offset, advance, angle = degrees * M_PI / 180.0;
+	double width = textItem->brush->strokeStyle.width;
+	double size = textItem->brush->fontSize;
+	double scale = size / (float)font->fontHeight;
+	double offset, advance, angle = degrees * M_PI / 180.0;
 	daoint i;
 
 	if( text->stride != 4 ) return;
@@ -895,25 +877,23 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 		if( textItem->children == NULL ) textItem->children = DList_New( DAO_DATA_VALUE );
 
 		chnode = DaoxCanvasPath_New();
-		DaoxCanvas_AddNode( self, chnode );
-		DaoGC_IncRC( (DaoValue*) glyph->shape );
-		chnode->path = glyph->shape;
+		chnode->path = DaoxPathCache_FindPath( self->pathCache, glyph->shape );
 		chnode->scale = scale;
+		DaoGC_IncRC( (DaoValue*) chnode->path );
+		DaoxCanvas_AddNode( self, chnode );
 		
 		if( textPath ){
-			float len1, len2, dist;
-			float p = 0.0, adv = 0.5 * (scale * advance + width);
-			DaoxPathSegment seg1 = DaoxPath_LocateByDistance( textPath, offset+adv, &p );
-			DaoxPathSegment seg2 = DaoxPath_LocateByDistance( textPath, offset, &p );
-			if( seg1.bezier == 0 ) seg1 = seg2;
-			len1 = DaoxVector2D_Dist( seg1.P1, seg1.P2 );
-			len2 = DaoxVector2D_Dist( seg2.P1, seg2.P2 );
-			dist = DaoxVector2D_Dist( seg1.P2, seg2.P1 );
-			/* In case the segments are from different components: */
-			if( dist < 1E-3 * (len1 + len2)  ) seg1 = seg2;
-			if( seg2.bezier ){
-				float dx = seg1.P2.x - seg1.P1.x;
-				float dy = seg1.P2.y - seg1.P1.y;
+			float adv = 0.99 * (scale * advance + width);
+			DaoxVector3D pos1 = {0.0,0.0,0.0};
+			DaoxVector3D pos2 = {0.0,0.0,0.0};
+			DaoxPathSegment *res1 = DaoxPath_LocateByDistance( textPath, offset, & pos1 );
+			DaoxPathSegment *res2 = DaoxPath_LocateByDistance( textPath, offset+adv, & pos2 );
+
+			printf( ">> %c: %f %f %f\n", ch, pos1.x, pos1.y, pos1.z );
+
+			if( pos1.z > -EPSILON ){
+				float dx = pos2.x - pos1.x;
+				float dy = pos2.y - pos1.y;
 				float r = sqrt( dx*dx + dy*dy );
 				float cos1 = dx / r;
 				float sin1 = dy / r;
@@ -921,8 +901,10 @@ void DaoxCanvas_AddCharItems( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 				float sin2 = rotation.y;
 				charRotation.x = cos1 * cos2 - sin1 * sin2;
 				charRotation.y = sin1 * cos2 + cos1 * sin2;
-				charTranslation.x = (1.0 - p) * seg2.P1.x + p * seg2.P2.x;
-				charTranslation.y = (1.0 - p) * seg2.P1.y + p * seg2.P2.y;
+				charTranslation.x = pos1.x;
+				charTranslation.y = pos1.y;
+			}else{
+				charTranslation.x += scale * advance + width;
 			}
 		}else{
 			charTranslation.x = offset;
@@ -950,7 +932,7 @@ DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, float x,
 	DaoxCanvas_AddNode( self, node );
 	codepoints = DArray_New( sizeof(uint_t) );
 	DString_DecodeUTF8( & str, codepoints );
-	DaoxCanvas_AddCharItems( self, node, codepoints, x, y, degrees );
+	DaoxCanvas_AddCharNodes( self, node, codepoints, x, y, degrees );
 	DArray_Delete( codepoints );
 	return node;
 }
@@ -968,14 +950,13 @@ DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, Daox
 	node = DaoxCanvasText_New();
 	DaoxCanvas_AddNode( self, node );
 
-#warning TODO
-	//DaoxPath_Preprocess( path, self->triangulator );
+	DaoxPath_Refine( path, 0.02*brush->fontSize, 0.02 );
 	GC_Assign( & node->path, path );
 	node->visible = 0;
 
 	codepoints = DArray_New( sizeof(uint_t) );
 	DString_DecodeUTF8( & str, codepoints );
-	DaoxCanvas_AddCharItems( self, node, codepoints, 0, 0, degrees );
+	DaoxCanvas_AddCharNodes( self, node, codepoints, 0, 0, degrees );
 	DArray_Delete( codepoints );
 	return node;
 }
@@ -1010,6 +991,13 @@ static void ITEM_SetVisible( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvasNode *self = (DaoxCanvasNode*) p[0];
 	self->visible = p[1]->xEnum.value;
+	self->moved = 1;
+}
+static void ITEM_Scale( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCanvasNode *self = (DaoxCanvasNode*) p[0];
+	self->scale *= p[1]->xFloat.value;
+	self->changed = 1;
 }
 static void ITEM_Rotate( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1027,6 +1015,7 @@ static void ITEM_Rotate( DaoProcess *proc, DaoValue *p[], int N )
 		self->rotation.x = cos2;
 		self->rotation.y = sin2;
 	}
+	self->moved = 1;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void ITEM_Move( DaoProcess *proc, DaoValue *p[], int N )
@@ -1042,6 +1031,7 @@ static void ITEM_Move( DaoProcess *proc, DaoValue *p[], int N )
 		self->translation.x = x;
 		self->translation.y = y;
 	}
+	self->moved = 1;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 
@@ -1057,6 +1047,9 @@ static DaoFuncItem DaoxCanvasNodeMeths[]=
 {
 	{ ITEM_SetVisible,
 		"SetVisible( self: CanvasNode, visible: enum<false,true> )"
+	},
+	{ ITEM_Scale,
+		"Scale( self: CanvasNode, ratio: float ) => CanvasNode"
 	},
 	{ ITEM_Rotate,
 		"Rotate( self: CanvasNode, degree: float, relative = 0 ) => CanvasNode"
@@ -1626,10 +1619,8 @@ static void BRUSH_SetStrokeGradient( DaoProcess *proc, DaoValue *p[], int N )
 static void BRUSH_SetFillGradient( DaoProcess *proc, DaoValue *p[], int N, int type )
 {
 	DaoxBrush *self = (DaoxBrush*) p[0];
-	if( self->fillGradient == NULL ){
-		self->fillGradient = DaoxGradient_New( type );
-		DaoGC_IncRC( (DaoValue*) self->fillGradient );
-	}
+	DaoxGradient *grad = DaoxGradient_New( type );
+	GC_Assign( & self->fillGradient, grad );
 	DaoProcess_PutValue( proc, (DaoValue*) self->fillGradient );
 }
 static void BRUSH_SetLinearGradient( DaoProcess *proc, DaoValue *p[], int N )

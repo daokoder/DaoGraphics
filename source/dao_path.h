@@ -101,6 +101,7 @@ struct DaoxPath
 	DAO_CSTRUCT_COMMON;
 
 	uchar_t      mode;
+	uchar_t      cached;
 	uchar_t      hashed;
 	uint_t       hash;
 	float        length;
@@ -141,8 +142,7 @@ void DaoxPath_ImportPath( DaoxPath *self, DaoxPath *path, DaoxMatrix3D *transfor
 
 void DaoxPath_Refine( DaoxPath *self, float maxlen, float maxdiff );
 
-
-DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p );
+DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, float dist, DaoxVector3D *pos );
 
 void DaoxPathSegment_Divide( DaoxPathSegment *self, float at );
 
@@ -188,6 +188,8 @@ void DaoxPathStyle_SetDashes( DaoxPathStyle *self, int count, float lens[] );
 struct DaoxPathMesh
 {
 	DAO_CSTRUCT_COMMON;
+	
+	uint_t  hash;
 
 	DaoxPathStyle  strokeStyle;
 
@@ -211,6 +213,7 @@ void DaoxPathMesh_Delete( DaoxPathMesh *self );
 
 void DaoxPathMesh_Reset( DaoxPathMesh *self, DaoxPath *path, DaoxPathStyle *style );
 void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator );
+void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self, int refine );
 void DaoxPathMesh_Tessellate( DaoxPathMesh *self, DaoxTriangulator *triangulator, int refine );
 
 
@@ -232,12 +235,12 @@ struct DaoxPathCache
 	DaoxPath  *unitCircle3;
 
 	DaoxTriangulator  *triangulator;
+
+	int  pathCount, meshCount;
 };
 
 DaoxPathCache* DaoxPathCache_New();
 void DaoxPathCache_Delete( DaoxPathCache *self );
-
-void DaoxPathCache_InsertPath( DaoxPathCache *self, DaoxPath *path );
 
 DaoxPath* DaoxPathCache_FindPath( DaoxPathCache *self, DaoxPath *path );
 DaoxPathMesh* DaoxPathCache_FindMesh( DaoxPathCache *self, DaoxPath *path, DaoxPathStyle *style );

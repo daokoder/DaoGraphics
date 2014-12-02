@@ -245,12 +245,21 @@ void DaoxWindow_CursorMoveCallback( GLFWwindow *window, double x, double y )
 		float delta = dist / 4;
 		float dx = (x - self->cursorPosX) / self->width;
 		float dy = (y - self->cursorPosY) / self->height;
-		DaoxCamera_MoveByXYZ( camera, delta * dx, delta * dy, 0 );
+		float dd = sqrt( dx*dx + dy*dy );
+		if( dd < 0.1 ) DaoxCamera_MoveByXYZ( camera, delta * dx, delta * dy, 0 );
 	}
 	self->cursorPosX = x;
 	self->cursorPosY = y;
 }
+void DaoxWindow_FocusCallback( GLFWwindow *window, int bl )
+{
+	DaoxWindow *self = (DaoxWindow*) glfwGetWindowUserPointer( window );
+	double x = 0, y = 0;
 
+	glfwGetCursorPos( window, & x, & y );
+	self->cursorPosX = x;
+	self->cursorPosY = y;
+}
 
 static void WIN_New( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -265,6 +274,7 @@ static void WIN_New( DaoProcess *proc, DaoValue *p[], int N )
 	glfwSetKeyCallback( self->handle, DaoxWindow_KeyCallback );
 	glfwSetCursorPosCallback( self->handle, DaoxWindow_CursorMoveCallback );
 	glfwSetCursorEnterCallback( self->handle, DaoxWindow_CursorEnterCallback );
+	glfwSetWindowFocusCallback( self->handle, DaoxWindow_FocusCallback );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
@@ -293,7 +303,7 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 		brush->strokeColor.blue = 1.0;
 		brush->fillColor.blue = 1.0;
 		brush->fillColor.alpha = 1.0;
-		brush->fontSize = 10;
+		brush->fontSize = 20;
 		self->fpsLabel = DaoxCanvas_AddText( self->widget, fpsText, 10, self->height - 20, 0 );
 	}
 	if( self->painter == NULL && (canvas != NULL || self->widget != NULL) ){
@@ -325,6 +335,7 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 	self->model = p[1];
 	self->visible = 1;
 
+	glfwShowWindow( self->handle );
 	glfwMakeContextCurrent( self->handle );
 	while( self->visible && ! glfwWindowShouldClose( self->handle ) ){
 		double frameStartTime = 0.0;
@@ -334,11 +345,12 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 		if( scene )  DaoxRenderer_Render( self->renderer, scene, scene->camera );
 		if( fpsTest ){
 			if( fpsCount % 10 == 0 ){
-				int i, n = sprintf( chars, "%3.1f", currentFPS );
+				int i, n = sprintf( chars, "%.1f", currentFPS );
 				for(i=0; i<n; ++i){
 					DaoxGlyph *glyph = DaoxFont_GetGlyph( font, chars[i] );
 					DaoxCanvasNode *chnode = self->fpsLabel->children->items.pCanvasNode[i+5];
-					chnode->path = glyph->shape;
+					DaoxPath *path = DaoxPathCache_FindPath( self->widget->pathCache, glyph->shape );
+					GC_Assign( & chnode->path, path );
 					DaoxCanvasNode_MarkDataChanged( chnode );
 				}
 			}
@@ -364,6 +376,7 @@ static void WIN_Hide( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxWindow *self = (DaoxWindow*) p[0];
 	self->visible = 0;
+	glfwHideWindow( self->handle );
 }
 
 static DaoFuncItem DaoxWindowMeths[]=

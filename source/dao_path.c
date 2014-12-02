@@ -240,6 +240,7 @@ void DaoxPathComponent_Copy( DaoxPathComponent *self, DaoxPathComponent *other )
 		DaoxPathSegment_Copy( segment2, segment );
 		segment = segment->next;
 	} while( segment && segment != other->first );
+	if( other->last->next == other->first ) self->last->next = self->first;
 }
 void DaoxPathComponent_Delete( DaoxPathComponent *self )
 {
@@ -312,10 +313,12 @@ void DaoxPath_Copy( DaoxPath *self, DaoxPath *other )
 {
 	DaoxPathComponent *com;
 	DaoxPath_Reset( self );
-	for(com=self->first; com; com=com->next){
+	self->mode = other->mode;
+	self->hash = other->hash;
+	self->hashed = other->hashed;
+	for(com=other->first; com; com=com->next){
 		DaoxPathComponent *com2 = DaoxPath_PushComponent( self );
 		DaoxPathComponent_Copy( com2, com );
-		if( com->last->next == com->first ) com2->last->next = com2->first;
 	}
 }
 void DaoxPath_SetRelativeMode( DaoxPath *self, int relative )
@@ -334,8 +337,6 @@ void DaoxPath_MoveTo( DaoxPath *self, float x, float y )
 	com = DaoxPath_PushComponent( self );
 	com->last->P1.x = x;
 	com->last->P1.y = y;
-	self->last->next = com;
-	self->last = com;
 }
 /* If MoveTo() is not called, line from (0,0). */
 void DaoxPath_LineTo( DaoxPath *self, float x, float y )
@@ -936,47 +937,66 @@ void DaoxPathComponent_Refine( DaoxPathComponent *self, float maxlen, float maxd
 
 
 
-void DaoxPath_SubSegments( DaoxPath *self, DArray *segments, float maxlen, float maxdiff )
+double DaoxPathSegment_LocateByDistance( DaoxPathSegment *self, float dist, DaoxVector3D *pos )
+{
+	DaoxPathSegment *res;
+	DaoxPathSegment segment = *self;
+	DaoxPathSegment segment1 = {0};
+	DaoxPathSegment segment2 = {0};
+	double minlen = DaoxVector2D_Dist( self->P1, self->P2 );
+	double maxlen = DaoxPathSegment_MaxLength( self );
+	double len;
+
+	pos->x = self->P2.x; /* in case for drawing text allow a path; */
+	pos->y = self->P2.y;
+	pos->z = -1.0; /* marking for not found; */
+	if( dist < -EPSILON ) return 0.0;
+	if( maxlen < 1E-6 ||  maxlen < 1.001*minlen ){
+		if( dist <= maxlen ){
+			double factor = dist / (minlen + EPSILON);
+			DaoxVector2D mid = DaoxVector2D_Interpolate( self->P1, self->P2, factor );
+			pos->x = mid.x;
+			pos->y = mid.y;
+			pos->z = factor;
+			return dist;
+		}
+		return maxlen;
+	}
+
+	segment1.next = segment2.next = NULL;
+	segment.first = & segment1;
+	segment.second = & segment2;
+	DaoxPathSegment_Divide( & segment, 0.5 );
+
+	len = DaoxPathSegment_LocateByDistance( & segment1, dist, pos );
+	if( pos->z > -EPSILON ){
+		pos->z = 0.5 * pos->z;
+		return len;
+	}
+	len = len + DaoxPathSegment_LocateByDistance( & segment2, dist - len, pos );
+	if( pos->z > -EPSILON ){
+		pos->z = 0.5 + 0.5 * pos->z;
+		return len;
+	}
+	return len;
+}
+DaoxPathSegment* DaoxPath_LocateByDistance( DaoxPath *self, float dist, DaoxVector3D *pos )
 {
 	DaoxPathComponent *com;
+	double len, offset = 0.0;
 
 	for(com=self->first; com; com=com->next){
 		DaoxPathSegment *first = com->first;
 		DaoxPathSegment *segment = first;
 		if( com->first->bezier == 0 ) continue;
 		do {
-			DaoxPathSegment_SubSegments( segment, segments, maxlen, maxdiff );
+			len = DaoxPathSegment_LocateByDistance( segment, dist - offset, pos );
+			if( pos->z >= -EPSILON ) return segment; /* found; */
+			offset += len;
 			segment = segment->next;
 		} while( segment && segment != first );
 	}
-}
-DaoxPathSegment DaoxPath_LocateByDistance( DaoxPath *self, float distance, float *p )
-{
-	DArray *segments;
-	DaoxPathSegment *S, seg = {0};
-	double offset = 0.0;
-	int i;
-
-	if( distance < 0.0 ) return seg;
-	segments = DArray_New( sizeof(DaoxPathSegment) );
-
-	DaoxPath_SubSegments( self, segments, 1E6, 1E-3 );
-
-	S = (DaoxPathSegment*) DArray_Get( segments, 0 );
-	while( S ){
-		double max = DaoxPathSegment_MaxLength( S );
-		double min = DaoxVector2D_Dist( S->P1, S->P2 );
-		double len = 0.5 * (max + min);
-
-		if( distance >= offset && distance <= (offset + len) ){
-			if( p ) *p = (distance - offset) / len;
-			return *S;
-		}
-		offset += len;
-		S = S->next ? DArray_Get( segments, (daoint) S->next ) : NULL;
-	}
-	DArray_Delete( segments );
-	return seg;
+	return NULL;
 }
 DaoxPathSegment DaoxPath_LocateByPercentage( DaoxPath *self, float percentage, float *p )
 {
@@ -1126,19 +1146,19 @@ DaoxPathMesh* DaoxPathMesh_New()
 }
 void DaoxPathMesh_Delete( DaoxPathMesh *self )
 {
+	if( self->path ) GC_DecRC( self->path ); // TODO GetGCField();
 	DArray_Delete( self->fillPoints );
 	DArray_Delete( self->fillTriangles );
 	DArray_Delete( self->fillBeziers );
 	DArray_Delete( self->strokePoints );
 	DArray_Delete( self->strokeTriangles );
 	DArray_Delete( self->strokeBeziers );
-	GC_DecRC( self->path ); // TODO GetGCField();
 	dao_free( self );
 }
 void DaoxPathMesh_Reset( DaoxPathMesh *self, DaoxPath *path, DaoxPathStyle *style )
 {
-	if( path ) DaoxPath_Copy( self->path, path );
 	if( style ) self->strokeStyle = *style;
+	if( path ) GC_Assign( & self->path, path );
 	self->fillPoints->size = 0;
 	self->fillTriangles->size = 0;
 	self->fillBeziers->size = 0;
@@ -1400,7 +1420,7 @@ void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator
 	DArray *boxes;
 	DArray *points;
 	DaoxPathComponent *com;
-	DaoxPathSegment *seg;
+	DaoxPathSegment *seg, *first;
 	daoint i, j, count = 0;
 	float len, maxlen = 100.0;
 	float maxdiff = 0.1;
@@ -1426,11 +1446,18 @@ void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator
 	for(com=self->path->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
 		DaoxPathComponent_RetrieveRefined( com );
+
+		seg = first = com->refinedFirst ? com->refinedFirst : com->first;
+		do {
+			self->path->length += DaoxPathSegment_Length( seg ); /* for stroke gradient; */
+			seg = seg->next;
+		} while( seg && seg != first );
+
+		/* To skip open path components: */
 		if( com->refinedLast == NULL || com->refinedLast->next == NULL ) continue;
 		seg = com->refinedFirst;
 		do {
 			DList_PushBack( segments, seg );
-			self->path->length += DaoxPathSegment_Length( seg );
 			seg = seg->next;
 		} while( seg && seg != com->refinedFirst );
 	}
@@ -1684,7 +1711,7 @@ DaoxPathSegment DaoxPathSegment_CubicStroke( DaoxPathSegment *self, float displa
 void DaoxPathMesh_AddSubStroke( DaoxPathMesh *self, DaoxPathSegment *seg, double start, double end, int newStart )
 {
 	DaoxPathSegment left = *seg, right = *seg;
-	DaoxVector3D *point1, *point2;
+	DaoxVector3D *point1 = NULL, *point2 = NULL;
 	float width2 = 0.5 * self->strokeStyle.width;
 	int P1, P2, P3, P4, C1, C2;
 	int added = 0;
@@ -1826,7 +1853,7 @@ double DaoxPathMesh_AddStroke( DaoxPathMesh *self, DaoxPathSegment *seg, double 
 	if( (maxlen - minlen) > 0.1*width ) maxdiff = 0.1*width / maxlen;
 
 	segments->size = 0;
-	DaoxPathSegment_SubSegments( seg, segments, maxlen + EPSILON, maxdiff + EPSILON );
+	DaoxPathSegment_SubSegments( seg, segments, maxlen + 1E-6, maxdiff + 1E-6 );
 	S = (DaoxPathSegment*) DArray_Get( segments, 0 );
 	while( S ){
 		double max = DaoxPathSegment_MaxLength( S );
@@ -2047,6 +2074,7 @@ void DaoxPathMesh_Tessellate( DaoxPathMesh *self, DaoxTriangulator *triangulator
 
 DaoxPathCache* DaoxPathCache_New()
 {
+	DaoxPath *path = DaoxPath_New();
 	DaoxPathCache *self = (DaoxPathCache*) dao_calloc( 1, sizeof(DaoxPathCache) );
 
 #warning TODO
@@ -2054,51 +2082,44 @@ DaoxPathCache* DaoxPathCache_New()
 	self->meshes = DHash_New(0,DAO_DATA_LIST);
 	self->triangulator = DaoxTriangulator_New();
 
-	self->unitLine = DaoxPath_New();
-	DaoxPath_MoveTo( self->unitLine, 0, 0 );
-	DaoxPath_LineTo( self->unitLine, DAOX_PATH_UNIT, 0 );
-	DaoGC_IncRC( (DaoValue*) self->unitLine );
-	DaoxPathCache_InsertPath( self, self->unitLine );
+	DaoxPath_Reset( path );
+	DaoxPath_MoveTo( path, 0, 0 );
+	DaoxPath_LineTo( path, DAOX_PATH_UNIT, 0 );
+	self->unitLine = DaoxPathCache_FindPath( self, path );
 
-	self->unitRect = DaoxPath_New();
-	DaoxPath_MoveTo( self->unitRect, 0, 0 );
-	DaoxPath_LineTo( self->unitRect, DAOX_PATH_UNIT, 0 );
-	DaoxPath_LineTo( self->unitRect, DAOX_PATH_UNIT, DAOX_PATH_UNIT );
-	DaoxPath_LineTo( self->unitRect, 0, DAOX_PATH_UNIT );
-	DaoxPath_Close( self->unitRect );
-	DaoGC_IncRC( (DaoValue*) self->unitRect );
-	DaoxPathCache_InsertPath( self, self->unitLine );
+	DaoxPath_Reset( path );
+	DaoxPath_MoveTo( path, 0, 0 );
+	DaoxPath_LineTo( path, DAOX_PATH_UNIT, 0 );
+	DaoxPath_LineTo( path, DAOX_PATH_UNIT, DAOX_PATH_UNIT );
+	DaoxPath_LineTo( path, 0, DAOX_PATH_UNIT );
+	DaoxPath_Close( path );
+	self->unitRect = DaoxPathCache_FindPath( self, path );
 
-	self->unitCircle1 = DaoxPath_New();
-	DaoxPath_MoveTo( self->unitCircle1, -DAOX_PATH_UNIT, 0 );
-	DaoxPath_ArcTo2( self->unitCircle1,  DAOX_PATH_UNIT, 0, 180, 180 );
-	DaoxPath_ArcTo2( self->unitCircle1, -DAOX_PATH_UNIT, 0, 180, 180 );
-	DaoxPath_Close( self->unitCircle1 );
-	DaoxPathCache_InsertPath( self, self->unitLine );
+	DaoxPath_Reset( path );
+	DaoxPath_MoveTo( path, -DAOX_PATH_UNIT, 0 );
+	DaoxPath_ArcTo2( path,  DAOX_PATH_UNIT, 0, 180, 180 );
+	DaoxPath_ArcTo2( path, -DAOX_PATH_UNIT, 0, 180, 180 );
+	DaoxPath_Close( path );
+	self->unitCircle1 = DaoxPathCache_FindPath( self, path );
 
-	self->unitCircle2 = DaoxPath_New();
-	DaoxPath_MoveTo( self->unitCircle2, -DAOX_PATH_UNIT, 0 );
-	DaoxPath_ArcTo2( self->unitCircle2,  DAOX_PATH_UNIT, 0, 180, 60 );
-	DaoxPath_ArcTo2( self->unitCircle2, -DAOX_PATH_UNIT, 0, 180, 60 );
-	DaoxPath_Close( self->unitCircle2 );
-	DaoxPathCache_InsertPath( self, self->unitLine );
+	DaoxPath_Reset( path );
+	DaoxPath_MoveTo( path, -DAOX_PATH_UNIT, 0 );
+	DaoxPath_ArcTo2( path,  DAOX_PATH_UNIT, 0, 180, 60 );
+	DaoxPath_ArcTo2( path, -DAOX_PATH_UNIT, 0, 180, 60 );
+	DaoxPath_Close( path );
+	self->unitCircle2 = DaoxPathCache_FindPath( self, path );
 
-	self->unitCircle3 = DaoxPath_New();
-	DaoxPath_MoveTo( self->unitCircle3, -DAOX_PATH_UNIT, 0 );
-	DaoxPath_ArcTo2( self->unitCircle3,  DAOX_PATH_UNIT, 0, 180, 20 );
-	DaoxPath_ArcTo2( self->unitCircle3, -DAOX_PATH_UNIT, 0, 180, 20 );
-	DaoxPath_Close( self->unitCircle3 );
-	DaoxPathCache_InsertPath( self, self->unitLine );
+	DaoxPath_Reset( path );
+	DaoxPath_MoveTo( path, -DAOX_PATH_UNIT, 0 );
+	DaoxPath_ArcTo2( path,  DAOX_PATH_UNIT, 0, 180, 20 );
+	DaoxPath_ArcTo2( path, -DAOX_PATH_UNIT, 0, 180, 20 );
+	DaoxPath_Close( path );
+	self->unitCircle3 = DaoxPathCache_FindPath( self, path );
 	return self;
 }
 void DaoxPathCache_Delete( DaoxPathCache *self )
 {
 	DaoxTriangulator_Delete( self->triangulator );
-	DaoGC_DecRC( (DaoValue*) self->unitLine );
-	DaoGC_DecRC( (DaoValue*) self->unitRect );
-	DaoGC_DecRC( (DaoValue*) self->unitCircle1 );
-	DaoGC_DecRC( (DaoValue*) self->unitCircle2 );
-	DaoGC_DecRC( (DaoValue*) self->unitCircle3 );
 	DMap_Delete( self->paths );
 	DMap_Delete( self->meshes );
 	dao_free( self );
@@ -2183,36 +2204,91 @@ int DaoxPath_Compare( DaoxPath *self, DaoxPath *other )
 	if( com1 != NULL && com2 == NULL ) return  1;
 	return 0;
 }
-
-void DaoxPathCache_InsertPath( DaoxPathCache *self, DaoxPath *path )
+void DaoxPathStyle_Convert( DaoxPathStyle *self, buffer[DAOX_MAX_DASH+4] )
 {
-	uint_t hash = DaoxPath_Hash( self );
-	DNode *it = DMap_Find( self->paths, IntToPointer(hash) );
-	if( it == NULL ){
-#warning TODO
-		DList *ls = DList_New(0);
-		it = DMap_Insert( self->paths, IntToPointer(hash), ls );
-		DList_Delete( ls );
+	int i;
+	buffer[0] = self->cap;
+	buffer[1] = self->dash;
+	buffer[2] = self->junction;
+	buffer[3] = DAOX_RESOLUTION * self->width;
+	for(i=0; i<self->dash; ++i){
+		buffer[4+i] = DAOX_RESOLUTION * self->dashes[i];
 	}
-	DList_Append( it->value.pList, path );
 }
+uint_t DaoxPathStyle_Hash( DaoxPathStyle *self, uint_t hash )
+{
+	int buffer[DAOX_MAX_DASH+4];
+	DaoxPathStyle_Convert( self, buffer );
+	return Dao_Hash( buffer, (4+self->dash)*sizeof(int), hash );
+}
+int DaoxPathStyle_Compare( DaoxPathStyle *self, DaoxPathStyle *other )
+{
+	int i, first[DAOX_MAX_DASH+4];
+	int second[DAOX_MAX_DASH+4];
+	if( self->dash != other->dash ) return self->dash < other->dash ? -1 : 1;
+	DaoxPathStyle_Convert( self, first );
+	DaoxPathStyle_Convert( other, second );
+	for(i=0; i<self->dash+4; ++i){
+		if( first[i] != second[i] ) return first[i] < second[i] ? -1 : 1;
+	}
+	return 0;
+}
+
 DaoxPath* DaoxPathCache_FindPath( DaoxPathCache *self, DaoxPath *path )
 {
-	uint_t hash = DaoxPath_Hash( self );
+	uint_t hash = DaoxPath_Hash( path );
 	DNode *it = DMap_Find( self->paths, IntToPointer(hash) );
+	DaoxPath *cached;
 
 	if( it != NULL ){
 		DList *paths = (DList*) it->value.pVoid;
 		int i;
 		for(i=0; i<paths->size; ++i){
-			DaoxPath *cached = (DaoxPath*) paths->items.pValue[i];
+			cached = (DaoxPath*) paths->items.pValue[i];
 			if( cached == path ) return cached;
 			if( cached->hash != hash ) continue;
 			if( DaoxPath_Compare( cached, path ) == 0 ) return cached;
 		}
+	}else{
+		DList *ls = DList_New(DAO_DATA_VALUE);
+		it = DMap_Insert( self->paths, IntToPointer(hash), ls );
+		DList_Delete( ls );
 	}
-	return NULL;
+	self->pathCount += 1;
+	cached = DaoxPath_New();
+	cached->cached = 1;
+	DaoxPath_Copy( cached, path );
+	DList_Append( it->value.pList, cached );
+	return cached;
 }
 DaoxPathMesh* DaoxPathCache_FindMesh( DaoxPathCache *self, DaoxPath *path, DaoxPathStyle *style )
 {
+	uint_t hash = DaoxPathStyle_Hash( style, DaoxPath_Hash( path ) );
+	DNode *it = DMap_Find( self->meshes, IntToPointer(hash) );
+	DaoxPathMesh *mesh;
+
+	if( it != NULL ){
+		DList *meshs = (DList*) it->value.pVoid;
+		int i, cmp;
+		for(i=0; i<meshs->size; ++i){
+			DaoxPathMesh *cached = (DaoxPathMesh*) meshs->items.pValue[i];
+			if( cached->hash != hash ) continue;
+			cmp = DaoxPath_Compare( cached->path, path );
+			if( cmp != 0 ) continue;
+			if( DaoxPathStyle_Compare( & cached->strokeStyle, style ) == 0 ) return cached;
+		}
+	}
+	if( it == NULL ){
+		DList *ls = DList_New(DAO_DATA_VALUE);
+		it = DMap_Insert( self->meshes, IntToPointer(hash), ls );
+		DList_Delete( ls );
+	}
+	self->meshCount += 1;
+	if( path->cached == 0 ) path = DaoxPathCache_FindPath( self, path );
+	mesh = DaoxPathMesh_New();
+	mesh->hash = hash;
+	DList_Append( it->value.pList, mesh );
+	DaoxPathMesh_Reset( mesh, path, style );
+	printf( "(%p) Cached paths: %i; Cached meshes: %i\n", self, self->pathCount, self->meshCount );
+	return mesh;
 }

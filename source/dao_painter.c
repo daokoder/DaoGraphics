@@ -185,7 +185,7 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 	int triangleCount = 0;
 
 	fill &= brush->fillColor.alpha > EPSILON || brush->fillGradient != NULL;
-	fill &= item->mesh->fillPoints->size;
+	fill &= item->mesh->fillPoints->size > 0;
 	if( fill ){
 		fillVertexCount = item->mesh->fillPoints->size;
 		fillVertexCount2 = item->mesh->fillBeziers->size;
@@ -227,7 +227,7 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 
 	glUniform1i(shader->uniforms.hasColorTexture, 0 );
 	glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
-	if( item->path ) glUniform1f(shader->uniforms.pathLength, item->path->length );
+	if( item->path ) glUniform1f(shader->uniforms.pathLength, item->path->length * scale );
 
 	if( fill ){
 		void *indices = (void*) (buffer->triangleOffset*sizeof(GLint)*3);
@@ -395,17 +395,17 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	itempos.y = obbox.O.y;
 	distance = DaoxVector3D_Dist( & self->campos, & itempos );
 	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
-	//printf( "DaoxPainter_PaintItem 1: %s %g %g\n", item->ctype->name->mbs, diameter, distance );
+	//printf( "DaoxPainter_PaintItem 1: %s %g %g\n", item->ctype->name->chars, diameter, distance );
 	if( diameter < 1E-5 * distance * scale ) return;
-	//printf( "DaoxPainter_PaintItem 2: %s\n", item->ctype->name->mbs );
+	//printf( "DaoxPainter_PaintItem 2: %s\n", item->ctype->name->chars );
 	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
-	//printf( "DaoxPainter_PaintItem 3: %s\n", item->ctype->name->mbs );
+	//printf( "DaoxPainter_PaintItem 3: %s\n", item->ctype->name->chars );
 	//printf( "DaoxPainter_PaintItem 2\n" );
 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 	if( item->visible ){
-		DaoxPainter_PaintItemData( self, canvas, item );
+		if( item->path ) DaoxPainter_PaintItemData( self, canvas, item );
 		if( item->ctype == daox_type_canvas_image && item->texture )
 			DaoxPainter_PaintImageItem( self, item );
 	}

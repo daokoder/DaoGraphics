@@ -17,15 +17,15 @@ fontRoboto = Graphics::Font( "fonts/Roboto-Bold.ttf" );
 
 
 brush = canvas.PushBrush()
-brush.SetFont( fontRoboto, 100 );
+brush.SetFont( fontRoboto, 120 );
 brush.SetStrokeWidth( 0.5 );
 brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
 brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
-text = canvas.AddText( "Dao", -120, 240 );
+text = canvas.AddText( "Dao", -100, 240 );
 
 brush = canvas.PushBrush()
-brush.SetFont( fontRoboto, 45 );
+brush.SetFont( fontRoboto, 75 );
 brush.SetStrokeWidth( 0.5 );
 brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
 brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );

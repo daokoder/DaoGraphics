@@ -127,7 +127,7 @@ int DaoxFont_Init( DaoxFont *self, DString *ttfData )
 	DString_Assign( self->buffer, ttfData );
 	if( stbtt_InitFont( & self->info, (uchar_t*) self->buffer->chars, 0 ) == 0 ) return 0;
 	stbtt_GetFontVMetrics( & self->info, & self->ascent, & self->descent, & self->lineSpace );
-	self->fontHeight = self->ascent + self->descent;
+	self->fontHeight = self->ascent - self->descent;
 	self->lineSpace += self->fontHeight;
 	return 1;
 }
@@ -248,7 +248,7 @@ DAO_DLL int DaoFont_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	DaoNamespace_AddConstValue( ns, "DefaultFont", (DaoValue*) font );
 	if( stbtt_InitFont( & font->info, daox_courier_code_roman_font_data, 0 ) == 0 ) return 1;
 	stbtt_GetFontVMetrics( & font->info, & font->ascent, & font->descent, & font->lineSpace );
-	font->fontHeight = font->ascent + font->descent;
+	font->fontHeight = font->ascent - font->descent;
 	font->lineSpace += font->fontHeight;
 	return 0;
 }
