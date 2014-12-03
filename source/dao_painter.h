@@ -34,19 +34,6 @@
 typedef struct DaoxPainter  DaoxPainter;
 
 
-/*
-// Polygons converted from the stroking and filling areas of the item.
-//
-// These polygons are potentially overlapping, due to the fact that
-// this frontend needs to be light and efficient, so that it can take
-// the advantage of hardware acceleration.
-//
-// They should be filled using stencil buffer or other techniques to
-// avoid multiple drawing in the overlapping areas.
-//
-// Note: two-point polygons are used to represent rectangles by pairs
-// of points (left,bottom) and (right,top).
-*/
 struct DaoxPainter
 {
 	DAO_CSTRUCT_COMMON;

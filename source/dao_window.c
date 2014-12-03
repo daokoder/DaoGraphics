@@ -204,12 +204,13 @@ void DaoxWindow_MoveCanvas( DaoxWindow *self, DaoxCanvas *canvas, int x, int y )
 	int dy = y - self->cursorPosY;
 	box.left   -= dx * xscale;
 	box.right  -= dx * xscale;
-	box.bottom += dy * xscale;
-	box.top    += dy * xscale;
-	if( box.left > 0.9*self->width ) return;
-	if( box.right < 0.1*self->width ) return;
-	if( box.bottom > 0.9*self->height ) return;
-	if( box.top < 0.1*self->height ) return;
+	box.bottom += dy * yscale;
+	box.top    += dy * yscale;
+	// TODO: Use canvas bounding box to do it;
+	//if( box.left > 0.9*self->width ) return;
+	//if( box.right < 0.1*self->width ) return;
+	//if( box.bottom > 0.9*self->height ) return;
+	//if( box.top < 0.1*self->height ) return;
 	DaoxCanvas_SetViewport( canvas, box.left, box.right, box.bottom, box.top );
 }
 void DaoxWindow_MourseBottonCallback( GLFWwindow *window, int botton, int state, int mod )

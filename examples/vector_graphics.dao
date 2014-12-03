@@ -163,4 +163,4 @@ image.Load( "WELLTEXT.JPG" );
 canvas.AddImage( image, -200, -200 );
 #}
 
-window.Show( canvas, 100, 1 )
+window.Show( canvas, 1000, 1 )

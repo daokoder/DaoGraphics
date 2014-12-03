@@ -904,23 +904,30 @@ void DaoxPathSegment_SubSegments( DaoxPathSegment *self, DArray *segments, float
 		seg->next = next;
 	}
 }
-double DaoxPathSegment_Length( DaoxPathSegment *self )
+double DaoxPathSegment_Length( DaoxPathSegment *self, float factor )
 {
-	DArray *segments = DArray_New( sizeof(DaoxPathSegment) );
-	double res = 0.0;
-	int i;
+	DaoxPathSegment *res;
+	DaoxPathSegment segment = *self;
+	DaoxPathSegment segment1 = {0};
+	DaoxPathSegment segment2 = {0};
+	double minlen = DaoxVector2D_Dist( self->P1, self->P2 );
+	double maxlen = DaoxPathSegment_MaxLength( self );
+	double len;
 
-	DaoxPathSegment_SubSegments( self, segments, 1E6, 1E-3 );
-
-	//printf( "DaoxPathSegment_Length: %3i\n", segments->size );
-	for(i=0; i<segments->size; ++i){
-		DaoxPathSegment *segment = DArray_Get( segments, i );
-		double max = DaoxPathSegment_MaxLength( segment );
-		double min = DaoxVector2D_Dist( segment->P1, segment->P2 );
-		res += 0.5 * (min + max);
+	if( factor < 0.0 ) return 0.0;
+	if( maxlen < 1E-6 ||  maxlen < 1.001*minlen ){
+		if( factor <= 1.0 ) return factor * maxlen;
+		return maxlen;
 	}
-	DArray_Delete( segments );
-	return res;
+
+	segment1.next = segment2.next = NULL;
+	segment.first = & segment1;
+	segment.second = & segment2;
+	DaoxPathSegment_Divide( & segment, 0.5 );
+
+	len = DaoxPathSegment_Length( & segment1, 2.0*factor );
+	if( factor > 0.5 ) len += DaoxPathSegment_Length( & segment2, 2.0*factor - 1.0 );
+	return len;
 }
 
 
@@ -1197,26 +1204,16 @@ DaoxVectorD4 DaoxPathSegment_ComputeDeterminantVector( DaoxPathSegment *self )
 void DaoxPathSegment_TryDivideLoop( DaoxPathSegment *self, int index, DList *segments )
 {
 	DaoxVectorD4 dets = DaoxPathSegment_ComputeDeterminantVector( self );
-	double d0 = dets.x;
 	double d1 = dets.y;
 	double d2 = dets.z;
 	double d3 = dets.w;
 	double delta = 3*d2*d2 - 4*d1*d3;
-	double td, sd, te, se, at = 0.0;
-	double root, tolerance = 1E-6;
+	double epsilon = 0.01;
 
 	if( DaoxPathSegment_MaxLength( self ) < 1E-2 ) return;
-	if( fabs( d1 ) < EPSILON || delta >= 0.0 ) return; /* Not a loop cubic bezier; */
-	root = sqrt( - delta );
-	td = d2 + root;
-	sd = 2*d1;
-	te = d2 - root;
-	se = 2*d1;
-	at = td / sd;
-	if( at < tolerance || at > (1.0 - tolerance) ) at = te / se;
-	if( at < tolerance || at > (1.0 - tolerance) ) return; /* double point not on the segement; */
+	if( fabs( d1 ) < epsilon || delta >= epsilon ) return; /* Not a loop cubic bezier; */
 
-	DaoxPathSegment_Divide( self, at );
+	DaoxPathSegment_Divide( self, 0.5 );
 	DList_Append( segments, self->first );
 	DList_Append( segments, self->second );
 	segments->items.pVoid[index] = NULL;
@@ -1380,7 +1377,7 @@ void DaoxPathMesh_HandleSegment( DaoxPathMesh *self, DaoxPathSegment *segment, d
 	P1->klm.x = M3F.A.A21;  P1->klm.y = M3F.A.A22;  P1->klm.z = M3F.A.A23;
 	P2->klm.x = M3F.A.A31;  P2->klm.y = M3F.A.A32;  P2->klm.z = M3F.A.A33;
 	P3->klm.x = M3F.A.A41;  P3->klm.y = M3F.A.A42;  P3->klm.z = M3F.A.A43;
-	if( fabs(d1) > epsilon && delta > 0.0 ){ /* serpentine curve: */
+	if( fabs(d1) > epsilon && delta >= 0.0 ){ /* serpentine curve: */
 		if( d1 < 0.0 ){
 			P0->klm.x = - P0->klm.x;  P0->klm.y = - P0->klm.y;
 			P1->klm.x = - P1->klm.x;  P1->klm.y = - P1->klm.y;
@@ -1449,7 +1446,8 @@ void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator
 
 		seg = first = com->refinedFirst ? com->refinedFirst : com->first;
 		do {
-			self->path->length += DaoxPathSegment_Length( seg ); /* for stroke gradient; */
+			/* for stroke gradient; */
+			self->path->length += DaoxPathSegment_Length( seg, 1.0 );
 			seg = seg->next;
 		} while( seg && seg != first );
 
@@ -1826,7 +1824,7 @@ void DaoxPathMesh_AddSubStroke( DaoxPathMesh *self, DaoxPathSegment *seg, double
 	point1->x = left.P2.x;   point1->y = left.P2.y;   point1->z = end;
 	point2->x = right.P2.x;  point2->y = right.P2.y;  point2->z = end;
 }
-double DaoxPathMesh_AddStroke( DaoxPathMesh *self, DaoxPathSegment *seg, double offset, int refine, DArray *segments )
+double DaoxPathMesh_AddStroke( DaoxPathMesh *self, DaoxPathSegment *seg, double offset, DArray *segments )
 {
 	DaoxPathSegment *S;
 	float width = self->strokeStyle.width;
@@ -1843,13 +1841,12 @@ double DaoxPathMesh_AddStroke( DaoxPathMesh *self, DaoxPathSegment *seg, double 
 			C.first = & A;
 			C.second = & B;
 			DaoxPathSegment_Divide( & C, 0.5 );
-			offset = DaoxPathMesh_AddStroke( self, & A, offset, refine, segments );
-			offset = DaoxPathMesh_AddStroke( self, & B, offset, refine, segments );
+			offset = DaoxPathMesh_AddStroke( self, & A, offset, segments );
+			offset = DaoxPathMesh_AddStroke( self, & B, offset, segments );
 			return offset;
 		}
 	}
 
-	if( refine && seg->bezier >= 2 ) maxlen = width < 2 ? width : 2;
 	if( (maxlen - minlen) > 0.1*width ) maxdiff = 0.1*width / maxlen;
 
 	segments->size = 0;
@@ -2025,7 +2022,7 @@ void DaoxPathMesh_AddCap( DaoxPathMesh *self, DaoxPathComponent *com, float offs
 		DaoxPathMesh_HandleSegment( self, & round, offset2, offset2 );
 	}
 }
-void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self, int refine )
+void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self )
 {
 	DArray *segments = DArray_New( sizeof(DaoxPathSegment) );
 	DaoxPathComponent *com;
@@ -2046,7 +2043,7 @@ void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self, int refine )
 		if( com->first->bezier == 0 ) continue;
 		seg = com->refinedFirst;
 		do {
-			offset = DaoxPathMesh_AddStroke( self, seg, offset, refine, segments );
+			offset = DaoxPathMesh_AddStroke( self, seg, offset, segments );
 			//printf( "%5i %5i %f\n", seg->bezier, seg->subEnd, offset );
 			if( junction && seg->subEnd && seg->next != NULL ){
 				DaoxPathMesh_AddJunction( self, seg, offset );
@@ -2059,14 +2056,6 @@ void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self, int refine )
 	}
 	DArray_Delete( segments );
 	//printf( "DaoxMeshPath_ComputeStroke: %i\n", self->strokePoints->size );
-}
-void DaoxPathMesh_Tessellate( DaoxPathMesh *self, DaoxTriangulator *triangulator, int refine )
-{
-	if( self->path == NULL ) return;
-	if( self->fillPoints->size ) return;
-
-	DaoxPathMesh_Preprocess( self, triangulator );
-	DaoxMeshPath_ComputeStroke( self, refine );
 }
 
 
@@ -2204,7 +2193,7 @@ int DaoxPath_Compare( DaoxPath *self, DaoxPath *other )
 	if( com1 != NULL && com2 == NULL ) return  1;
 	return 0;
 }
-void DaoxPathStyle_Convert( DaoxPathStyle *self, buffer[DAOX_MAX_DASH+4] )
+void DaoxPathStyle_Convert( DaoxPathStyle *self, int buffer[DAOX_MAX_DASH+4] )
 {
 	int i;
 	buffer[0] = self->cap;
@@ -2289,6 +2278,8 @@ DaoxPathMesh* DaoxPathCache_FindMesh( DaoxPathCache *self, DaoxPath *path, DaoxP
 	mesh->hash = hash;
 	DList_Append( it->value.pList, mesh );
 	DaoxPathMesh_Reset( mesh, path, style );
+	DaoxPathMesh_Preprocess( mesh, self->triangulator );
+	if( style->width > 1E-9 ) DaoxMeshPath_ComputeStroke( mesh );
 	printf( "(%p) Cached paths: %i; Cached meshes: %i\n", self, self->pathCount, self->meshCount );
 	return mesh;
 }

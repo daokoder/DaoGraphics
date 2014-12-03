@@ -227,7 +227,9 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 
 	glUniform1i(shader->uniforms.hasColorTexture, 0 );
 	glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
-	if( item->path ) glUniform1f(shader->uniforms.pathLength, item->path->length * scale );
+
+	/* Use item->mesh->path->length, since item->path->length may have not been set: */
+	glUniform1f(shader->uniforms.pathLength, item->mesh->path->length * scale );
 
 	if( fill ){
 		void *indices = (void*) (buffer->triangleOffset*sizeof(GLint)*3);

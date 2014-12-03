@@ -369,7 +369,7 @@ void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 	if( self->moved == 0 && self->changed == 0 ) return;
 	if( self->ctype == daox_type_canvas_image ) return;
 
-	if( self->changed && self->path != NULL ){
+	if( self->path != NULL && (self->mesh == NULL || self->changed) ){
 		DaoxPathStyle style = self->brush->strokeStyle;
 		DaoxPathMesh *mesh;
 
@@ -377,18 +377,6 @@ void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 		mesh = DaoxPathCache_FindMesh( canvas->pathCache, self->path, & style );
 		GC_Assign( & self->mesh, mesh );
 		self->changed = 0;
-	}
-	if( self->mesh && self->mesh->fillPoints->size == 0 ){
-		DaoxBrush *brush = self->brush;
-		DaoxGradient *strokeGradient = brush->strokeGradient;
-		float strokeWidth = brush->strokeStyle.width / (self->scale + EPSILON);
-		float strokeAlpha = brush->strokeColor.alpha;
-		int refine = brush->strokeStyle.dash || strokeGradient != NULL;
-
-		DaoxPathMesh_Preprocess( self->mesh, canvas->pathCache->triangulator );
-		if( strokeWidth > EPSILON && (strokeAlpha > EPSILON || strokeGradient != NULL) ){
-			DaoxMeshPath_ComputeStroke( self->mesh, refine );
-		}
 	}
 	self->moved = 0;
 

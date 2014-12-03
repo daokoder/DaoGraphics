@@ -118,7 +118,7 @@ extern DaoType* daox_type_path;
 
 DaoxPathSegment* DaoxPathSegment_New();
 void DaoxPathSegment_Delete( DaoxPathSegment *self );
-double DaoxPathSegment_Length( DaoxPathSegment *self );
+double DaoxPathSegment_Length( DaoxPathSegment *self, float factor );
 
 DaoxPath* DaoxPath_New();
 void DaoxPath_Delete( DaoxPath *self );
@@ -185,11 +185,14 @@ void DaoxPathStyle_SetDashes( DaoxPathStyle *self, int count, float lens[] );
 
 
 
+/*
+// Tessellation data for a path with given stroke style:
+*/
 struct DaoxPathMesh
 {
 	DAO_CSTRUCT_COMMON;
 	
-	uint_t  hash;
+	uint_t   hash;
 
 	DaoxPathStyle  strokeStyle;
 
@@ -213,9 +216,7 @@ void DaoxPathMesh_Delete( DaoxPathMesh *self );
 
 void DaoxPathMesh_Reset( DaoxPathMesh *self, DaoxPath *path, DaoxPathStyle *style );
 void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator );
-void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self, int refine );
-void DaoxPathMesh_Tessellate( DaoxPathMesh *self, DaoxTriangulator *triangulator, int refine );
-
+void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self );
 
 
 
