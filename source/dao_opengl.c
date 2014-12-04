@@ -61,6 +61,7 @@ static const char *const daox_vector_graphics_shader_body =
 uniform int   hasBumpTexture; \n\
 uniform float alphaBlending; \n\
 uniform vec4  brushColor; \n\
+uniform float graphScale; \n\
 uniform float pathLength; \n\
 uniform int   dashCount;         // 0: none; \n\
 uniform int   gradientType;      // 0: none; 1: linear; 2: radial; 3: stroke; \n\
@@ -154,9 +155,13 @@ vec4 ComputeRadialGradient( vec2 point )\n\
 \n\
 vec4 ComputeGradient( vec2 point, float pathOffset )\n\
 {\n\
-	if( gradientType == 1 ) return ComputeLinearGradient( point ); \n\
-	else if( gradientType == 2 ) return ComputeRadialGradient( point ); \n\
-	else if( gradientType == 3 ) return SampleGradientColor( pathOffset / pathLength ); \n\
+	if( gradientType == 1 ){\n\
+		return ComputeLinearGradient( point ); \n\
+	}else if( gradientType == 2 ){\n\
+		return ComputeRadialGradient( point ); \n\
+	}else if( gradientType == 3 ){\n\
+		return SampleGradientColor( pathOffset / pathLength ); \n\
+	}\n\
 	return brushColor; \n\
 }\n\
 \n\
@@ -251,7 +256,7 @@ vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, vec2 texUV, floa
 	//case 1: fragColor = ComputeLinearGradient( vertexPosition ); break; \n\
 	//case 2: fragColor = ComputeRadialGradient( vertexPosition ); break; \n\
 	//} \n\
-	if( dashCount > 0 ) alphaBlending2 *= HandleDash( pathOffset ); \n\
+	if( dashCount > 0 ) alphaBlending2 *= HandleDash( pathOffset * graphScale ); \n\
 	if( gradientType > 0 ) fragColor = ComputeGradient( vertexPosition, pathOffset ); \n\
 	if( hasColorTexture > 0 ) fragColor = texture( colorTexture, texUV ); \n\
 	float klm = abs( bezierKLM[0] ) + abs( bezierKLM[1] ) + abs( bezierKLM[2] ); \n\
@@ -268,6 +273,7 @@ static const char *const daox_vertex_shader2d_body =
 "uniform mat4 modelMatrix; \n\
 uniform mat4 viewMatrix; \n\
 uniform mat4 projMatrix; \n\
+uniform float graphScale; \n\
 \n\
 in  vec2  position; \n\
 in  vec4  texKLMO; \n\
@@ -281,8 +287,8 @@ void main(void) \n\
 	texcoord = vec2( texKLMO ); \n\
 	bezierKLM = vec3( texKLMO ); \n\
 	pathOffset = texKLMO[3]; \n\
-	vertexPosition = position; \n\
-	gl_Position = projMatrix * viewMatrix * modelMatrix * vec4( position, 0.0, 1.0 ); \n\
+	vertexPosition = position * graphScale; \n\
+	gl_Position = projMatrix * viewMatrix * modelMatrix * vec4( vertexPosition, 0.0, 1.0 ); \n\
 }";
 
 static const char *const daox_fragment_shader2d_body =
@@ -672,6 +678,7 @@ void DaoxShader_Finalize( DaoxShader *self )
 void DaoxShader_GetVectorGraphicsUniforms( DaoxShader *self )
 {
 	self->uniforms.alphaBlending = glGetUniformLocation(self->program, "alphaBlending");
+	self->uniforms.graphScale = glGetUniformLocation(self->program, "graphScale");
 	self->uniforms.pathLength = glGetUniformLocation(self->program, "pathLength");
 	self->uniforms.brushColor = glGetUniformLocation(self->program, "brushColor");
 	self->uniforms.dashCount = glGetUniformLocation(self->program, "dashCount");

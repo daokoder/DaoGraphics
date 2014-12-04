@@ -46,6 +46,12 @@ struct DaoxPainter
 
 	DaoxShader  shader;
 	DaoxBuffer  buffer;
+
+	void          *vertexBuffer;
+	DaoGLTriangle *triangleBuffer;
+
+	uint_t  vertexCount;
+	uint_t  triangleCount;
 };
 extern DaoType *daox_type_painter;
 

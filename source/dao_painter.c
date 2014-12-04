@@ -67,45 +67,45 @@ float DaoxPainter_CanvasScale( DaoxPainter *self, DaoxCanvas *canvas )
 
 
 
-void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DArray *points, float scale )
+void DaoxVG_BufferVertices2D( DaoGLVertex2D *glvertices, DArray *points )
 {
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex2D *glvertex = glvertices + i;
 		DaoxVector3D point = points->data.vectors3d[i];
-		glvertex->pos.x = point.x * scale;
-		glvertex->pos.y = point.y * scale;
+		glvertex->pos.x = point.x;
+		glvertex->pos.y = point.y;
 		glvertex->texKLMO.k = 0;
 		glvertex->texKLMO.l = 0;
 		glvertex->texKLMO.m = 0;
-		glvertex->texKLMO.o = point.z * scale;
+		glvertex->texKLMO.o = point.z;
 		//printf( "%6i: %9f\n", i, point.z );
 	}
 }
-void DaoxVG_BufferBeziers2D( DaoGLVertex2D *glvertices, DArray *points, float scale )
+void DaoxVG_BufferBeziers2D( DaoGLVertex2D *glvertices, DArray *points )
 {
 	DaoxBezierPoint *points2 = (DaoxBezierPoint*) points->data.base;
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex2D *glvertex = glvertices + i;
 		DaoxBezierPoint point = points2[i];
-		glvertex->pos.x = point.pos.x * scale;
-		glvertex->pos.y = point.pos.y * scale;
+		glvertex->pos.x = point.pos.x;
+		glvertex->pos.y = point.pos.y;
 		glvertex->texKLMO.k = point.klm.x;
 		glvertex->texKLMO.l = point.klm.y;
 		glvertex->texKLMO.m = point.klm.z;
-		glvertex->texKLMO.o = point.offset * scale;
+		glvertex->texKLMO.o = point.offset;
 		//printf( "%6i: %9f\n", i, point.offset );
 	}
 }
-void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DArray *points, float scale )
+void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DArray *points )
 {
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex3DVG *glvertex = glvertices + i;
 		DaoxVector3D point = points->data.vectors3d[i];
-		glvertex->pos.x = point.x * scale;
-		glvertex->pos.y = point.y * scale;
+		glvertex->pos.x = point.x;
+		glvertex->pos.y = point.y;
 		glvertex->pos.z = 0;
 		glvertex->norm.x = 0;
 		glvertex->norm.y = 0;
@@ -113,19 +113,19 @@ void DaoxVG_BufferVertices3D( DaoGLVertex3DVG *glvertices, DArray *points, float
 		glvertex->texKLMO.k = 0;
 		glvertex->texKLMO.l = 0;
 		glvertex->texKLMO.m = 0;
-		glvertex->texKLMO.o = point.z * scale;
+		glvertex->texKLMO.o = point.z;
 		//printf( "%6i: %9f\n", i, point.z );
 	}
 }
-void DaoxVG_BufferBeziers3D( DaoGLVertex3DVG *glvertices, DArray *points, float scale )
+void DaoxVG_BufferBeziers3D( DaoGLVertex3DVG *glvertices, DArray *points )
 {
 	DaoxBezierPoint *points2 = (DaoxBezierPoint*) points->data.base;
 	int i, vertexCount = points->size;
 	for(i=0; i<vertexCount; ++i){
 		DaoGLVertex3DVG *glvertex = glvertices + i;
 		DaoxBezierPoint point = points2[i];
-		glvertex->pos.x = point.pos.x * scale;
-		glvertex->pos.y = point.pos.y * scale;
+		glvertex->pos.x = point.pos.x;
+		glvertex->pos.y = point.pos.y;
 		glvertex->pos.z = 0;
 		glvertex->norm.x = 0;
 		glvertex->norm.y = 0;
@@ -133,24 +133,24 @@ void DaoxVG_BufferBeziers3D( DaoGLVertex3DVG *glvertices, DArray *points, float 
 		glvertex->texKLMO.k = point.klm.x;
 		glvertex->texKLMO.l = point.klm.y;
 		glvertex->texKLMO.m = point.klm.z;
-		glvertex->texKLMO.o = point.offset * scale;
+		glvertex->texKLMO.o = point.offset;
 		//printf( "%6i: %9f\n", i, point.offset );
 	}
 }
-void DaoxVG_BufferVertices( DaoxBuffer *buffer, void *glvertices, DArray *points, float scale )
+void DaoxVG_BufferVertices( DaoxBuffer *buffer, void *glvertices, DArray *points )
 {
 	if( buffer->vertexSize == sizeof(DaoGLVertex2D) ){
-		DaoxVG_BufferVertices2D( (DaoGLVertex2D*) glvertices, points, scale );
+		DaoxVG_BufferVertices2D( (DaoGLVertex2D*) glvertices, points );
 	}else if( buffer->vertexSize == sizeof(DaoGLVertex3DVG) ){
-		DaoxVG_BufferVertices3D( (DaoGLVertex3DVG*) glvertices, points, scale );
+		DaoxVG_BufferVertices3D( (DaoGLVertex3DVG*) glvertices, points );
 	}
 }
-void DaoxVG_BufferBeziers( DaoxBuffer *buffer, void *glvertices, DArray *points, float scale )
+void DaoxVG_BufferBeziers( DaoxBuffer *buffer, void *glvertices, DArray *points )
 {
 	if( buffer->vertexSize == sizeof(DaoGLVertex2D) ){
-		DaoxVG_BufferBeziers2D( (DaoGLVertex2D*) glvertices, points, scale );
+		DaoxVG_BufferBeziers2D( (DaoGLVertex2D*) glvertices, points );
 	}else if( buffer->vertexSize == sizeof(DaoGLVertex3DVG) ){
-		DaoxVG_BufferBeziers3D( (DaoGLVertex3DVG*) glvertices, points, scale );
+		DaoxVG_BufferBeziers3D( (DaoGLVertex3DVG*) glvertices, points );
 	}
 }
 void DaoxVG_BufferTriangles( DaoGLTriangle *gltriangles, DArray *triangles, int offset )
@@ -171,74 +171,53 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 	DaoxShader *shader = & self->shader;
 	DaoxBuffer *buffer = & self->buffer;
 	DaoxBrush *brush = item->brush;
+	DaoxPathMesh *mesh = item->mesh;
+	DaoGLTriangle *fillTriangles = self->triangleBuffer + mesh->fillTriangleOffset;
+	DaoGLTriangle *strokeTriangles = self->triangleBuffer + mesh->strokeTriangleOffset;
+	void *fillVertices = self->vertexBuffer + mesh->fillVertexOffset * buffer->vertexSize;
+	void *fillVertices2 = self->vertexBuffer + mesh->fillVertexOffset2 * buffer->vertexSize;
+	void *strokeVertices = self->vertexBuffer + mesh->strokeVertexOffset * buffer->vertexSize;
+	void *strokeVertices2 = self->vertexBuffer + mesh->strokeVertexOffset2 * buffer->vertexSize;
 	float resolution = DaoxPainter_CanvasScale( self, canvas );
 	float scale = item->scale;
 	float stroke = brush->strokeStyle.width / (resolution + 1E-16);
-	int i, fill = item->path != NULL;
+	int i, fill = brush->fillColor.alpha > EPSILON || brush->fillGradient != NULL;
 	int fillVertexCount = 0;
 	int fillVertexCount2 = 0;
 	int strokeVertexCount = 0;
 	int strokeVertexCount2 = 0;
 	int fillTriangleCount = 0;
 	int strokeTriangleCount = 0;
-	int vertexCount = 0;
-	int triangleCount = 0;
 
-	fill &= brush->fillColor.alpha > EPSILON || brush->fillGradient != NULL;
-	fill &= item->mesh->fillPoints->size > 0;
+	fill &= mesh->fillPoints->size > 0;
 	if( fill ){
-		fillVertexCount = item->mesh->fillPoints->size;
-		fillVertexCount2 = item->mesh->fillBeziers->size;
-		fillTriangleCount = item->mesh->fillTriangles->size;
+		fillVertexCount = mesh->fillPoints->size;
+		fillVertexCount2 = mesh->fillBeziers->size;
+		fillTriangleCount = mesh->fillTriangles->size;
 	}
-	if( item->mesh->strokePoints->size ){
-		strokeVertexCount = item->mesh->strokePoints->size;
-		strokeVertexCount2 = item->mesh->strokeBeziers->size;
-		strokeTriangleCount = item->mesh->strokeTriangles->size;
+	if( mesh->strokePoints->size ){
+		strokeVertexCount = mesh->strokePoints->size;
+		strokeVertexCount2 = mesh->strokeBeziers->size;
+		strokeTriangleCount = mesh->strokeTriangles->size;
 	}
-	vertexCount = fillVertexCount + fillVertexCount2 + strokeVertexCount + strokeVertexCount2;
-	triangleCount = fillTriangleCount + strokeTriangleCount;
-
-	DaoGLTriangle *fillTriangles = DaoxBuffer_MapTriangles( buffer, triangleCount );
-	DaoGLTriangle *strokeTriangles = fillTriangles + fillTriangleCount;
-	void *fillVertices = DaoxBuffer_MapVertices( buffer, vertexCount );
-	void *fillVertices2 = fillVertices + fillVertexCount * buffer->vertexSize;
-	void *strokeVertices = fillVertices2 + fillVertexCount2 * buffer->vertexSize;
-	void *strokeVertices2 = strokeVertices + strokeVertexCount * buffer->vertexSize;
-	int fillOffset = buffer->vertexOffset;
-	int fillOffset2 = fillOffset + fillVertexCount;
-	int strokeOffset = fillOffset2 + fillVertexCount2;
-	int strokeOffset2 = strokeOffset + strokeVertexCount;
-
-	//printf( "buffering: %15p %15p\n", fillVertices, fillTriangles );
-	if( fill ){
-		DaoxVG_BufferVertices( buffer, fillVertices, item->mesh->fillPoints, scale );
-		DaoxVG_BufferBeziers( buffer, fillVertices2, item->mesh->fillBeziers, scale );
-		DaoxVG_BufferTriangles( fillTriangles, item->mesh->fillTriangles, fillOffset );
-	}
-
-	if( item->mesh->strokePoints->size ){
-		DaoxVG_BufferVertices( buffer, strokeVertices, item->mesh->strokePoints, scale );
-		DaoxVG_BufferBeziers( buffer, strokeVertices2, item->mesh->strokeBeziers, scale );
-		DaoxVG_BufferTriangles( strokeTriangles, item->mesh->strokeTriangles, strokeOffset );
-	}
-
-	//printf( "DaoxVG_PaintItemData: %i %i\n", vertexCount, triangleCount );
 
 	glUniform1i(shader->uniforms.hasColorTexture, 0 );
 	glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
 
 	/* Use item->mesh->path->length, since item->path->length may have not been set: */
-	glUniform1f(shader->uniforms.pathLength, item->mesh->path->length * scale );
+	glUniform1f(shader->uniforms.graphScale, scale );
+	glUniform1f(shader->uniforms.pathLength, mesh->path->length );
 
 	if( fill ){
-		void *indices = (void*) (buffer->triangleOffset*sizeof(GLint)*3);
+		int fillTriangleOffset = buffer->triangleOffset + mesh->fillTriangleOffset;
+		int fillVertexOffset2 = buffer->vertexOffset + mesh->fillVertexOffset2;
+		void *indices = (void*) (fillTriangleOffset*sizeof(GLint)*3);
 		glUniform1i( shader->uniforms.dashCount, 0 );
 		glUniform1f( shader->uniforms.alphaBlending, 1.0 );
 		glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->fillColor.red );
 		DaoxShader_MakeGradientSampler( shader, item->brush->fillGradient, 1 );
 		glDrawElements( GL_TRIANGLES, 3*fillTriangleCount, GL_UNSIGNED_INT, indices );
-		glDrawArrays( GL_TRIANGLES, fillOffset2, fillVertexCount2 );
+		glDrawArrays( GL_TRIANGLES, fillVertexOffset2, fillVertexCount2 );
 	}
 
 #ifdef USE_STENCIL
@@ -246,16 +225,17 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 	glStencilFunc( GL_NOTEQUAL, 0x01, 0x01);
 	glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 #endif
-	if( item->mesh->strokePoints->size && stroke > 1E-3 ){
-		int offset = buffer->triangleOffset + fillTriangleCount;
-		void *indices = (void*) (offset*sizeof(GLint)*3);
+	if( mesh->strokePoints->size && stroke > 1E-3 ){
+		int strokeTriangleOffset = buffer->triangleOffset + mesh->strokeTriangleOffset;
+		int strokeVertexOffset2 = buffer->vertexOffset + mesh->strokeVertexOffset2;
+		void *indices = (void*) (strokeTriangleOffset*sizeof(GLint)*3);
 		float alpha = stroke < 1.0 ? sqrt(stroke) : 1.0;
 		glUniform1f( shader->uniforms.alphaBlending, alpha );
 		glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
 		DaoxShader_MakeDashSampler( shader, item->brush );
 		DaoxShader_MakeGradientSampler( shader, item->brush->strokeGradient, 0 );
 		glDrawElements( GL_TRIANGLES, 3*strokeTriangleCount, GL_UNSIGNED_INT, indices );
-		glDrawArrays( GL_TRIANGLES, strokeOffset2, strokeVertexCount2 );
+		glDrawArrays( GL_TRIANGLES, strokeVertexOffset2, strokeVertexCount2 );
 	}
 
 
@@ -264,23 +244,17 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 	glStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 	glUniform1f( shader->uniforms.alphaBlending, 0.0 );
 	if( item->mesh->strokePoints->size && stroke > 1E-3 ){
-		int offset = buffer->triangleOffset + fillTriangleCount;
-		void *indices = (void*) (offset*sizeof(GLint)*3);
+		int strokeTriangleOffset = buffer->triangleOffset + mesh->strokeTriangleOffset;
+		int strokeVertexOffset2 = buffer->vertexOffset + mesh->strokeVertexOffset2;
+		void *indices = (void*) (strokeTriangleOffset*sizeof(GLint)*3);
 		glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
 		DaoxShader_MakeGradientSampler( shader, NULL, 0 );
 		glDrawElements( GL_TRIANGLES, 3*strokeTriangleCount, GL_UNSIGNED_INT, indices );
-		glDrawArrays( GL_TRIANGLES, strokeOffset2, strokeVertexCount2 );
+		glDrawArrays( GL_TRIANGLES, strokeVertexOffset2, strokeVertexCount2 );
 	}
 	glDisable( GL_STENCIL_TEST );
 #endif
 
-
-	buffer->vertexOffset += vertexCount;
-	buffer->triangleOffset += triangleCount;
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasNode *item )
@@ -374,8 +348,7 @@ void DaoxGraphics_TransfromMatrix( DaoxMatrix3D transform, GLfloat matrix[16] )
 	matrix[15] = 1.0;
 }
 
-
-void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNode *item, DaoxMatrix3D transform )
+void DaoxPainter_UpdateItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNode *item, DaoxMatrix3D transform )
 {
 	DaoxOBBox2D obbox;
 	DaoxMatrix3D inverse;
@@ -397,19 +370,137 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	itempos.y = obbox.O.y;
 	distance = DaoxVector3D_Dist( & self->campos, & itempos );
 	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
+
+	if( diameter < 1E-5 * distance * scale ) return;
+	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
+
+	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
+	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
+	if( item->visible && item->ctype == daox_type_canvas_image && item->texture ){
+	}else if( item->visible && item->path ){
+		DaoxPathMesh *mesh = item->mesh;
+		DaoxBrush *brush = item->brush;
+		int fill = brush->fillColor.alpha > EPSILON || brush->fillGradient != NULL;
+		fill &= mesh->fillPoints->size > 0;
+
+		item->mesh->bufferred = 0;
+		//printf( "1>> %i %i\n", self->vertexCount, self->triangleCount );
+		if( fill ){
+			mesh->fillVertexOffset = self->vertexCount;
+			mesh->fillVertexOffset2 = self->vertexCount + mesh->fillPoints->size;
+			mesh->fillTriangleOffset = self->triangleCount;
+			self->vertexCount = mesh->fillVertexOffset2 + mesh->fillBeziers->size;
+			self->triangleCount += mesh->fillTriangles->size;
+		}
+		if( mesh->strokePoints->size ){
+			mesh->strokeVertexOffset = self->vertexCount;
+			mesh->strokeVertexOffset2 = self->vertexCount + mesh->strokePoints->size;
+			mesh->strokeTriangleOffset = self->triangleCount;
+			self->vertexCount = mesh->strokeVertexOffset2 + mesh->strokeBeziers->size;
+			self->triangleCount += mesh->strokeTriangles->size;
+		}
+		//printf( "2>> %i %i\n", self->vertexCount, self->triangleCount );
+	}
+
+	for(i=0; i<n; i++){
+		DaoxCanvasNode *it = item->children->items.pCanvasNode[i];
+		DaoxPainter_UpdateItem( self, canvas, it, transform );
+	}
+}
+
+void DaoxPainter_BufferItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNode *item, DaoxMatrix3D transform )
+{
+	DaoxOBBox2D obbox;
+	DaoxMatrix3D inverse;
+	DaoxVector3D itempos = {0.0,0.0,0.0};
+	DaoxMatrix3D transform2 = DaoxCanvasNode_GetLocalTransform( item );
+	GLfloat modelMatrix[16] = {0};
+	float distance, diameter;
+	float scale = DaoxPainter_CanvasScale( self, canvas );
+	float stroke = item->brush->strokeStyle.width / (scale + 1E-16);
+	int n = item->children ? item->children->size : 0;
+	int k = stroke >= 1.0;
+	int m = stroke >= 1E-3;
+	int i, triangles;
+
+	DaoxMatrix3D_Multiply( & transform, transform2 );
+	obbox = DaoxOBBox2D_Transform( & item->obbox, & transform );
+	itempos.x = obbox.O.x;
+	itempos.y = obbox.O.y;
+	distance = DaoxVector3D_Dist( & self->campos, & itempos );
+	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
+
+	if( diameter < 1E-5 * distance * scale ) return;
+	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
+
+	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
+	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
+	if( item->visible && item->ctype == daox_type_canvas_image && item->texture ){
+	}else if( item->visible && item->path && item->mesh->bufferred == 0 ){
+		DaoxBuffer *buffer = & self->buffer;
+		DaoxPathMesh *mesh = item->mesh;
+		DaoxBrush *brush = item->brush;
+		DaoGLTriangle *fillTriangles = self->triangleBuffer + mesh->fillTriangleOffset;
+		DaoGLTriangle *strokeTriangles = self->triangleBuffer + mesh->strokeTriangleOffset;
+		void *fillVertices = self->vertexBuffer + mesh->fillVertexOffset * buffer->vertexSize;
+		void *fillVertices2 = self->vertexBuffer + mesh->fillVertexOffset2 * buffer->vertexSize;
+		void *strokeVertices = self->vertexBuffer + mesh->strokeVertexOffset * buffer->vertexSize;
+		void *strokeVertices2 = self->vertexBuffer + mesh->strokeVertexOffset2 * buffer->vertexSize;
+		int fill = brush->fillColor.alpha > EPSILON || brush->fillGradient != NULL;
+		float scale = item->scale;
+		fill &= mesh->fillPoints->size > 0;
+		if( fill ){
+			DaoxVG_BufferVertices( buffer, fillVertices, mesh->fillPoints );
+			DaoxVG_BufferBeziers( buffer, fillVertices2, mesh->fillBeziers );
+			DaoxVG_BufferTriangles( fillTriangles, mesh->fillTriangles, buffer->vertexOffset + mesh->fillVertexOffset );
+		}
+		if( mesh->strokePoints->size ){
+			DaoxVG_BufferVertices( buffer, strokeVertices, mesh->strokePoints );
+			DaoxVG_BufferBeziers( buffer, strokeVertices2, mesh->strokeBeziers );
+			DaoxVG_BufferTriangles( strokeTriangles, mesh->strokeTriangles, buffer->vertexOffset + mesh->strokeVertexOffset );
+		}
+		mesh->bufferred = 1;
+	}
+
+	for(i=0; i<n; i++){
+		DaoxCanvasNode *it = item->children->items.pCanvasNode[i];
+		DaoxPainter_BufferItem( self, canvas, it, transform );
+	}
+}
+
+void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNode *item, DaoxMatrix3D transform )
+{
+	DaoxOBBox2D obbox;
+	DaoxMatrix3D inverse;
+	DaoxVector3D itempos = {0.0,0.0,0.0};
+	DaoxMatrix3D transform2 = DaoxCanvasNode_GetLocalTransform( item );
+	GLfloat modelMatrix[16] = {0};
+	float distance, diameter;
+	float scale = DaoxPainter_CanvasScale( self, canvas );
+	float stroke = item->brush->strokeStyle.width / (scale + 1E-16);
+	int n = item->children ? item->children->size : 0;
+	int k = stroke >= 1.0;
+	int m = stroke >= 1E-3;
+	int i, triangles;
+
+	DaoxMatrix3D_Multiply( & transform, transform2 );
+	obbox = DaoxOBBox2D_Transform( & item->obbox, & transform );
+	itempos.x = obbox.O.x;
+	itempos.y = obbox.O.y;
+	distance = DaoxVector3D_Dist( & self->campos, & itempos );
+	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
 	//printf( "DaoxPainter_PaintItem 1: %s %g %g\n", item->ctype->name->chars, diameter, distance );
 	if( diameter < 1E-5 * distance * scale ) return;
-	//printf( "DaoxPainter_PaintItem 2: %s\n", item->ctype->name->chars );
 	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
-	//printf( "DaoxPainter_PaintItem 3: %s\n", item->ctype->name->chars );
-	//printf( "DaoxPainter_PaintItem 2\n" );
 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 	if( item->visible ){
-		if( item->path ) DaoxPainter_PaintItemData( self, canvas, item );
-		if( item->ctype == daox_type_canvas_image && item->texture )
+		if( item->ctype == daox_type_canvas_image && item->texture ){
 			DaoxPainter_PaintImageItem( self, item );
+		}else if( item->path ){
+			DaoxPainter_PaintItemData( self, canvas, item );
+		}
 	}
 
 	for(i=0; i<n; i++){
@@ -498,10 +589,31 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader.uniforms.modelMatrix, 1, 0, modelMatrix );
 
+	self->vertexCount = self->triangleCount = 0;
+	//printf( "1>> data count: %i %i\n", self->vertexCount, self->triangleCount );
+	for(i=0; i<n; i++){
+		DaoxCanvasNode *it = canvas->nodes->items.pCanvasNode[i];
+		DaoxPainter_UpdateItem( self, canvas, it, canvas->transform );
+	}
+
+	//printf( "2>> data count: %i %i\n", self->vertexCount, self->triangleCount );
+	self->vertexBuffer = DaoxBuffer_MapVertices( & self->buffer, self->vertexCount );
+	self->triangleBuffer = DaoxBuffer_MapTriangles( & self->buffer, self->triangleCount );
+
+	for(i=0; i<n; i++){
+		DaoxCanvasNode *it = canvas->nodes->items.pCanvasNode[i];
+		DaoxPainter_BufferItem( self, canvas, it, canvas->transform );
+	}
+
 	for(i=0; i<n; i++){
 		DaoxCanvasNode *it = canvas->nodes->items.pCanvasNode[i];
 		DaoxPainter_PaintItem( self, canvas, it, canvas->transform );
 	}
+
+	self->buffer.vertexOffset += self->vertexCount;
+	self->buffer.triangleOffset += self->triangleCount;
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 	glBindVertexArray(0);
 }
 void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport )

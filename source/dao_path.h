@@ -173,6 +173,7 @@ struct DaoxBezierPoint
 
 struct DaoxPathStyle
 {
+	uchar_t  fill;
 	uchar_t  cap;
 	uchar_t  dash;
 	uchar_t  junction;
@@ -209,6 +210,16 @@ struct DaoxPathMesh
 	DArray  *strokePoints;
 	DArray  *strokeTriangles;
 	DArray  *strokeBeziers;
+
+	uint_t   bufferred;
+
+	uint_t   fillVertexOffset;
+	uint_t   fillVertexOffset2;
+	uint_t   fillTriangleOffset;
+
+	uint_t   strokeVertexOffset;
+	uint_t   strokeVertexOffset2;
+	uint_t   strokeTriangleOffset;
 };
 
 DaoxPathMesh* DaoxPathMesh_New();

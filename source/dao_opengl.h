@@ -133,6 +133,7 @@ struct DaoxShader
 		uint_t  colorTexture;
 		uint_t  bumpTexture;
 		uint_t  alphaBlending;
+		uint_t  graphScale;
 		uint_t  pathLength;
 		uint_t  brushColor;
 		uint_t  dashCount;

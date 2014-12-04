@@ -1509,10 +1509,34 @@ void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator
 		}
 		if( segments->items.pVoid[i] == NULL ) continue;
 	}
+
 #if 0
 	printf( "After intersection refinement: %i\n", (int)segments->size );
 	fflush( stdout );
 #endif
+
+	points = DArray_New( sizeof(DaoxVector2D) );
+	for(com=self->path->first; com; com=com->next){
+		if( com->first->bezier == 0 ) continue;
+		seg = com->refinedFirst;
+		do {
+			DArray_PushVector2D( points, & seg->P1 );
+			if( seg->next == NULL ) DArray_PushVector2D( points, & seg->P2 );
+			if( com->first->bezier >= 2 ){
+				DArray_PushVector2D( points, & seg->C1 );
+				if( com->first->bezier == 3 ) DArray_PushVector2D( points, & seg->C2 );
+			}
+			seg = seg->next;
+		} while( seg && seg != com->refinedFirst );
+	}
+	DaoxOBBox2D_ResetBox( & self->path->obbox, points->data.vectors2d, points->size );
+
+	DArray_Delete( boxes );
+	if( self->strokeStyle.fill == 0 ){
+		DList_Delete( segments );
+		return;
+	}
+
 	segments->size = 0;
 	for(com=self->path->first; com; com=com->next){
 		if( com->first->bezier == 0 ) continue;
@@ -1583,26 +1607,9 @@ void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator
 			triangle2->index[2] = J;
 		}
 	}
-
-	points = DArray_New( sizeof(DaoxVector2D) );
-	for(com=self->path->first; com; com=com->next){
-		if( com->first->bezier == 0 ) continue;
-		seg = com->refinedFirst;
-		do {
-			DArray_PushVector2D( points, & seg->P1 );
-			if( seg->next == NULL ) DArray_PushVector2D( points, & seg->P2 );
-			if( com->first->bezier >= 2 ){
-				DArray_PushVector2D( points, & seg->C1 );
-				if( com->first->bezier == 3 ) DArray_PushVector2D( points, & seg->C2 );
-			}
-			seg = seg->next;
-		} while( seg && seg != com->refinedFirst );
-	}
-	DaoxOBBox2D_ResetBox( & self->path->obbox, points->data.vectors2d, points->size );
 	//printf( "DaoxPath_Preprocess: %i %i\n", self->fillPoints->size, self->workBeziers->size );
 	//self->workBeziers->size = 0;
 
-	DArray_Delete( boxes );
 	DArray_Delete( points );
 	DList_Delete( segments );
 }
@@ -2196,28 +2203,29 @@ int DaoxPath_Compare( DaoxPath *self, DaoxPath *other )
 void DaoxPathStyle_Convert( DaoxPathStyle *self, int buffer[DAOX_MAX_DASH+4] )
 {
 	int i;
-	buffer[0] = self->cap;
-	buffer[1] = self->dash;
-	buffer[2] = self->junction;
-	buffer[3] = DAOX_RESOLUTION * self->width;
+	buffer[0] = self->fill;
+	buffer[1] = self->cap;
+	buffer[2] = self->dash;
+	buffer[3] = self->junction;
+	buffer[4] = DAOX_RESOLUTION * self->width;
 	for(i=0; i<self->dash; ++i){
-		buffer[4+i] = DAOX_RESOLUTION * self->dashes[i];
+		buffer[5+i] = DAOX_RESOLUTION * self->dashes[i];
 	}
 }
 uint_t DaoxPathStyle_Hash( DaoxPathStyle *self, uint_t hash )
 {
-	int buffer[DAOX_MAX_DASH+4];
+	int buffer[DAOX_MAX_DASH+5];
 	DaoxPathStyle_Convert( self, buffer );
-	return Dao_Hash( buffer, (4+self->dash)*sizeof(int), hash );
+	return Dao_Hash( buffer, (5+self->dash)*sizeof(int), hash );
 }
 int DaoxPathStyle_Compare( DaoxPathStyle *self, DaoxPathStyle *other )
 {
-	int i, first[DAOX_MAX_DASH+4];
-	int second[DAOX_MAX_DASH+4];
+	int i, first[DAOX_MAX_DASH+5];
+	int second[DAOX_MAX_DASH+5];
 	if( self->dash != other->dash ) return self->dash < other->dash ? -1 : 1;
 	DaoxPathStyle_Convert( self, first );
 	DaoxPathStyle_Convert( other, second );
-	for(i=0; i<self->dash+4; ++i){
+	for(i=0; i<self->dash+5; ++i){
 		if( first[i] != second[i] ) return first[i] < second[i] ? -1 : 1;
 	}
 	return 0;

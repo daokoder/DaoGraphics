@@ -367,12 +367,13 @@ void DaoxCanvasNode_Update( DaoxCanvasNode *self, DaoxCanvas *canvas )
 	daoint i;
 
 	if( self->moved == 0 && self->changed == 0 ) return;
-	if( self->ctype == daox_type_canvas_image ) return;
 
 	if( self->path != NULL && (self->mesh == NULL || self->changed) ){
+		DaoxBrush *brush = self->brush;
 		DaoxPathStyle style = self->brush->strokeStyle;
 		DaoxPathMesh *mesh;
 
+		style.fill = brush->fillColor.alpha > EPSILON || brush->fillGradient != NULL;
 		style.width = style.width / (self->scale + EPSILON);
 		mesh = DaoxPathCache_FindMesh( canvas->pathCache, self->path, & style );
 		GC_Assign( & self->mesh, mesh );
@@ -688,8 +689,10 @@ void DaoxCanvas_PopBrush( DaoxCanvas *self )
 void DaoxCanvas_UpdatePathMesh( DaoxCanvas *self, DaoxCanvasNode *node )
 {
 	DaoxPathMesh *mesh;
+	DaoxBrush *brush = node->brush;
 	DaoxPathStyle style = node->brush->strokeStyle;
 
+	style.fill = brush->fillColor.alpha > EPSILON || brush->fillGradient != NULL;
 	style.width = style.width / (node->scale + EPSILON);
 	if( node->path == NULL ) return;
 
@@ -967,8 +970,6 @@ DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float 
 	GC_Assign( & node->texture, texture );
 	return node;
 }
-
-
 
 
 
