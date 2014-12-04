@@ -131,8 +131,8 @@ void DaoxWindow_KeyCallback( GLFWwindow *window, int key, int scode, int action,
 			DaoxCanvas_Zoom( canvas, 0 );
 			break;
 		}
-	}else if( scene ){
-		DaoxCamera *camera = scene->camera;
+	}else if( scene && self->renderer->camera ){
+		DaoxCamera *camera = self->renderer->camera;
 		DaoxVector3D pos = DaoxCamera_GetPosition( camera );
 		float dist = DaoxVector3D_Dist( & pos, & camera->viewTarget );
 		float delta = dist / 8;
@@ -239,8 +239,8 @@ void DaoxWindow_CursorMoveCallback( GLFWwindow *window, double x, double y )
 		}else if( right == GLFW_PRESS ){
 			DaoxWindow_MoveCanvas( self, canvas, x, y );
 		}
-	}else if( scene ){
-		DaoxCamera *camera = scene->camera;
+	}else if( scene && self->renderer->camera ){
+		DaoxCamera *camera = self->renderer->camera;
 		DaoxVector3D pos = DaoxCamera_GetPosition( camera );
 		float dist = DaoxVector3D_Dist( & pos, & camera->viewTarget );
 		float delta = dist / 4;

@@ -64,24 +64,20 @@ struct DaoxRenderer
 	uint_t   deviceWidth;
 	uint_t   deviceHeight;
 
-	DaoxScene       *scene;
-	DaoxCamera      *camera;
-
-	DaoxMesh        *axisMesh;
-	DaoxModel       *worldAxis;
-	DaoxModel       *localAxis;
-
 	DaoxViewFrustum  frustum;
 
-	DaoxShader  shader;
-	DaoxBuffer  terrainBuffer;
-	DaoxBuffer  buffer;
-	DaoxBuffer  bufferVG;
+	DaoxScene   *scene;
+	DaoxCamera  *camera;
 
-	DList   *dynamicTasks;
-	DList   *staticTasks;
+	DaoxMesh    *axisMesh;
+	DaoxModel   *worldAxis;
+	DaoxModel   *localAxis;
 
-	DList   *hexTerrains;
+	DaoxShader  *shader;
+	DaoxBuffer  *buffer;
+	DaoxBuffer  *bufferVG;
+
+	DList   *tasks;
 	DList   *canvases;
 	DList   *taskCache;
 	DMap    *map;

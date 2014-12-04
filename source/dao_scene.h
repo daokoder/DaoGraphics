@@ -79,7 +79,6 @@ struct DaoxTexture
 	DAO_CSTRUCT_COMMON;
 
 	uint_t      tid;
-	DString    *file;
 	DaoxImage  *image;
 };
 extern DaoType *daox_type_texture;

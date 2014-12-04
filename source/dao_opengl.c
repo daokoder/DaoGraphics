@@ -287,7 +287,7 @@ void main(void) \n\
 	texcoord = vec2( texKLMO ); \n\
 	bezierKLM = vec3( texKLMO ); \n\
 	pathOffset = texKLMO[3]; \n\
-	vertexPosition = position * graphScale; \n\
+	vertexPosition = graphScale * position; \n\
 	gl_Position = projMatrix * viewMatrix * modelMatrix * vec4( vertexPosition, 0.0, 1.0 ); \n\
 }";
 
@@ -314,6 +314,7 @@ uniform vec3 cameraPosition;\n\
 uniform mat4 projMatrix;\n\
 uniform mat4 viewMatrix;\n\
 uniform mat4 modelMatrix;\n\
+uniform float graphScale; \n\
 \n\
 in vec3 position;\n\
 in vec3 normal;\n\
@@ -333,12 +334,16 @@ out vec2 varTexCoord;\n\
 \n\
 void main(void)\n\
 {\n\
-	vec3 worldPosition = vec3( modelMatrix * vec4( position, 1.0 ) );\n\
 	varPosition = position;\n\
+	if( vectorGraphics > 0 )\{\
+		varPosition.x = position.x * graphScale;\n\
+		varPosition.y = position.y * graphScale;\n\
+	}\n\
+	vec3 worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
 	varNormal = normal;\n\
 	varTangent = tangent;\n\
 	varTexCoord = texCoord;\n\
-	vertexPosition = vec2( position ); \n\
+	vertexPosition = vec2( varPosition ); \n\
 	bezierKLM = vec3( texCoord, texMO[0] ); \n\
 	pathOffset = texMO[1]; \n\
 	gl_Position = projMatrix * viewMatrix * vec4( worldPosition, 1.0 );\n\
@@ -582,11 +587,22 @@ void main(void)\n\
 	//fragColor = texColor;\n\
 	if( vectorGraphics > 0 ){ \n\
 		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
-		fragColor = texColor * color; \n\
+		fragColor = fragColor * color; \n\
 	}\n\
 }\n";
 
 
+
+DaoxShader* DaoxShader_New()
+{
+	DaoxShader *self = (DaoxShader*) dao_calloc(1,sizeof(DaoxShader));
+	return self;
+}
+void DaoxShader_Delete( DaoxShader *self )
+{
+	DaoxShader_Free( self );
+	dao_free( self );
+}
 
 void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings );
 
@@ -915,6 +931,17 @@ void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush )
 // Array Texture:
 // https://www.opengl.org/wiki/Array_Texture
 */
+
+DaoxBuffer* DaoxBuffer_New()
+{
+	DaoxBuffer *self = (DaoxBuffer*) dao_calloc(1,sizeof(DaoxBuffer));
+	return self;
+}
+void DaoxBuffer_Delete( DaoxBuffer *self )
+{
+	DaoxBuffer_Free( self );
+	dao_free( self );
+}
 
 void DaoxBuffer_Init( DaoxBuffer *self )
 {

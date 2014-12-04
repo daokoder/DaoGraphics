@@ -93,8 +93,12 @@ struct DaoxBrush
 	DaoxColor      fillColor;
 	DaoxGradient  *strokeGradient;
 	DaoxGradient  *fillGradient;
+	DaoxTexture   *texture;
 	DaoxFont      *font;
 	float          fontSize;
+	uint_t         offset1; /* for image vertices; */
+	uint_t         offset2; /* for image triangles; */
+	uchar_t        bufferred;
 };
 DAO_DLL DaoType *daox_type_brush;
 
@@ -121,7 +125,6 @@ struct DaoxCanvasNode
 	DaoxBrush     *brush;   /* brush for the node; */
 	DaoxPath      *path;    /* path for the canvas node; */
 	DaoxPathMesh  *mesh;    /* tessellation for the path; */
-	DaoxTexture   *texture; /* texture for image node; */
 
 	DaoxCanvasNode  *parent;    /* parent node; */
 	DList           *children;  /* children nodes; */
@@ -154,10 +157,9 @@ typedef  DaoxCanvasNode  DaoxCanvasCircle;
 typedef  DaoxCanvasNode  DaoxCanvasEllipse;
 
 
-typedef DaoxCanvasNode  DaoxCanvasPolygon;
 typedef DaoxCanvasNode  DaoxCanvasPath;
-typedef DaoxCanvasNode  DaoxCanvasImage;
 typedef DaoxCanvasNode  DaoxCanvasText;
+typedef DaoxCanvasNode  DaoxCanvasImage;
 
 
 
@@ -166,7 +168,6 @@ DAO_DLL DaoType *daox_type_canvas_line;
 DAO_DLL DaoType *daox_type_canvas_rect;
 DAO_DLL DaoType *daox_type_canvas_circle;
 DAO_DLL DaoType *daox_type_canvas_ellipse;
-DAO_DLL DaoType *daox_type_canvas_polygon;
 DAO_DLL DaoType *daox_type_canvas_path;
 DAO_DLL DaoType *daox_type_canvas_text;
 DAO_DLL DaoType *daox_type_canvas_image;
@@ -190,6 +191,7 @@ struct DaoxCanvas
 
 	DaoxPath      *auxPath;
 	DaoxPathCache *pathCache;
+	DMap          *imageCache;
 };
 DAO_DLL DaoType *daox_type_canvas;
 
@@ -242,8 +244,6 @@ DAO_DLL void DaoxCanvasCircle_Set( DaoxCanvasCircle *self, float x, float y, flo
 
 DAO_DLL void DaoxCanvasEllipse_Set( DaoxCanvasEllipse *self, float x, float y, float rx, float ry );
 
-DAO_DLL void DaoxCanvasPolygon_Add( DaoxCanvasPolygon *self, float x, float y );
-
 
 
 
@@ -267,15 +267,13 @@ DAO_DLL DaoxCanvasCircle* DaoxCanvas_AddCircle( DaoxCanvas *self, float x, float
 
 DAO_DLL DaoxCanvasEllipse* DaoxCanvas_AddEllipse( DaoxCanvas *self, float x, float y, float rx, float ry );
 
-DAO_DLL DaoxCanvasPolygon* DaoxCanvas_AddPolygon( DaoxCanvas *self );
-
 DAO_DLL DaoxCanvasPath* DaoxCanvas_AddPath( DaoxCanvas *self, DaoxPath *path );
 
 DAO_DLL DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, float x, float y, float degrees );
 
 DAO_DLL DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, DaoxPath *path, float degrees );
 
-DAO_DLL DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y );
+DAO_DLL DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y, float w );
 
 
 

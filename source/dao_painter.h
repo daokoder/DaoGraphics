@@ -44,8 +44,8 @@ struct DaoxPainter
 	DaoxOBBox2D   obbox;
 	DaoxVector3D  campos;
 
-	DaoxShader  shader;
-	DaoxBuffer  buffer;
+	DaoxShader  *shader;
+	DaoxBuffer  *buffer;
 
 	void          *vertexBuffer;
 	DaoGLTriangle *triangleBuffer;
@@ -63,6 +63,7 @@ void DaoxPainter_InitBuffers( DaoxPainter *self );
 
 
 void DaoxPainter_Paint( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport );
+void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera *camera );
 
 void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, int width, int height );
 

@@ -45,7 +45,6 @@ DaoxTexture* DaoxTexture_New()
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_texture );
 	self->tid = 0;
 	self->image = NULL;
-	self->file = DString_New(1);
 	return self;
 }
 void DaoxTexture_Delete( DaoxTexture *self )
@@ -53,7 +52,6 @@ void DaoxTexture_Delete( DaoxTexture *self )
 	if( self->tid ) DaoxTexture_glFreeTexture( self );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoGC_DecRC( (DaoValue*) self->image );
-	DString_Delete( self->file );
 	dao_free( self );
 }
 void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image )
@@ -86,12 +84,8 @@ void DaoxTexture_glInitTexture( DaoxTexture *self )
 	GLuint tid = 0;
 
 	if( self->tid ) return;
-	if( self->file->size ){
-		if( self->image == NULL || self->image->imageData == NULL ){
-			DaoxTexture_LoadImage( self, self->file->chars );
-		}
-	}
 	if( self->image == NULL ) return;
+
 	data = self->image->imageData;
 	W = self->image->width;
 	H = self->image->height;
@@ -730,7 +724,7 @@ DaoxScene* DaoxScene_New()
 	int i;
 	DaoxColor colors[6];
 	DaoxMaterial *material;
-	DaoxScene *self = (DaoxScene*) dao_malloc( sizeof(DaoxScene) );
+	DaoxScene *self = (DaoxScene*) dao_calloc( 1, sizeof(DaoxScene) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
 	self->nodes = DList_New( DAO_DATA_VALUE );
 	self->lights = DList_New(0);

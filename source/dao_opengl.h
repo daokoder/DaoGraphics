@@ -168,6 +168,9 @@ struct DaoxShader
 	DList  *fragmentSources;
 };
 
+DaoxShader* DaoxShader_New();
+void DaoxShader_Delete( DaoxShader *self );
+
 void DaoxShader_Init2D( DaoxShader *self );
 void DaoxShader_Init3D( DaoxShader *self );
 void DaoxShader_Free( DaoxShader *self );
@@ -202,6 +205,9 @@ struct DaoxBuffer
 		void   *offset;
 	} traits[4];
 };
+
+DaoxBuffer* DaoxBuffer_New();
+void DaoxBuffer_Delete( DaoxBuffer *self );
 
 void DaoxBuffer_Init( DaoxBuffer *self );
 void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo );
