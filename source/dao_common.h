@@ -163,7 +163,21 @@ void DaoxVector3D_Print( DaoxVector3D *self );
 
 DaoxVector3D DaoxTriangle_Normal( DaoxVector3D *A, DaoxVector3D *B, DaoxVector3D *C );
 
-DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D point, DaoxVector3D norm, DaoxVector3D P1, DaoxVector3D P2 );
+/*
+// O: point on the plane;
+// N: normal of the plane;
+// P: first point on the line;
+// Q: second point on the line;
+*/
+DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D O, DaoxVector3D N, DaoxVector3D P, DaoxVector3D Q );
+
+/*
+// O: point on the plane;
+// N: normal of the plane;
+// P: point on the line;
+// D: direction of the line;
+*/
+DaoxVector3D DaoxPlaneLineIntersect2( DaoxVector3D O, DaoxVector3D N, DaoxVector3D P, DaoxVector3D D );
 
 
 

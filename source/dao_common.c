@@ -367,20 +367,31 @@ DaoxVector3D DaoxTriangle_Normal( DaoxVector3D *A, DaoxVector3D *B, DaoxVector3D
 	N = DaoxVector3D_Add( & N, & N3 );
 	return DaoxVector3D_Normalize( & N );
 }
-DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D point, DaoxVector3D norm, DaoxVector3D P1, DaoxVector3D P2 )
+DaoxVector3D DaoxPlaneLineIntersect( DaoxVector3D O, DaoxVector3D N, DaoxVector3D P, DaoxVector3D Q )
 {
-	double P1N = DaoxVector3D_Dot( & P1, & norm );
-	double P2N = DaoxVector3D_Dot( & P2, & norm );
-	double PN = DaoxVector3D_Dot( & point, & norm );
-	double T = (PN - P1N) / (P2N - P1N);
-	return DaoxVector3D_Interpolate( P1, P2, T );
+	DaoxVector3D OP = DaoxVector3D_Sub( & O, & P );
+	DaoxVector3D QP = DaoxVector3D_Sub( & Q, & P );
+	double OPN = DaoxVector3D_Dot( & OP, & N );
+	double QPN = DaoxVector3D_Dot( & QP, & N );
+	return DaoxVector3D_Interpolate( P, Q, OPN / (QPN + (QPN > 0.0 ? EPSILON : -EPSILON)) );
+}
+DaoxVector3D DaoxPlaneLineIntersect2( DaoxVector3D O, DaoxVector3D N, DaoxVector3D P, DaoxVector3D D )
+{
+	DaoxVector3D res;
+	DaoxVector3D OP = DaoxVector3D_Sub( & O, & P );
+	double OPN = DaoxVector3D_Dot( & OP, & N );
+	double DN = DaoxVector3D_Dot( & D, & N );
+	double factor = OPN / (DN + (DN > 0.0 ? EPSILON : -EPSILON));
+	res.x = P.x + factor * D.x;
+	res.y = P.y + factor * D.y;
+	res.z = P.z + factor * D.z;
+	return res;
 }
 DaoxVector3D DaoxVector3D_ProjectToPlane( DaoxVector3D *self, DaoxVector3D *planeNorm )
 {
 	DaoxVector3D projection = { 0.0, 0.0, 0.0 };
 	DaoxVector3D norm = DaoxVector3D_Normalize( planeNorm );
 	double dot = DaoxVector3D_Dot( self, & norm );
-	printf( "DaoxVector3D_ProjectToPlane: %g\n", dot );
 	if( fabs(dot - 1.0) < 1E-16 ) return projection;
 	projection = DaoxVector3D_Scale( & norm, dot );
 	return DaoxVector3D_Sub( self, & projection );

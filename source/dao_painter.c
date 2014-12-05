@@ -190,18 +190,22 @@ void DaoxVG_BufferImageRect( DaoxBuffer *buffer, DaoxBrush *brush, void *glverti
 			vertices[i].texKLMO.o = 0.0;
 		}
 	}else if( buffer->vertexSize == sizeof(DaoGLVertex3DVG) ){
-		DaoGLVertex3D *vertices = (DaoGLVertex3D*) glvertices;
+		DaoGLVertex3DVG *vertices = (DaoGLVertex3DVG*) glvertices;
 		vertices[0].pos.x = 0;  vertices[0].pos.y = 0;
 		vertices[1].pos.x = w;  vertices[1].pos.y = 0;
 		vertices[2].pos.x = w;  vertices[2].pos.y = h;
 		vertices[3].pos.x = 0;  vertices[3].pos.y = h;
+		vertices[0].texKLMO.k = 0;  vertices[0].texKLMO.l = 0;
+		vertices[1].texKLMO.k = 1;  vertices[1].texKLMO.l = 0;
+		vertices[2].texKLMO.k = 1;  vertices[2].texKLMO.l = 1;
+		vertices[3].texKLMO.k = 0;  vertices[3].texKLMO.l = 1;
 		for(i=0; i<4; ++i){
 			vertices[i].pos.z = 0;
 			vertices[i].norm.x = 0;
 			vertices[i].norm.y = 0;
 			vertices[i].norm.z = 1;
-			vertices[i].tex.x = 0;
-			vertices[i].tex.y = 1;
+			vertices[i].texKLMO.m = 0;
+			vertices[i].texKLMO.o = 0;
 		}
 	}
 	triangles[0].index[0] = offset;
@@ -514,6 +518,7 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	DaoxVector3D points3d[4];
 	DaoxVector2D points2d[4];
 	DaoxMatrix4D viewMatrix;
+	DaoxMatrix4D canvasToWorld;
 	DaoxMatrix4D worldToCanvas;
 	DaoxViewFrustum frustum;
 	DaoxColor bgcolor = canvas->background;
@@ -529,24 +534,37 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	DaoxViewFrustum_Init( & frustum, camera );
 	MakeProjectionMatrix( & frustum, camera, matrix2 );
 
-	worldToCanvas = DaoxSceneNode_GetWorldTransform( & canvas->base );
-	worldToCanvas = DaoxMatrix4D_Inverse( & worldToCanvas );
-	frustum = DaoxViewFrustum_Transform( & frustum, & worldToCanvas );
-	self->campos = frustum.cameraPosition;
-	points3d[0] = DaoxVector3D_Add( & self->campos, & frustum.topLeftEdge );
-	points3d[1] = DaoxVector3D_Add( & self->campos, & frustum.topRightEdge );
-	points3d[2] = DaoxVector3D_Add( & self->campos, & frustum.bottomLeftEdge );
-	points3d[3] = DaoxVector3D_Add( & self->campos, & frustum.bottomRightEdge );
-	points3d[0] = DaoxPlaneLineIntersect( origin, norm, self->campos, points3d[0] );
-	points3d[1] = DaoxPlaneLineIntersect( origin, norm, self->campos, points3d[1] );
-	points3d[2] = DaoxPlaneLineIntersect( origin, norm, self->campos, points3d[2] );
-	points3d[3] = DaoxPlaneLineIntersect( origin, norm, self->campos, points3d[3] );
+	canvasToWorld = DaoxSceneNode_GetWorldTransform( & canvas->base );
+	worldToCanvas = DaoxMatrix4D_Inverse( & canvasToWorld );
+	//printf( "1>> " ); DaoxMatrix4D_Print( & canvasToWorld );
+	//printf( "2>> " ); DaoxMatrix4D_Print( & worldToCanvas );
+
+	/*
+	// Use lines passing the corners of the frustum on the far plane,
+	// with direction parallel to the view direction to compute the visible
+	// area on the canvas.
+	//
+	// NOTE: the intersections of the frustum corner edges will NOT work!
+	// Because the intersections may lie behind the camera when the canvas
+	// is still visible.
+	*/
+	points3d[0] = frustum.topLeftEdge;
+	points3d[1] = frustum.topRightEdge;
+	points3d[2] = frustum.bottomLeftEdge;
+	points3d[3] = frustum.bottomRightEdge;
+	origin = DaoxMatrix4D_Transform( & canvasToWorld, & origin );
+	norm = DaoxMatrix4D_Transform( & canvasToWorld, & norm );
 	for(i=0; i<4; ++i){
-		points2d[i].x = points3d[i].x;
-		points2d[i].y = points3d[i].y;
+		DaoxVector3D point = DaoxVector3D_Scale( & points3d[i], frustum.far );
+		point = DaoxVector3D_Add( & frustum.cameraPosition, & point );
+		point = DaoxPlaneLineIntersect2( origin, norm, point, frustum.viewDirection );
+		point = DaoxMatrix4D_Transform( & worldToCanvas, & point );
+		points2d[i].x = point.x;
+		points2d[i].y = point.y;
 		//DaoxVector2D_Print( points2d + i );
 	}
 	DaoxOBBox2D_ResetBox( & self->obbox, points2d, 4 );
+	self->campos = DaoxMatrix4D_Transform( & worldToCanvas, & frustum.cameraPosition );
 
 	glUseProgram( self->shader->program );
 	glUniformMatrix4fv( self->shader->uniforms.projMatrix, 1, 0, matrix2 );
