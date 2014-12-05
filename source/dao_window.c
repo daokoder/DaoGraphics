@@ -72,8 +72,13 @@ DaoxWindow* DaoxWindow_New()
 }
 void DaoxWindow_Delete( DaoxWindow *self )
 {
-	DString_Delete( self->title );
+	//if( self->handle ) glfwDestroyWindow( self->handle );
 	DaoCstruct_Free( (DaoCstruct*) self );
+	GC_DecRC( self->painter );
+	GC_DecRC( self->renderer );
+	GC_DecRC( self->widget );
+	GC_DecRC( self->model );
+	DString_Delete( self->title );
 	dao_free( self );
 }
 
@@ -115,8 +120,12 @@ void DaoxCanvas_Zoom( DaoxCanvas *self, int zoomin )
 void DaoxWindow_KeyCallback( GLFWwindow *window, int key, int scode, int action, int mods )
 {
 	DaoxWindow *self = (DaoxWindow*) glfwGetWindowUserPointer( window );
-	DaoxCanvas *canvas = (DaoxCanvas*) DaoValue_CastCstruct( self->model, daox_type_canvas );
-	DaoxScene *scene = (DaoxScene*) DaoValue_CastCstruct( self->model, daox_type_scene );
+	DaoxCanvas *canvas;
+	DaoxScene *scene;
+
+	if( self == NULL ) return;
+	canvas = (DaoxCanvas*) DaoValue_CastCstruct( self->model, daox_type_canvas );
+	scene = (DaoxScene*) DaoValue_CastCstruct( self->model, daox_type_scene );
 
 	if( key == GLFW_KEY_ESCAPE ){
 		self->visible = 0;
@@ -221,17 +230,23 @@ void DaoxWindow_CursorEnterCallback( GLFWwindow *window, int bl )
 	DaoxWindow *self = (DaoxWindow*) glfwGetWindowUserPointer( window );
 	double x = 0, y = 0;
 
+	if( self == NULL ) return;
+
 	glfwGetCursorPos( window, & x, & y );
 	self->cursorPosX = x;
 	self->cursorPosY = y;
 }
 void DaoxWindow_CursorMoveCallback( GLFWwindow *window, double x, double y )
 {
-	DaoxWindow *self = (DaoxWindow*) glfwGetWindowUserPointer( window );
-	DaoxCanvas *canvas = (DaoxCanvas*) DaoValue_CastCstruct( self->model, daox_type_canvas );
-	DaoxScene *scene = (DaoxScene*) DaoValue_CastCstruct( self->model, daox_type_scene );
 	int left = glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_LEFT );
 	int right = glfwGetMouseButton( window, GLFW_MOUSE_BUTTON_RIGHT );
+	DaoxWindow *self = (DaoxWindow*) glfwGetWindowUserPointer( window );
+	DaoxCanvas *canvas;
+	DaoxScene *scene;
+
+	if( self == NULL ) return;
+	canvas = (DaoxCanvas*) DaoValue_CastCstruct( self->model, daox_type_canvas );
+	scene = (DaoxScene*) DaoValue_CastCstruct( self->model, daox_type_scene );
 
 	if( canvas ){
 		if( left == GLFW_PRESS ){
@@ -257,6 +272,8 @@ void DaoxWindow_FocusCallback( GLFWwindow *window, int bl )
 	DaoxWindow *self = (DaoxWindow*) glfwGetWindowUserPointer( window );
 	double x = 0, y = 0;
 
+	if( self == NULL ) return;
+
 	glfwGetCursorPos( window, & x, & y );
 	self->cursorPosX = x;
 	self->cursorPosY = y;
@@ -271,7 +288,6 @@ static void WIN_New( DaoProcess *proc, DaoValue *p[], int N )
 	self->handle = glfwCreateWindow( self->width, self->height, self->title->chars, NULL, NULL);
 	if( self->handle == NULL ) DaoProcess_RaiseError( proc, NULL, "Failed to create window" );
 	glfwMakeContextCurrent( self->handle );
-	glfwSetWindowUserPointer( self->handle, self );
 	glfwSetKeyCallback( self->handle, DaoxWindow_KeyCallback );
 	glfwSetCursorPosCallback( self->handle, DaoxWindow_CursorMoveCallback );
 	glfwSetCursorEnterCallback( self->handle, DaoxWindow_CursorEnterCallback );
@@ -296,9 +312,10 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 		char *fpsText = "FPS:       ";
 		DaoxColor bgcolor = {0.0,0.0,0.0,0.0};
 		DaoxBrush *brush;
-		self->widget = DaoxCanvas_New();
+		self->widget = DaoxCanvas_New( NULL );
 		self->widget->viewport.right = self->width;
 		self->widget->viewport.top = self->height;
+		DaoGC_IncRC( (DaoValue*) self->widget );
 		DaoxCanvas_SetBackground( self->widget, bgcolor );
 		brush = DaoxCanvas_PushBrush( self->widget, 0 );
 		brush->strokeColor.blue = 1.0;
@@ -333,11 +350,12 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 		canvas->viewport.bottom = cy - h;
 		canvas->viewport.top = cy + h;
 	}
-	self->model = p[1];
+	GC_Assign( & self->model, p[1] );
 	self->visible = 1;
 
 	glfwShowWindow( self->handle );
 	glfwMakeContextCurrent( self->handle );
+	glfwSetWindowUserPointer( self->handle, self );
 	while( self->visible && ! glfwWindowShouldClose( self->handle ) ){
 		double frameStartTime = 0.0;
 		double frameEndTime = 0.0;
@@ -372,6 +390,7 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 			fpsCount = currentFPS; /* Frame count estimation in the past second; */
 		}
 	}
+	glfwSetWindowUserPointer( self->handle, NULL );
 }
 static void WIN_Hide( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -389,10 +408,24 @@ static DaoFuncItem DaoxWindowMeths[]=
 	{ NULL, NULL }
 };
 
+static void DaoxWindow_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxWindow *self = (DaoxWindow*) p;
+	if( self->painter ) DList_Append( values, self->painter );
+	if( self->renderer ) DList_Append( values, self->renderer );
+	if( self->widget ) DList_Append( values, self->widget );
+	if( self->model ) DList_Append( values, self->model );
+	if( remove ){
+		self->painter = NULL;
+		self->renderer = NULL;
+		self->widget = NULL;
+		self->model = NULL;
+	}
+}
 DaoTypeBase DaoxWindow_Typer =
 {
 	"Window", NULL, NULL, (DaoFuncItem*) DaoxWindowMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxWindow_Delete, NULL
+	(FuncPtrDel)DaoxWindow_Delete, DaoxWindow_GetGCFields
 };
 
 

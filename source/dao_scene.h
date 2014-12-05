@@ -283,6 +283,8 @@ struct DaoxScene
 
 	DList  *nodes;
 	DList  *lights;
+
+	DaoxPathCache *pathCache;
 };
 extern DaoType *daox_type_scene;
 

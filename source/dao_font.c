@@ -99,15 +99,11 @@ DaoxFont* DaoxFont_New()
 	DaoxFont *self = (DaoxFont*) dao_calloc( 1, sizeof(DaoxFont) );
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_font );
 	self->buffer = DString_New(0);
-	self->glyphs = DMap_New(0,0);
+	self->glyphs = DMap_New(0,DAO_DATA_VALUE);
 	return self;
 }
 void DaoxFont_Delete( DaoxFont *self )
 {
-	DNode *it;
-	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
-		DaoxGlyph_Delete( (DaoxGlyph*) it->value.pVoid );
-	}
 	DMap_Delete( self->glyphs );
 	DString_Delete( self->buffer );
 	DaoCstruct_Free( (DaoCstruct*) self );
@@ -116,11 +112,7 @@ void DaoxFont_Delete( DaoxFont *self )
 
 void DaoxFont_ResetGlyphs( DaoxFont *self )
 {
-	DNode *it;
-	for(it=DMap_First(self->glyphs); it; it=DMap_Next(self->glyphs,it)){
-		DaoxGlyph *glyph = (DaoxGlyph*) it->value.pVoid;
-		// TODO: reset glyph shape;
-	}
+	DMap_Clear( self->glyphs );
 }
 int DaoxFont_Init( DaoxFont *self, DString *ttfData )
 {
@@ -208,20 +200,32 @@ static DaoFuncItem DaoxFontMeths[]=
 	{ NULL, NULL }
 };
 
+static void DaoxFont_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxFont *self = (DaoxFont*) p;
+	DList_Append( maps, self->glyphs );
+}
 DaoTypeBase DaoxFont_Typer =
 {
 	"Font", NULL, NULL, (DaoFuncItem*) DaoxFontMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxFont_Delete, NULL
+	(FuncPtrDel)DaoxFont_Delete, DaoxFont_GetGCFields
 };
 
 static DaoFuncItem DaoxGlyphMeths[]=
 {
 	{ NULL, NULL }
 };
+
+static void DaoxGlyph_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxGlyph *self = (DaoxGlyph*) p;
+	if( self->shape ) DList_Append( values, self->shape );
+	if( remove ) self->shape = NULL;
+}
 DaoTypeBase DaoxGlyph_Typer =
 {
 	"Glyph", NULL, NULL, (DaoFuncItem*) DaoxGlyphMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxGlyph_Delete, NULL
+	(FuncPtrDel)DaoxGlyph_Delete, DaoxGlyph_GetGCFields
 };
 
 DaoType* daox_type_font = NULL;

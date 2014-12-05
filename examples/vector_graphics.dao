@@ -121,13 +121,6 @@ cpath.Scale( 2.0 )
 
 
 
-#polygon = canvas.AddPolygon()
-#polygon.Add( -800, -100 )
-#polygon.Add( -600, -200 )
-#polygon.Add( -400, -100 )
-#polygon.Add( -400, -00 )
-
-
 canvas.PopBrush()
 
 brush = canvas.PushBrush()
@@ -155,8 +148,6 @@ text.Move( -700, -800 )
 image = Graphics::Image();
 image.Load( "../media/images/mandrill.png" );
 canvas.AddImage( image, 500, -850, 200 );
-#{
-#}
 
 
 routine main( view3d = 0 )

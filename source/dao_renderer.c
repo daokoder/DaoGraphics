@@ -65,7 +65,7 @@ DaoxRenderer* DaoxRenderer_New()
 	self->deviceHeight = 200;
 	self->tasks = DList_New(0);
 	self->taskCache = DList_New(0);
-	self->canvases = DList_New( DAO_DATA_VALUE );
+	self->canvases = DList_New(0);
 	self->map = DMap_New(0,0);
 
 	self->shader = DaoxShader_New();
@@ -134,6 +134,8 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 		DaoxDrawTask *task = self->taskCache->items.pDrawTask[i];
 		DaoxDrawTask_Delete( task );
 	}
+	if( self->scene ) GC_DecRC( self->scene );
+	if( self->camera ) GC_DecRC( self->camera );
 	DList_Delete( self->taskCache );
 	DList_Delete( self->tasks );
 	DList_Delete( self->canvases );

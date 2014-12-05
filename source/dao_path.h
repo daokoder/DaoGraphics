@@ -221,6 +221,7 @@ struct DaoxPathMesh
 	uint_t   strokeVertexOffset2;
 	uint_t   strokeTriangleOffset;
 };
+extern DaoType *daox_type_path_mesh;
 
 DaoxPathMesh* DaoxPathMesh_New();
 void DaoxPathMesh_Delete( DaoxPathMesh *self );
@@ -235,8 +236,6 @@ struct DaoxPathCache
 {
 	DAO_CSTRUCT_COMMON;
 
-	DaoxPathCache  *main;
-
 	DMap      *paths;
 	DMap      *meshes;
 
@@ -250,6 +249,7 @@ struct DaoxPathCache
 
 	int  pathCount, meshCount;
 };
+extern DaoType *daox_type_path_cache;
 
 DaoxPathCache* DaoxPathCache_New();
 void DaoxPathCache_Delete( DaoxPathCache *self );

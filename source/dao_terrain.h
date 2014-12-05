@@ -134,7 +134,7 @@ struct DaoxTerrain
 
 	DList     *points;
 	DList     *borders;
-	DList     *tiles;
+	DList     *blocks;
 
 	short  shape;
 	short  rows;

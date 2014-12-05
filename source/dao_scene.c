@@ -721,9 +721,6 @@ void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh )
 
 DaoxScene* DaoxScene_New()
 {
-	int i;
-	DaoxColor colors[6];
-	DaoxMaterial *material;
 	DaoxScene *self = (DaoxScene*) dao_calloc( 1, sizeof(DaoxScene) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
 	self->nodes = DList_New( DAO_DATA_VALUE );
@@ -732,7 +729,7 @@ DaoxScene* DaoxScene_New()
 }
 void DaoxScene_Delete( DaoxScene *self )
 {
-	printf( "DaoxScene_Delete: %p\n", self );
+	if( self->pathCache ) GC_DecRC( self->pathCache );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DList_Delete( self->nodes );
 	DList_Delete( self->lights );

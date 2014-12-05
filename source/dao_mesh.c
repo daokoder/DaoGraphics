@@ -289,7 +289,6 @@ DaoxMeshUnit* DaoxMesh_AddUnit( DaoxMesh *self )
 {
 	DaoxMeshUnit *unit = DaoxMeshUnit_New();
 	DaoGC_IncRC( (DaoValue*) self );
-	DaoGC_IncRC( (DaoValue*) unit );
 	unit->mesh = self;
 	unit->index = self->units->size;
 	DList_Append( self->units, unit );

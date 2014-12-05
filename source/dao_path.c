@@ -1137,6 +1137,7 @@ void DaoxPathStyle_SetDashes( DaoxPathStyle *self, int count, float lens[] )
 DaoxPathMesh* DaoxPathMesh_New()
 {
 	DaoxPathMesh *self = (DaoxPathMesh*) dao_calloc(1,sizeof(DaoxPathMesh));
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_path_mesh );
 	DaoxPathStyle_Init( & self->strokeStyle );
 	self->fillPoints    = DArray_New( sizeof(DaoxVector3D) );
 	self->fillTriangles = DArray_New( sizeof(DaoxTriangle) );
@@ -1153,7 +1154,8 @@ DaoxPathMesh* DaoxPathMesh_New()
 }
 void DaoxPathMesh_Delete( DaoxPathMesh *self )
 {
-	if( self->path ) GC_DecRC( self->path ); // TODO GetGCField();
+	DaoCstruct_Free( (DaoCstruct*) self );
+	if( self->path ) GC_DecRC( self->path );
 	DArray_Delete( self->fillPoints );
 	DArray_Delete( self->fillTriangles );
 	DArray_Delete( self->fillBeziers );
@@ -2072,11 +2074,12 @@ DaoxPathCache* DaoxPathCache_New()
 {
 	DaoxPath *path = DaoxPath_New();
 	DaoxPathCache *self = (DaoxPathCache*) dao_calloc( 1, sizeof(DaoxPathCache) );
+	DaoCstruct_Init( (DaoCstruct*)self, daox_type_path_cache );
 
-#warning TODO
 	self->paths = DHash_New(0,DAO_DATA_LIST);
 	self->meshes = DHash_New(0,DAO_DATA_LIST);
 	self->triangulator = DaoxTriangulator_New();
+	GC_IncRC( path );
 
 	DaoxPath_Reset( path );
 	DaoxPath_MoveTo( path, 0, 0 );
@@ -2111,10 +2114,12 @@ DaoxPathCache* DaoxPathCache_New()
 	DaoxPath_ArcTo2( path, -DAOX_PATH_UNIT, 0, 180, 20 );
 	DaoxPath_Close( path );
 	self->unitCircle3 = DaoxPathCache_FindPath( self, path );
+	GC_DecRC( path );
 	return self;
 }
 void DaoxPathCache_Delete( DaoxPathCache *self )
 {
+	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoxTriangulator_Delete( self->triangulator );
 	DMap_Delete( self->paths );
 	DMap_Delete( self->meshes );

@@ -35,21 +35,21 @@
 #ifdef DAO_GRAPHICS_USE_GLES
 
 static const char *const daox_vertex_shader_header =
-"//#version 300 es\n\
+"#version 300 es\n\
 precision highp float;\n\
 ";
 static const char *const daox_fragment_shader_header =
-"//#version 300 es\n\
+"#version 300 es\n\
 precision highp float;\n\
 ";
 
 #else
 
 static const char *const daox_vertex_shader_header =
-"//#version 150\n\
+"#version 150\n\
 ";
 static const char *const daox_fragment_shader_header =
-"//#version 150\n\
+"#version 150\n\
 ";
 
 #endif
@@ -825,7 +825,6 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings )
 	sources = (const GLchar**) dao_malloc( n*sizeof(GLchar*) );
 	for(i=0; i<n; ++i){
 		sources[i] = (const GLchar*) DString_GetData( strings->items.pString[i] );
-		if( i == 0 ) sources[i] += 2; /* skip //; */
 	}
 
 	glShaderSource( shader, n, sources, NULL );

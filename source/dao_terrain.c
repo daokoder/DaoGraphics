@@ -100,7 +100,7 @@ DaoxTerrain* DaoxTerrain_New()
 {
 	DaoxTerrain *self = (DaoxTerrain*) dao_calloc( 1, sizeof(DaoxTerrain) );
 	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_terrain );
-	self->tiles = DList_New(0);
+	self->blocks = DList_New(DAO_DATA_VALUE);
 	self->borders = DList_New(0);
 	self->points = DList_New(0);
 	self->mesh = DaoxMesh_New();
@@ -115,7 +115,15 @@ DaoxTerrain* DaoxTerrain_New()
 }
 void DaoxTerrain_Delete( DaoxTerrain *self )
 {
+	int i;
+	// TODO:
+	for(i=0; i<self->points->size; ++i) dao_free( self->points->items.pVoid[i] );
+	for(i=0; i<self->borders->size; ++i) dao_free( self->borders->items.pVoid[i] );
+	if( self->heightmap ) GC_DecRC( self->heightmap );
+	DList_Delete( self->blocks );
+	DList_Delete( self->buffer );
 	GC_DecRC( self->mesh );
+	dao_free( self );
 }
 
 
@@ -239,6 +247,7 @@ void DaoxTerrain_AddCircle( DaoxTerrain *self )
 		unit->mesh = DaoxMesh_AddUnit( self->mesh );
 		unit->center = DaoxTerrain_MakePoint( self, 0.0, 0.0, 0.0 );
 		self->last->next = unit;
+		DList_Append( self->blocks, unit );
 	}
 	self->last = unit;
 	for(j=0; j<6; ++j) unit->neighbors[j] = NULL;
@@ -255,6 +264,7 @@ void DaoxTerrain_AddCircle( DaoxTerrain *self )
 				unit->mesh = DaoxMesh_AddUnit( self->mesh );
 				unit->center = DaoxTerrain_MakePoint( self, 0.0, 0.0, 0.0 );
 				self->last->next = unit;
+				DList_Append( self->blocks, unit );
 			}
 			self->last = unit;
 			for(k=0; k<6; ++k) unit->neighbors[k] = NULL;
@@ -382,6 +392,7 @@ void DaoxTerrain_InitRectBlocks( DaoxTerrain *self )
 			unit = DaoxTerrainBlock_New( 4 );
 			unit->center = DaoxTerrain_MakePoint( self, 0.5*(x1 + x2), 0.5*(y1 + y2), 0.0 );
 			unit->mesh = DaoxMesh_AddUnit( self->mesh );
+			DList_Append( self->blocks, unit );
 			if( prev ){
 				DaoxTerrainBlock_SetRectNeighbor( unit, prev, 3 );
 				prev = prev->neighbors[2];
@@ -413,6 +424,7 @@ void DaoxTerrain_InitHexBlocks( DaoxTerrain *self )
 		unit->center = DaoxTerrain_MakePoint( self, 0.0, 0.0, 0.0 );
 		unit->mesh = DaoxMesh_AddUnit( self->mesh );
 		self->first = unit;
+		DList_Append( self->blocks, unit );
 	}
 	self->last = self->first;
 	for(i=0; i<6; ++i) self->first->neighbors[i] = NULL;
