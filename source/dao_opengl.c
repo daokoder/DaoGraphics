@@ -499,13 +499,9 @@ vec4 BlendTerrainTextures( vec4 texValue, vec2 tex )\n\
 }\n\
 \n\
 \n\
-vec3 Slerp3( vec3 v1, vec3 v2, float t )\n\
+vec3 InterpolateNormal( vec3 v1, vec3 v2, float t )\n\
 {\n\
-	float angle = acos( dot( v1, v2 ) );\n\
-	float sine = sin( angle );\n\
-	float sine1 = sin( angle * (1.0 - t) );\n\
-	float sine2 = sin( angle * t );\n\
-	return (sine1 * v1 + sine2 * v2) / sine;\n\
+	return (1.0-t)*v1 + t*v2;\n\
 }\n\
 \n\
 \n\
@@ -526,20 +522,9 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 		vec3 camDir2 = normalize( vec3( cdx, cdy, cdz ) );\n\
 		vec3 normal2 = vec3( texture( bumpTexture, varTexCoord ) );\n\
 		normal2 = (normal2 - 0.5) * 2.0;\n\
-		if( terrainTileType == 0 ){\n\
-			normal = normal2;\n\
-			lightDir = lightDir2;\n\
-			camDir = camDir2;\n\
-		}else{\n\
-			float factor = 0.5;\n\
-			if( tileTextureInfo.y < tileBlendingWidth ){ \n\
-				factor *= tileTextureInfo.y / tileBlendingWidth;\n\
-			}\n\
-			normal2 = normalize( normal2 ); // Must be normalized for slerp;\n\
-			normal = Slerp3( normal, normal2, factor );\n\
-			lightDir = Slerp3( lightDir, lightDir2, factor );\n\
-			camDir = Slerp3( camDir, camDir2, factor );\n\
-		}\n\
+		normal = normal2;\n\
+		lightDir = lightDir2;\n\
+		camDir = camDir2;\n\
 	}\n\
 	float cosAngIncidence = dot( normal, lightDir );\n\
 	cosAngIncidence = clamp(cosAngIncidence, 0.0, 1.0);\n\
@@ -555,6 +540,7 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 vec4 ComputeAllLights( vec4 texColor )\n\
 {\n\
 	vec4 vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
+	//texColor = vec4( 0.5, 0.5, 0.5, 1.0 ); // for convenient checking;\n\
 	for(int i=0; i<lightCount; ++i){\n\
 		vec3 lightDir = normalize( lightSource[i] - worldPosition );\n\
 		vertexColor += ComputeLight( lightDir, lightIntensity[i], texColor );\n\
@@ -754,21 +740,17 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.tileTextures[4] = glGetUniformLocation(self->program, "tileTexture5");
 	self->uniforms.tileTextures[5] = glGetUniformLocation(self->program, "tileTexture6");
 
-	//self->uniforms.material = glGetUniformBlockIndex(self->program, "material");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.normal = glGetAttribLocation(self->program, "normal");
 	self->attributes.tangent = glGetAttribLocation(self->program, "tangent");
 	self->attributes.texCoord = glGetAttribLocation(self->program, "texCoord");
 	self->attributes.texMO = glGetAttribLocation(self->program, "texMO");
-	printf( "DaoxShader_Finalize: %i\n", self->attributes.position );
-	printf( "DaoxShader_Finalize: %i\n", self->uniforms.projMatrix );
-	printf( "DaoxShader_Finalize: %i\n", self->uniforms.viewMatrix );
 }
 void DaoxShader_Free( DaoxShader *self )
 {
 	if( self->vertexShader ) glDeleteShader( self->vertexShader );
 	if( self->fragmentShader ) glDeleteShader( self->fragmentShader );
-	if( self->program ) glDeleteShader( self->program );
+	if( self->program ) glDeleteProgram( self->program );
 	if( self->vertexSources ) DList_Delete( self->vertexSources );
 	if( self->fragmentSources ) DList_Delete( self->fragmentSources );
 	self->vertexSources = NULL;

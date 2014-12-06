@@ -203,7 +203,7 @@ struct DaoxBuffer
 		uint_t  uniform;
 		uint_t  count;
 		void   *offset;
-	} traits[4];
+	} traits[5];
 };
 
 DaoxBuffer* DaoxBuffer_New();

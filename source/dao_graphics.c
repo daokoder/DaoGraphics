@@ -1334,7 +1334,7 @@ static void Terrain_GetBlock( DaoProcess *proc, DaoValue *p[], int N )
 		DaoProcess_RaiseError( proc, "Index", "out of range" );
 		return;
 	}
-	DaoProcess_PutValue( proc, (DaoValue*) unit->mesh );
+	DaoProcess_PutValue( proc, (DaoValue*) unit );
 }
 static void Terrain_SetTileType( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1366,7 +1366,7 @@ static void Terrain_EachBlock( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxTerrainMeths[]=
 {
 	{ Terrain_GetBlock,
-		"GetBlock( self: Terrain, side: int, radius: int, offset: int ) => MeshUnit"
+		"GetBlock( self: Terrain, side: int, radius: int, offset: int ) => TerrainBlock"
 	},
 	{ Terrain_EachBlock,
 		"EachBlock( self: Terrain ) [block:TerrainBlock]"
@@ -1617,10 +1617,23 @@ static DaoFuncItem DaoxResourceMeths[]=
 	{ RES_LoadObjFile,      "LoadObjFile( self: Resource, file: string ) => Scene" },
 	{ NULL, NULL }
 };
+static void DaoxResource_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxResource *self = (DaoxResource*) p;
+	DList_Append( maps, self->scenes );
+	DList_Append( maps, self->lights );
+	DList_Append( maps, self->cameras );
+	DList_Append( maps, self->images );
+	DList_Append( maps, self->textures );
+	DList_Append( maps, self->effects );
+	DList_Append( maps, self->materials );
+	DList_Append( maps, self->geometries );
+	DList_Append( maps, self->terrains );
+}
 DaoTypeBase DaoxResource_Typer =
 {
 	"Resource", NULL, NULL, (DaoFuncItem*) DaoxResourceMeths, {0}, {0},
-	(FuncPtrDel)DaoxResource_Delete, NULL
+	(FuncPtrDel)DaoxResource_Delete, DaoxResource_GetGCFields
 };
 
 

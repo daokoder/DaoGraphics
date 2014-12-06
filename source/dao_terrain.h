@@ -132,9 +132,11 @@ struct DaoxTerrain
 	DaoxTerrainBlock  *first;
 	DaoxTerrainBlock  *last;
 
-	DList     *points;
-	DList     *borders;
-	DList     *blocks;
+	DList  *blocks;
+	DList  *borders;
+	DList  *points;
+	int     usedPoints;
+	int     usedBorders;
 
 	short  shape;
 	short  rows;

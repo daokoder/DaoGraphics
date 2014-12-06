@@ -287,11 +287,8 @@ static void WIN_New( DaoProcess *proc, DaoValue *p[], int N )
 	self->height = p[1]->xInteger.value;
 	self->handle = glfwCreateWindow( self->width, self->height, self->title->chars, NULL, NULL);
 	if( self->handle == NULL ) DaoProcess_RaiseError( proc, NULL, "Failed to create window" );
+	glfwHideWindow( self->handle );
 	glfwMakeContextCurrent( self->handle );
-	glfwSetKeyCallback( self->handle, DaoxWindow_KeyCallback );
-	glfwSetCursorPosCallback( self->handle, DaoxWindow_CursorMoveCallback );
-	glfwSetCursorEnterCallback( self->handle, DaoxWindow_CursorEnterCallback );
-	glfwSetWindowFocusCallback( self->handle, DaoxWindow_FocusCallback );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
@@ -356,6 +353,10 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 	glfwShowWindow( self->handle );
 	glfwMakeContextCurrent( self->handle );
 	glfwSetWindowUserPointer( self->handle, self );
+	glfwSetKeyCallback( self->handle, DaoxWindow_KeyCallback );
+	glfwSetCursorPosCallback( self->handle, DaoxWindow_CursorMoveCallback );
+	glfwSetCursorEnterCallback( self->handle, DaoxWindow_CursorEnterCallback );
+	glfwSetWindowFocusCallback( self->handle, DaoxWindow_FocusCallback );
 	while( self->visible && ! glfwWindowShouldClose( self->handle ) ){
 		double frameStartTime = 0.0;
 		double frameEndTime = 0.0;
@@ -391,6 +392,7 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 		}
 	}
 	glfwSetWindowUserPointer( self->handle, NULL );
+	glfwHideWindow( self->handle );
 }
 static void WIN_Hide( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -434,6 +436,7 @@ DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	dao_vmspace_graphics = vmSpace;
 	if( glfwInit() == 0 ) return 1;
+	glfwWindowHint(GLFW_VISIBLE, 0); 
 	glfwWindowHint(GLFW_SAMPLES, 8); 
 	glfwWindowHint(GLFW_DOUBLEBUFFER, 1); 
 	glfwWindowHint(GLFW_DEPTH_BITS, 24); 

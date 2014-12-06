@@ -37,36 +37,36 @@ for( i = 0 : % texImages - 1 ){
 
 	material = Graphics::Material()
 	material.SetTexture( texture, $first )
-#	material.SetTexture( texture2, $second )
+	material.SetTexture( texture2, $second )
 	materials.append( material );
 }
 
 camera = Graphics::Camera()
 
-circles = 2
+circles = 3
 radius = 5.0;
 
 var terrain: Graphics::Terrain
 
 if( 1 ){
-	generator = Graphics::TerrainGenerator( $rectangle, 2*circles, 2*circles, radius )
+	generator = Graphics::TerrainGenerator( $rectangle, circles, circles, radius )
 	#generator.Configure( amplitude = 1.0 )
 	#generator.ConfigureBlock( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
-	generator.Generate( 20, 0 )
-	#terrain = generator.GetTerrain()
-	terrain = generator.ExportRectTerrain( circles, circles, 2*radius );
+	generator.Generate( 15, 0 )
+	terrain = generator.GetTerrain()
+	#terrain = generator.ExportRectTerrain( circles, circles, 3.0*radius );
 	scene.AddNode( terrain )
 }else{
 	generator = Graphics::TerrainGenerator( $hexagon, circles, radius )
 	generator.Configure( amplitude = 2.0 )
 	generator.ConfigureBlock( 0, 0, 0, amplitude = 0.1 ) # flat central tile;
-	generator.Generate( 20, 1 )
+	generator.Generate( 10, 1 )
 	#terrain = generator.GetTerrain()
 	terrain = generator.ExportHexTerrain( circles, radius );
 	scene.AddNode( terrain )
 }
-camera.Move( 0.0, 2*circles*radius, 2*circles*radius )
-camera.LookAt( 0.0, 0.35*circles*radius, 0.0 );
+camera.Move( 0.0, circles*radius, circles*radius )
+camera.LookAt( 0.0, 0.15*circles*radius, 0.0 );
 camera.SetFOV( 60 );
 
 terrain.EachBlock { [block] block.SetMaterial( materials[ rand( %materials ) ] ) }

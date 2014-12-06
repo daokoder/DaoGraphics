@@ -116,7 +116,6 @@ DaoxTerrain* DaoxTerrain_New()
 void DaoxTerrain_Delete( DaoxTerrain *self )
 {
 	int i;
-	// TODO:
 	for(i=0; i<self->points->size; ++i) dao_free( self->points->items.pVoid[i] );
 	for(i=0; i<self->borders->size; ++i) dao_free( self->borders->items.pVoid[i] );
 	if( self->heightmap ) GC_DecRC( self->heightmap );
@@ -226,9 +225,31 @@ void DaoxTerrainBlock_SetHexNeighbor( DaoxTerrainBlock *self, DaoxTerrainBlock *
 }
 DaoxTerrainPoint* DaoxTerrain_MakePoint( DaoxTerrain *self, float x, float y, float z )
 {
-	DaoxTerrainPoint *point = DaoxTerrainPoint_New( x, y, z );
+	DaoxTerrainPoint *point;
+	if( self->usedPoints < self->points->size ){
+		point = self->points->items.pVoid[ self->usedPoints ];
+		self->usedPoints += 1;
+		return point;
+	}
+	point = DaoxTerrainPoint_New( x, y, z );
 	DList_Append( self->points, point );
+	self->usedPoints += 1;
 	return point;
+}
+DaoxTerrainBorder* DaoxTerrain_MakeBorder( DaoxTerrain *self, DaoxTerrainPoint *start, DaoxTerrainPoint *end )
+{
+	DaoxTerrainBorder *border;
+	if( self->usedBorders < self->borders->size ){
+		border = self->borders->items.pVoid[ self->usedBorders ];
+		border->start = start;
+		border->end = end;
+		self->usedBorders += 1;
+		return border;
+	}
+	border = DaoxTerrainBorder_New( start, end );
+	DList_Append( self->borders, border );
+	self->usedBorders += 1;
+	return border;
 }
 void DaoxTerrain_AddCircle( DaoxTerrain *self )
 {
@@ -339,7 +360,7 @@ void DaoxTerrain_InitBlock( DaoxTerrain *self, DaoxTerrainBlock *unit )
 		}
 		if( start == NULL ) start = DaoxTerrain_MakePoint( self, x1, y1, 0.0 );
 		if( end == NULL ) end = DaoxTerrain_MakePoint( self, x2, y2, 0.0 );
-		unit->borders[i] = DaoxTerrainBorder_New( start, end );
+		unit->borders[i] = DaoxTerrain_MakeBorder( self, start, end );
 	}
 	for(i=0; i<unit->sides; ++i){
 		DaoxTerrainBorder *border = unit->borders[i];
@@ -364,7 +385,7 @@ void DaoxTerrain_InitBlock( DaoxTerrain *self, DaoxTerrainBlock *unit )
 		double d2 = DaoxVector2D_Dist( q2, p1 );
 		DaoxTerrainPoint *start = d1 < d2 ? border->start : border->end;
 
-		unit->spokes[i] = DaoxTerrainBorder_New( unit->center, start );
+		unit->spokes[i] = DaoxTerrain_MakeBorder( self, unit->center, start );
 	}
 
 	for(i=0; i<unit->sides; ++i){
@@ -569,8 +590,8 @@ void DaoxTerrain_Split( DaoxTerrain *self, DaoxTerrainBlock *unit, DaoxTerrainTr
 			if( self->heightmap != NULL ){
 				mid->pos.z = DaoxTerrain_GetHMHeight( self, mid->pos.x, mid->pos.y );
 			}
-			border->left = DaoxTerrainBorder_New( border->start, mid );
-			border->right = DaoxTerrainBorder_New( mid, border->end );
+			border->left = DaoxTerrain_MakeBorder( self, border->start, mid );
+			border->right = DaoxTerrain_MakeBorder( self, mid, border->end );
 		}
 		triangle->splits[0]->points[i] = mid;
 		triangle->splits[i+1]->points[0] = triangle->points[i];
@@ -582,7 +603,7 @@ void DaoxTerrain_Split( DaoxTerrain *self, DaoxTerrainBlock *unit, DaoxTerrainTr
 	}
 	for(i=0; i<3; ++i){
 		DaoxTerrainTriangle *mid = triangle->splits[0];
-		DaoxTerrainBorder *border = DaoxTerrainBorder_New( mid->points[i], mid->points[(i+1)%3] );
+		DaoxTerrainBorder *border = DaoxTerrain_MakeBorder( self, mid->points[i], mid->points[(i+1)%3] );
 		mid->borders[i] = border;
 		triangle->splits[i==2?1:i+2]->borders[1] = border;
 	}

@@ -312,6 +312,8 @@ static void IMAGE_Load( DaoProcess *proc, DaoValue *p[], int N )
 	Dao_MakePath( codePath, file );
 	if( DString_Match( file, "<I>%.PNG $", NULL, NULL ) ){
 		ret = DaoxImage_LoadPNG( self, file->chars );
+	}else if( DString_Match( file, "<I>%. (JPG|JPEG) $", NULL, NULL ) ){
+		ret = DaoxImage_LoadJPEG( self, file->chars );
 	}else if( DString_Match( file, "<I>%.BMP $", NULL, NULL ) ){
 		ret = DaoxImage_LoadBMP( self, file->chars );
 	}

@@ -34,3 +34,12 @@ License Link: http://creativecommons.org/licenses/by-sa/3.0/
 
 License: GPL 2.0, GPL 3.0, CC-BY-SA 3.0
 Link: http://opengameart.org/content/29-grounds-and-walls-and-water-1024x1024
+
+
+>> textures/cliff_with_grass_bump.png
+>> textures/rock_with_algae_bump.png
+
+Created from the textures using the online tool at:
+http://cpetry.github.io/NormalMap-Online
+with parameters: strength = 1; level = 10; blur/sharp = 0;
+They can be used under the same licenses as the original textures.

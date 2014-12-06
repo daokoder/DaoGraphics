@@ -20,8 +20,8 @@ texImages =
 
 bumpImages = 
 {
-	"../media/textures/rock_with_algae_bump.png",
-	"../media/textures/cliff_with_grass_bump.png"
+	"../media/textures/rock_with_algae_bump.jpg",
+	"../media/textures/cliff_with_grass_bump.jpg"
 }
 
 materials = {}
