@@ -79,7 +79,9 @@ struct DaoxTexture
 	DAO_CSTRUCT_COMMON;
 
 	uint_t      tid;
+	uint_t      changed;
 	DaoxImage  *image;
+	void       *ctx;
 };
 extern DaoType *daox_type_texture;
 
@@ -87,7 +89,6 @@ DaoxTexture* DaoxTexture_New();
 void DaoxTexture_Delete( DaoxTexture *self );
 void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image );
 void DaoxTexture_LoadImage( DaoxTexture *self, const char *file );
-void DaoxTexture_glInitTexture( DaoxTexture *self );
 
 
 

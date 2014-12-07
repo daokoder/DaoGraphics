@@ -28,12 +28,16 @@
 #include <math.h>
 #include "dao_painter.h"
 
-DaoxPainter* DaoxPainter_New()
+DaoxPainter* DaoxPainter_New( DaoxContext *ctx )
 {
 	DaoxPainter *self = (DaoxPainter*)dao_calloc(1,sizeof(DaoxPainter));
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_painter );
-	self->shader = DaoxShader_New();
-	self->buffer = DaoxBuffer_New();
+	if( ctx == NULL ) ctx = DaoxContext_New();
+	GC_Assign( & self->context, ctx );
+	self->shader = DaoxShader_New( ctx );
+	self->buffer = DaoxBuffer_New( ctx );
+	GC_IncRC( self->shader );
+	GC_IncRC( self->buffer );
 	DaoxPainter_InitShaders( self );
 	DaoxPainter_InitBuffers( self );
 	self->deviceWidth = 300;
@@ -42,21 +46,23 @@ DaoxPainter* DaoxPainter_New()
 }
 void DaoxPainter_Delete( DaoxPainter *self )
 {
-	DaoxShader_Delete( self->shader );
-	DaoxBuffer_Delete( self->buffer );
 	DaoCstruct_Free( (DaoCstruct*) self );
+	GC_DecRC( self->shader );
+	GC_DecRC( self->buffer );
+	GC_DecRC( self->context );
 	dao_free( self );
 }
 void DaoxPainter_InitShaders( DaoxPainter *self )
 {
 	DaoxShader_Init2D( self->shader );
-	DaoxShader_Finalize2D( self->shader );
+	DaoxContext_BindShader( self->context, self->shader );
 }
 void DaoxPainter_InitBuffers( DaoxPainter *self )
 {
 	int pos  = self->shader->attributes.position;
 	int texKLMO = self->shader->attributes.texKLMO;
 	DaoxBuffer_Init2D( self->buffer, pos, texKLMO );
+	DaoxContext_BindBuffer( self->context, self->buffer );
 }
 float DaoxPainter_CanvasScale( DaoxPainter *self, DaoxCanvas *canvas )
 {
@@ -315,7 +321,9 @@ void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasNode *item )
 
 	if( item->brush->texture == NULL ) return;
 
-	DaoxTexture_glInitTexture( item->brush->texture );
+	if( item->brush->texture->changed || item->brush->texture->tid == 0 ){
+		DaoxContext_BindTexture( self->context, item->brush->texture );
+	}
 	//printf( "DaoxPainter_PaintImageItem %i\n", item->brush->texture->tid );
 	if( item->brush->texture->tid == 0 ) return;
 
@@ -592,6 +600,13 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+#ifndef DAO_GRAPHICS_USE_GLES
+	if( self->showMesh ){
+		glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+	}else{
+		glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+	}
+#endif
 
 	DaoxMatrix3D transform = DaoxMatrix3D_Identity();
 	GLfloat modelMatrix[16] = {0};

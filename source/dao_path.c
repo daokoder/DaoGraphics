@@ -1210,10 +1210,11 @@ void DaoxPathSegment_TryDivideLoop( DaoxPathSegment *self, int index, DList *seg
 	double d2 = dets.z;
 	double d3 = dets.w;
 	double delta = 3*d2*d2 - 4*d1*d3;
-	double epsilon = 0.01;
+	double discr = d1*d1*delta;
+	double epsilon = 1E-3;
 
 	if( DaoxPathSegment_MaxLength( self ) < 1E-2 ) return;
-	if( fabs( d1 ) < epsilon || delta >= epsilon ) return; /* Not a loop cubic bezier; */
+	if( discr > -epsilon ) return; /* Not a loop cubic bezier; */
 
 	DaoxPathSegment_Divide( self, 0.5 );
 	DList_Append( segments, self->first );

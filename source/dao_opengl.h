@@ -58,8 +58,18 @@ typedef struct DaoGLVertex2D    DaoGLVertex2D;
 typedef struct DaoGLVertex3D    DaoGLVertex3D;
 typedef struct DaoGLVertex3DVG  DaoGLVertex3DVG;
 typedef struct DaoGLTriangle    DaoGLTriangle;
+
+typedef struct DaoxContext      DaoxContext;
 typedef struct DaoxShader       DaoxShader;
 typedef struct DaoxBuffer       DaoxBuffer;
+
+
+enum DaoxGraphicsMode
+{
+	DAOX_GRAPHICS_2D ,
+	DAOX_GRAPHICS_3D ,
+	DAOX_GRAPHICS_3DVG
+};
 
 
 enum DaoxSamplerID
@@ -109,6 +119,13 @@ struct DaoGLTriangle
 
 struct DaoxShader
 {
+	DAO_CSTRUCT_COMMON;
+
+	void   *ctx;
+	DList  *vertexSources;
+	DList  *fragmentSources;
+
+	uint_t  mode;
 	uint_t  vertexShader;
 	uint_t  fragmentShader;
 	uint_t  program;
@@ -163,21 +180,21 @@ struct DaoxShader
 		uint_t  dashSampler;
 		uint_t  gradientSampler;
 	} textures;
-
-	DList  *vertexSources;
-	DList  *fragmentSources;
 };
+extern DaoType *daox_type_shader;
 
 DaoxShader* DaoxShader_New();
 void DaoxShader_Delete( DaoxShader *self );
 
 void DaoxShader_Init2D( DaoxShader *self );
 void DaoxShader_Init3D( DaoxShader *self );
-void DaoxShader_Free( DaoxShader *self );
 void DaoxShader_AddShader( DaoxShader *self, int type, const char *source );
 void DaoxShader_AppendShader( DaoxShader *self, int type, const char *source );
-void DaoxShader_Finalize2D( DaoxShader *self );
-void DaoxShader_Finalize3D( DaoxShader *self );
+
+void DaoxShader_Build2D( DaoxShader *self );
+void DaoxShader_Build3D( DaoxShader *self );
+void DaoxShader_Free( DaoxShader *self );
+
 void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxGradient *gradient, int fill );
 void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush );
 
@@ -186,6 +203,11 @@ void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush );
 
 struct DaoxBuffer
 {
+	DAO_CSTRUCT_COMMON;
+
+	void    *ctx;
+
+	uint_t   mode;
 	uint_t   vertexVAO;
 	uint_t   vertexVBO;
 	uint_t   triangleVBO;
@@ -205,11 +227,11 @@ struct DaoxBuffer
 		void   *offset;
 	} traits[5];
 };
+extern DaoType *daox_type_buffer;
 
 DaoxBuffer* DaoxBuffer_New();
 void DaoxBuffer_Delete( DaoxBuffer *self );
 
-void DaoxBuffer_Init( DaoxBuffer *self );
 void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo );
 void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv, int texmo );
 void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int texmo );
@@ -222,6 +244,29 @@ DaoGLVertex3DVG* DaoxBuffer_MapVertices3DVG( DaoxBuffer *self, int count );
 DaoGLTriangle*   DaoxBuffer_MapTriangles( DaoxBuffer *self, int count );
 
 
+
+/*
+// DaoxContext:
+// -- Responsible for freeing OpenGL resources;
+// -- DaoxContext_Clear() must be called in the same thread that allocated the resources;
+*/
+struct DaoxContext
+{
+	DAO_CSTRUCT_COMMON;
+
+	DList  *shaders;
+	DList  *buffers;
+	DList  *textures;
+};
+extern DaoType *daox_type_context;
+
+DaoxContext* DaoxContext_New();
+void DaoxContext_Delete( DaoxContext *self );
+void DaoxContext_Clear( DaoxContext *self );
+
+int DaoxContext_BindShader( DaoxContext *self, DaoxShader *shader );
+int DaoxContext_BindBuffer( DaoxContext *self, DaoxBuffer *buffer );
+int DaoxContext_BindTexture( DaoxContext *self, DaoxTexture *texture );
 
 
 void DaoxMatrix4D_Export( DaoxMatrix4D *self, GLfloat matrix[16] );

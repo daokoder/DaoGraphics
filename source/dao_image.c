@@ -67,6 +67,7 @@ void DaoxImage_Resize( DaoxImage *self, int width, int height )
 int DaoxImage_Convert( DaoxImage *self, int dep )
 {
 	if( self->depth == dep ) return 1;
+	return 0;
 }
 
 

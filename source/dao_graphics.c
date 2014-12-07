@@ -1498,7 +1498,8 @@ DaoTypeBase DaoxScene_Typer =
 
 static void PAINTER_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxPainter *self = DaoxPainter_New();
+	DaoxContext *ctx = (DaoxContext*) DaoValue_CastCstruct( p[0], daox_type_context );
+	DaoxPainter *self = DaoxPainter_New( ctx );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void PAINTER_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
@@ -1518,22 +1519,35 @@ static void PAINTER_Paint( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxPainterMeths[]=
 {
-	{ PAINTER_New,            "Painter()" },
+	{ PAINTER_New,            "Painter( contex: DaoxContext|none )" },
 	{ PAINTER_RenderToImage,  "RenderToImage( self: Painter, canvas: Canvas, image: Image, width: int, height: int )" },
 	{ PAINTER_Paint,  "Paint( self: Painter, canvas: Canvas )" },
 	{ NULL, NULL }
 };
+static void DaoxPainter_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxPainter *self = (DaoxPainter*) p;
+	DList_Append( values, self->shader );
+	DList_Append( values, self->buffer );
+	DList_Append( values, self->context );
+	if( remove ){
+		self->shader = NULL;
+		self->buffer = NULL;
+		self->context = NULL;
+	}
+}
 DaoTypeBase DaoxPainter_Typer =
 {
 	"Painter", NULL, NULL, (DaoFuncItem*) DaoxPainterMeths, {0}, {0},
-	(FuncPtrDel)DaoxPainter_Delete, NULL
+	(FuncPtrDel)DaoxPainter_Delete, DaoxPainter_GetGCFields
 };
 
 
 
 static void RENDR_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxRenderer *self = DaoxRenderer_New();
+	DaoxContext *ctx = (DaoxContext*) DaoValue_CastCstruct( p[2], daox_type_context );
+	DaoxRenderer *self = DaoxRenderer_New( ctx );
 	self->deviceWidth  = p[0]->xInteger.value;
 	self->deviceHeight = p[1]->xInteger.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
@@ -1579,12 +1593,20 @@ static void DaoxRenderer_GetGCFields( void *p, DList *values, DList *lists, DLis
 	DaoxRenderer *self = (DaoxRenderer*) p;
 	if( self->scene ) DList_Append( values, self->scene );
 	if( self->camera ) DList_Append( values, self->camera );
+	DList_Append( values, self->shader );
+	DList_Append( values, self->buffer );
+	DList_Append( values, self->bufferVG );
+	DList_Append( values, self->context );
 	DList_Append( values, self->axisMesh );
 	DList_Append( values, self->worldAxis );
 	DList_Append( values, self->localAxis );
 	if( remove ){
 		self->scene = NULL;
 		self->camera = NULL;
+		self->shader = NULL;
+		self->buffer = NULL;
+		self->bufferVG = NULL;
+		self->context = NULL;
 		self->axisMesh = NULL;
 		self->worldAxis = NULL;
 		self->localAxis = NULL;
@@ -1785,6 +1807,55 @@ DaoTypeBase DaoxTerrainGenerator_Typer =
 
 
 
+static DaoFuncItem DaoxShaderMeths[]=
+{
+	{ NULL, NULL }
+};
+
+DaoTypeBase DaoxShader_Typer =
+{
+	"Shader", NULL, NULL, (DaoFuncItem*) DaoxShaderMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoxShader_Delete, NULL
+};
+
+
+
+static DaoFuncItem DaoxBufferMeths[]=
+{
+	{ NULL, NULL }
+};
+
+DaoTypeBase DaoxBuffer_Typer =
+{
+	"Buffer", NULL, NULL, (DaoFuncItem*) DaoxBufferMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoxBuffer_Delete, NULL
+};
+
+
+
+static DaoFuncItem DaoxContextMeths[]=
+{
+	{ NULL, NULL }
+};
+
+static void DaoxContext_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxContext *self = (DaoxContext*) p;
+	if( remove && (self->shaders->size + self->buffers->size + self->textures->size) ){
+		fprintf( stderr, "WARNING: Automatic deletion of graphics contexts may be unsafe!\n" );
+		fprintf( stderr, "-------  Please manually release them first!\n" );
+	}
+	DList_Append( lists, self->shaders );
+	DList_Append( lists, self->buffers );
+	DList_Append( lists, self->textures );
+}
+DaoTypeBase DaoxContext_Typer =
+{
+	"Context", NULL, NULL, (DaoFuncItem*) DaoxContextMeths, { NULL }, { NULL },
+	(FuncPtrDel)DaoxContext_Delete, DaoxContext_GetGCFields
+};
+
+
 
 static void GRAPHICS_Backend( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -1841,6 +1912,10 @@ DaoType *daox_type_resource = NULL;
 DaoType *daox_type_terrain_block = NULL;
 DaoType *daox_type_terrain_generator = NULL;
 
+DaoType *daox_type_shader = NULL;
+DaoType *daox_type_buffer = NULL;
+DaoType *daox_type_context = NULL;
+
 
 DaoxCamera *camera = NULL;
 DaoxLight *light = NULL;
@@ -1868,7 +1943,7 @@ DAO_DLL void DaoGraphics_InitTest()
 	DaoxTerrainGenerator_Generate( terrain, 10, 1 );
 	DaoxScene_AddNode( scene, (DaoxSceneNode*) terrain->terrain );
 
-	renderer = DaoxRenderer_New();
+	renderer = DaoxRenderer_New( NULL );
 	renderer->deviceWidth  = 200;
 	renderer->deviceHeight = 500;
 
@@ -1937,6 +2012,11 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_resource = DaoNamespace_WrapType( ns, & DaoxResource_Typer, 0 );
 	daox_type_terrain_block = DaoNamespace_WrapType( ns, & DaoxTerrainBlock_Typer, 0 );
 	daox_type_terrain_generator = DaoNamespace_WrapType( ns, & DaoxTerrainGenerator_Typer, 0 );
+
+	daox_type_shader = DaoNamespace_WrapType( ns, & DaoxShader_Typer, 0 );
+	daox_type_buffer = DaoNamespace_WrapType( ns, & DaoxBuffer_Typer, 0 );
+	daox_type_context = DaoNamespace_WrapType( ns, & DaoxContext_Typer, 0 );
+
 	DaoWindow_OnLoad( vmSpace, ns );
 	return 0;
 }

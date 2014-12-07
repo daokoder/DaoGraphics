@@ -51,7 +51,7 @@ void DaoxDrawTask_Delete( DaoxDrawTask *self )
 
 
 
-DaoxRenderer* DaoxRenderer_New()
+DaoxRenderer* DaoxRenderer_New( DaoxContext *ctx )
 {
 	float width = 0.005;
 	float length = 0.05;
@@ -61,6 +61,9 @@ DaoxRenderer* DaoxRenderer_New()
 
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_renderer );
 
+	if( ctx == NULL ) ctx = DaoxContext_New();
+	GC_Assign( & self->context, ctx );
+
 	self->deviceWidth  = 300;
 	self->deviceHeight = 200;
 	self->tasks = DList_New(0);
@@ -68,9 +71,12 @@ DaoxRenderer* DaoxRenderer_New()
 	self->canvases = DList_New(0);
 	self->map = DMap_New(0,0);
 
-	self->shader = DaoxShader_New();
-	self->buffer = DaoxBuffer_New();
-	self->bufferVG = DaoxBuffer_New();
+	self->shader = DaoxShader_New( ctx );
+	self->buffer = DaoxBuffer_New( ctx );
+	self->bufferVG = DaoxBuffer_New( ctx );
+	GC_IncRC( self->shader );
+	GC_IncRC( self->buffer );
+	GC_IncRC( self->bufferVG );
 
 	DaoxRenderer_InitShaders( self );
 	DaoxRenderer_InitBuffers( self );
@@ -136,6 +142,10 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 	}
 	if( self->scene ) GC_DecRC( self->scene );
 	if( self->camera ) GC_DecRC( self->camera );
+	GC_DecRC( self->shader );
+	GC_DecRC( self->buffer );
+	GC_DecRC( self->bufferVG );
+	GC_DecRC( self->context );
 	DList_Delete( self->taskCache );
 	DList_Delete( self->tasks );
 	DList_Delete( self->canvases );
@@ -143,9 +153,6 @@ void DaoxRenderer_Delete( DaoxRenderer *self )
 	GC_DecRC( self->axisMesh );
 	GC_DecRC( self->worldAxis );
 	GC_DecRC( self->localAxis );
-	DaoxShader_Delete( self->shader );
-	DaoxBuffer_Delete( self->buffer );
-	DaoxBuffer_Delete( self->bufferVG );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
@@ -166,7 +173,7 @@ DaoxCamera* DaoxRenderer_GetCurrentCamera( DaoxRenderer *self )
 void DaoxRenderer_InitShaders( DaoxRenderer *self )
 {
 	DaoxShader_Init3D( self->shader );
-	DaoxShader_Finalize3D( self->shader );
+	DaoxContext_BindShader( self->context, self->shader );
 }
 void DaoxRenderer_InitBuffers( DaoxRenderer *self )
 {
@@ -177,6 +184,8 @@ void DaoxRenderer_InitBuffers( DaoxRenderer *self )
 	int texmo  = self->shader->attributes.texMO;
 	DaoxBuffer_Init3D( self->buffer, pos, norm, tan, texuv, texmo );
 	DaoxBuffer_Init3DVG( self->bufferVG, pos, norm, texuv, texmo );
+	DaoxContext_BindBuffer( self->context, self->buffer );
+	DaoxContext_BindBuffer( self->context, self->bufferVG );
 }
 
 DaoxDrawTask* DaoxRenderer_MakeDrawTask( DaoxRenderer *self )
@@ -498,7 +507,9 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 			DaoxTerrainBlock *neighbor = drawtask->hexTile->neighbors[i];
 			DaoxMaterial *material2 = neighbor ? neighbor->mesh->material : material;
 			if( material2 == NULL ) material2 = material;
-			DaoxTexture_glInitTexture( material->texture1 );
+			if( material->texture1->changed || material->texture1->tid == 0 ){
+				DaoxContext_BindTexture( self->context, material->texture1 );
+			}
 			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE1 + i);
 			glBindTexture(GL_TEXTURE_2D, material2->texture1->tid);
 			glUniform1i(self->shader->uniforms.tileTextures[i], DAOX_TILE_TEXTURE1 + i );
@@ -510,7 +521,9 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 
 	if( material != NULL ) colorTexture = material->texture1;
 	if( colorTexture ){
-		DaoxTexture_glInitTexture( colorTexture );
+		if( colorTexture->changed || colorTexture->tid == 0 ){
+			DaoxContext_BindTexture( self->context, colorTexture );
+		}
 		if( colorTexture->tid ){
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, colorTexture->tid);
@@ -520,7 +533,9 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	}
 	if( material != NULL ) bumpTexture = material->texture2;
 	if( bumpTexture ){
-		DaoxTexture_glInitTexture( bumpTexture );
+		if( bumpTexture->changed || bumpTexture->tid == 0 ){
+			DaoxContext_BindTexture( self->context, bumpTexture );
+		}
 		if( bumpTexture->tid ){
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, bumpTexture->tid);
@@ -666,20 +681,20 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform1i(self->shader->uniforms.terrainTileType, 0 );
 	glUniform1i(self->shader->uniforms.tileTextureCount, 0 );
 
-	glActiveTexture(GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER);
-	glBindTexture(GL_TEXTURE_2D, self->shader->textures.gradientSampler);
-	glUniform1i(self->shader->uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
+	glActiveTexture( GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER);
+	glBindTexture( GL_TEXTURE_2D, self->shader->textures.gradientSampler );
+	glUniform1i( self->shader->uniforms.gradientSampler, DAOX_GRADIENT_SAMPLER );
 
-	glActiveTexture(GL_TEXTURE0 + DAOX_DASH_SAMPLER);
-	glBindTexture(GL_TEXTURE_2D, self->shader->textures.dashSampler);
-	glUniform1i(self->shader->uniforms.dashSampler, DAOX_DASH_SAMPLER );
+	glActiveTexture( GL_TEXTURE0 + DAOX_DASH_SAMPLER);
+	glBindTexture( GL_TEXTURE_2D, self->shader->textures.dashSampler );
+	glUniform1i( self->shader->uniforms.dashSampler, DAOX_DASH_SAMPLER );
 
 	glUniformMatrix4fv( self->shader->uniforms.projMatrix, 1, 0, matrix2 );
 	glUniformMatrix4fv( self->shader->uniforms.viewMatrix, 1, 0, matrix );
-	glUniform3fv(self->shader->uniforms.cameraPosition, 1, & cameraPosition.x );
-	glUniform1i(self->shader->uniforms.lightCount, lightCount );
-	glUniform3fv(self->shader->uniforms.lightSource, lightCount, & lightSource[0].x );
-	glUniform4fv(self->shader->uniforms.lightIntensity, lightCount, & lightIntensity[0].red );
+	glUniform3fv( self->shader->uniforms.cameraPosition, 1, & cameraPosition.x );
+	glUniform1i( self->shader->uniforms.lightCount, lightCount );
+	glUniform3fv( self->shader->uniforms.lightSource, lightCount, & lightSource[0].x );
+	glUniform4fv( self->shader->uniforms.lightIntensity, lightCount, & lightIntensity[0].red );
 
 
 	glBindVertexArray( self->buffer->vertexVAO );
@@ -703,10 +718,12 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		DaoxCanvas *canvas = self->canvases->items.pCanvas[i];
 		DaoxPainter painter;
 		memset( & painter, 0, sizeof(DaoxPainter) );
+		painter.showMesh = self->showMesh;
 		painter.deviceWidth = self->deviceWidth;
 		painter.deviceHeight = self->deviceHeight;
 		painter.shader = self->shader;
 		painter.buffer = self->bufferVG;
+		painter.context = self->context;
 		glUniform4fv( self->shader->uniforms.diffuseColor, 1, & canvas->background.red );
 		DaoxPainter_PaintCanvas( & painter, canvas, cam );
 	}

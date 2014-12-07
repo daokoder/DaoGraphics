@@ -41,69 +41,32 @@ void DaoxTexture_glFreeTexture( DaoxTexture *self );
 
 DaoxTexture* DaoxTexture_New()
 {
-	DaoxTexture *self = (DaoxTexture*) dao_malloc( sizeof(DaoxTexture) );
+	DaoxTexture *self = (DaoxTexture*) dao_calloc( 1, sizeof(DaoxTexture) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_texture );
-	self->tid = 0;
-	self->image = NULL;
 	return self;
 }
 void DaoxTexture_Delete( DaoxTexture *self )
 {
-	if( self->tid ) DaoxTexture_glFreeTexture( self );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoGC_DecRC( (DaoValue*) self->image );
 	dao_free( self );
 }
 void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image )
 {
-	if( self->tid ) DaoxTexture_glFreeTexture( self );
+	self->changed = 1;
 	GC_Assign( & self->image, image );
 }
 void DaoxTexture_LoadImage( DaoxTexture *self, const char *file )
 {
 	DaoxImage *image = self->image;
 	int ok = 0;
+	self->changed = 1;
 	if( image == NULL || image->refCount > 1 ){
 		image = DaoxImage_New();
 		DaoxTexture_SetImage( self, image );
 	}
 	if( ok == 0 ) ok = DaoxImage_LoadPNG( self->image, file );
 	if( ok == 0 ) ok = DaoxImage_LoadBMP( self->image, file );
-}
-void DaoxTexture_glFreeTexture( DaoxTexture *self )
-{
-	GLuint tid = self->tid;
-	if( tid == 0 ) return;
-	glDeleteTextures( 1, & tid );
-	self->tid = 0;
-}
-void DaoxTexture_glInitTexture( DaoxTexture *self )
-{
-	uchar_t *data;
-	int W, H;
-	GLuint tid = 0;
-
-	if( self->tid ) return;
-	if( self->image == NULL ) return;
-
-	data = self->image->imageData;
-	W = self->image->width;
-	H = self->image->height;
-
-	if( W == 0 || H == 0 ) return;
-
-	glGenTextures( 1, & tid );
-	self->tid = tid;
-
-	glBindTexture(GL_TEXTURE_2D, self->tid);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	if( self->image->depth == DAOX_IMAGE_BIT24 ){
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, W, H, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	}else if( self->image->depth == DAOX_IMAGE_BIT32 ){
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, W, H, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-	}
-	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 

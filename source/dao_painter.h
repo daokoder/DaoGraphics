@@ -38,14 +38,17 @@ struct DaoxPainter
 {
 	DAO_CSTRUCT_COMMON;
 
+	uchar_t  showMesh;
+
 	float  deviceWidth;
 	float  deviceHeight;
 
 	DaoxOBBox2D   obbox;
 	DaoxVector3D  campos;
 
-	DaoxShader  *shader;
-	DaoxBuffer  *buffer;
+	DaoxContext  *context;
+	DaoxShader   *shader;
+	DaoxBuffer   *buffer;
 
 	void          *vertexBuffer;
 	DaoGLTriangle *triangleBuffer;
@@ -55,7 +58,7 @@ struct DaoxPainter
 };
 extern DaoType *daox_type_painter;
 
-DaoxPainter* DaoxPainter_New();
+DaoxPainter* DaoxPainter_New( DaoxContext *ctx );
 void DaoxPainter_Delete( DaoxPainter *self );
 
 void DaoxPainter_InitShaders( DaoxPainter *self );

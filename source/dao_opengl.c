@@ -582,52 +582,22 @@ void main(void)\n\
 DaoxShader* DaoxShader_New()
 {
 	DaoxShader *self = (DaoxShader*) dao_calloc(1,sizeof(DaoxShader));
+	DaoCstruct_Init( (DaoCstruct*) self, daox_type_shader );
+	self->vertexSources = DList_New( DAO_DATA_STRING );
+	self->fragmentSources = DList_New( DAO_DATA_STRING );
 	return self;
 }
 void DaoxShader_Delete( DaoxShader *self )
 {
-	DaoxShader_Free( self );
+	DList_Delete( self->vertexSources );
+	DList_Delete( self->fragmentSources );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 
-void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings );
-
-void DaoxShader_Init( DaoxShader *self )
-{
-	int width = 2*DAOX_MAX_GRADIENT_STOPS;
-	GLfloat data[2*DAOX_MAX_GRADIENT_STOPS*4];
-	GLfloat dash[DAOX_MAX_DASH];
-	GLuint tid = 0;
-
-	memset( self, 0, sizeof(DaoxShader) );
-	memset( data, 0, width*4*sizeof(GLfloat) );
-	memset( dash, 0, DAOX_MAX_DASH*sizeof(GLfloat) );
-
-	self->vertexSources = DList_New( DAO_DATA_STRING );
-	self->fragmentSources = DList_New( DAO_DATA_STRING );
-
-	glGenTextures( 1, & tid );
-	self->textures.gradientSampler = tid;
-
-	glBindTexture(GL_TEXTURE_2D, tid);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, 1, 0, GL_RGBA, GL_FLOAT, data);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glGenTextures( 1, & tid );
-	self->textures.dashSampler = tid;
-
-	glBindTexture(GL_TEXTURE_2D, tid);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, DAOX_MAX_DASH, 1, 0, GL_RED, GL_FLOAT, dash);
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
 void DaoxShader_Init2D( DaoxShader *self )
 {
-	DaoxShader_Init( self );
-	self->program = glCreateProgram();
+	self->mode = DAOX_GRAPHICS_2D;
 
 	DaoxShader_AddShader( self, GL_VERTEX_SHADER, daox_vertex_shader_header );
 	DaoxShader_AppendShader( self, GL_VERTEX_SHADER, daox_vertex_shader2d_body );
@@ -635,14 +605,10 @@ void DaoxShader_Init2D( DaoxShader *self )
 	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader_header );
 	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_vector_graphics_shader_body );
 	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader2d_body );
-
-	DaoxShader_CompileShader( self, GL_VERTEX_SHADER, self->vertexSources );
-	DaoxShader_CompileShader( self, GL_FRAGMENT_SHADER, self->fragmentSources );
 }
 void DaoxShader_Init3D( DaoxShader *self )
 {
-	DaoxShader_Init( self );
-	self->program = glCreateProgram();
+	self->mode = DAOX_GRAPHICS_3D;
 
 	DaoxShader_AddShader( self, GL_VERTEX_SHADER, daox_vertex_shader_header );
 	DaoxShader_AppendShader( self, GL_VERTEX_SHADER, daox_vertex_shader3d_body );
@@ -650,14 +616,92 @@ void DaoxShader_Init3D( DaoxShader *self )
 	DaoxShader_AddShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader_header );
 	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_vector_graphics_shader_body );
 	DaoxShader_AppendShader( self, GL_FRAGMENT_SHADER, daox_fragment_shader3d_body );
-
-	DaoxShader_CompileShader( self, GL_VERTEX_SHADER, self->vertexSources );
-	DaoxShader_CompileShader( self, GL_FRAGMENT_SHADER, self->fragmentSources );
 }
+void DaoxShader_AddShader( DaoxShader *self, int type, const char *codes )
+{
+	DString *source = DString_NewChars( codes );
+	switch( type ){
+	case GL_VERTEX_SHADER :
+		DList_Append( self->vertexSources, source );
+		break;
+	case GL_FRAGMENT_SHADER :
+		DList_Append( self->fragmentSources, source );
+		break;
+	}
+	DString_Delete( source );
+}
+void DaoxShader_AppendShader( DaoxShader *self, int type, const char *codes )
+{
+	DString *source = DString_NewChars( codes );
+	switch( type ){
+	case GL_VERTEX_SHADER :
+		if( self->vertexSources->size ){
+			DString_Append( (DString*) DList_Back( self->vertexSources ), source );
+		}else{
+			DList_Append( self->vertexSources, source );
+		}
+		break;
+	case GL_FRAGMENT_SHADER :
+		if( self->fragmentSources->size ){
+			DString_Append( (DString*) DList_Back( self->fragmentSources ), source );
+		}else{
+			DList_Append( self->fragmentSources, source );
+		}
+		break;
+	}
+	DString_Delete( source );
+}
+
+void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings )
+{
+	daoint i, n = strings->size;
+	uint_t shader = glCreateShader( type );
+	const GLchar **sources;
+	GLint length, shader_ok;
+
+	if( shader == 0 ){
+		fprintf(stderr, "Failed to create shader of type %i\n", type );
+		return;
+	}
+	sources = (const GLchar**) dao_malloc( n*sizeof(GLchar*) );
+	for(i=0; i<n; ++i){
+		sources[i] = (const GLchar*) DString_GetData( strings->items.pString[i] );
+	}
+
+	glShaderSource( shader, n, sources, NULL );
+	glCompileShader( shader );
+	dao_free( sources );
+
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
+	if( !shader_ok ){
+		const char *log2;
+		DString *log = DString_New(1);
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length );
+		DString_Resize( log, length );
+		log2 = DString_GetData(log);
+		glGetShaderInfoLog( shader, length, NULL, (char*)log2 );
+		fprintf(stderr, "Failed to compile shader!\nWith error message: %s", log2 );
+		glDeleteShader(shader);
+		return;
+	}
+	switch( type ){
+	case GL_VERTEX_SHADER :
+		if( self->vertexShader ) glDeleteShader( self->vertexShader );
+		self->vertexShader = shader;
+		break;
+	case GL_FRAGMENT_SHADER :
+		if( self->fragmentShader ) glDeleteShader( self->fragmentShader );
+		self->fragmentShader = shader;
+		break;
+	}
+	if( shader && self->program ) glAttachShader( self->program, shader );
+}
+
 void DaoxShader_Finalize( DaoxShader *self )
 {
 	GLint length, program_ok;
 	int shaderAttribute = 0;
+
 	if( self->program == 0 ) return;
 
 #ifndef DAO_GRAPHICS_USE_GLES
@@ -706,8 +750,6 @@ void DaoxShader_Finalize2D( DaoxShader *self )
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.texKLMO = glGetAttribLocation(self->program, "texKLMO");
-	printf( "DaoxShader_Finalize: %i\n", self->attributes.position );
-	printf( "DaoxShader_Finalize: %i\n", self->attributes.texKLMO );
 }
 void DaoxShader_Finalize3D( DaoxShader *self )
 {
@@ -746,96 +788,65 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->attributes.texCoord = glGetAttribLocation(self->program, "texCoord");
 	self->attributes.texMO = glGetAttribLocation(self->program, "texMO");
 }
+void DaoxShader_InitVGSamplers( DaoxShader *self )
+{
+	int width = 2*DAOX_MAX_GRADIENT_STOPS;
+	GLfloat data[2*DAOX_MAX_GRADIENT_STOPS*4];
+	GLfloat dash[DAOX_MAX_DASH];
+	GLuint tid = 0;
+
+	memset( data, 0, width*4*sizeof(GLfloat) );
+	memset( dash, 0, DAOX_MAX_DASH*sizeof(GLfloat) );
+
+	glGenTextures( 1, & tid );
+	self->textures.gradientSampler = tid;
+
+	glBindTexture(GL_TEXTURE_2D, tid);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, 1, 0, GL_RGBA, GL_FLOAT, data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenTextures( 1, & tid );
+	self->textures.dashSampler = tid;
+
+	glBindTexture(GL_TEXTURE_2D, tid);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, DAOX_MAX_DASH, 1, 0, GL_RED, GL_FLOAT, dash);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+void DaoxShader_Build2D( DaoxShader *self )
+{
+	self->program = glCreateProgram();
+
+	DaoxShader_CompileShader( self, GL_VERTEX_SHADER, self->vertexSources );
+	DaoxShader_CompileShader( self, GL_FRAGMENT_SHADER, self->fragmentSources );
+
+	DaoxShader_InitVGSamplers( self );
+
+	DaoxShader_Finalize2D( self );
+}
+void DaoxShader_Build3D( DaoxShader *self )
+{
+	self->program = glCreateProgram();
+
+	DaoxShader_CompileShader( self, GL_VERTEX_SHADER, self->vertexSources );
+	DaoxShader_CompileShader( self, GL_FRAGMENT_SHADER, self->fragmentSources );
+
+	DaoxShader_InitVGSamplers( self );
+
+	DaoxShader_Finalize3D( self );
+}
 void DaoxShader_Free( DaoxShader *self )
 {
 	if( self->vertexShader ) glDeleteShader( self->vertexShader );
 	if( self->fragmentShader ) glDeleteShader( self->fragmentShader );
 	if( self->program ) glDeleteProgram( self->program );
-	if( self->vertexSources ) DList_Delete( self->vertexSources );
-	if( self->fragmentSources ) DList_Delete( self->fragmentSources );
-	self->vertexSources = NULL;
-	self->fragmentSources = NULL;
 	self->vertexShader = 0;
 	self->fragmentShader = 0;
 	self->program = 0;
-}
-void DaoxShader_AddShader( DaoxShader *self, int type, const char *codes )
-{
-	DString *source = DString_NewChars( codes );
-	switch( type ){
-	case GL_VERTEX_SHADER :
-		DList_Append( self->vertexSources, source );
-		break;
-	case GL_FRAGMENT_SHADER :
-		DList_Append( self->fragmentSources, source );
-		break;
-	}
-	DString_Delete( source );
-}
-void DaoxShader_AppendShader( DaoxShader *self, int type, const char *codes )
-{
-	DString *source = DString_NewChars( codes );
-	switch( type ){
-	case GL_VERTEX_SHADER :
-		if( self->vertexSources->size ){
-			DString_Append( self->vertexSources->items.pString[self->vertexSources->size-1], source );
-		}else{
-			DList_Append( self->vertexSources, source );
-		}
-		break;
-	case GL_FRAGMENT_SHADER :
-		if( self->fragmentSources->size ){
-			DString_Append( self->fragmentSources->items.pString[self->fragmentSources->size-1], source );
-		}else{
-			DList_Append( self->fragmentSources, source );
-		}
-		break;
-	}
-	DString_Delete( source );
-}
-void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings )
-{
-	daoint i, n = strings->size;
-	uint_t shader = glCreateShader( type );
-	const GLchar **sources;
-	GLint length, shader_ok;
-
-	if( shader == 0 ){
-		fprintf(stderr, "Failed to create shader of type %i\n", type );
-		return;
-	}
-	sources = (const GLchar**) dao_malloc( n*sizeof(GLchar*) );
-	for(i=0; i<n; ++i){
-		sources[i] = (const GLchar*) DString_GetData( strings->items.pString[i] );
-	}
-
-	glShaderSource( shader, n, sources, NULL );
-	glCompileShader( shader );
-	dao_free( sources );
-
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
-	if( !shader_ok ){
-		const char *log2;
-		DString *log = DString_New(1);
-		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length );
-		DString_Resize( log, length );
-		log2 = DString_GetData(log);
-		glGetShaderInfoLog( shader, length, NULL, (char*)log2 );
-		fprintf(stderr, "Failed to compile shader!\nWith error message: %s", log2 );
-		glDeleteShader(shader);
-		return;
-	}
-	switch( type ){
-	case GL_VERTEX_SHADER :
-		if( self->vertexShader ) glDeleteShader( self->vertexShader );
-		self->vertexShader = shader;
-		break;
-	case GL_FRAGMENT_SHADER :
-		if( self->fragmentShader ) glDeleteShader( self->fragmentShader );
-		self->fragmentShader = shader;
-		break;
-	}
-	if( shader && self->program ) glAttachShader( self->program, shader );
+	// TODO: samplers;
 }
 
 void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxGradient *gradient, int fill )
@@ -916,25 +927,22 @@ void DaoxShader_MakeDashSampler( DaoxShader *self, DaoxBrush *brush )
 DaoxBuffer* DaoxBuffer_New()
 {
 	DaoxBuffer *self = (DaoxBuffer*) dao_calloc(1,sizeof(DaoxBuffer));
+	DaoCstruct_Init( (DaoCstruct*) self, daox_type_buffer );
+	self->vertexCapacity = 16*1024;
+	self->triangleCapacity = 16*1024;
 	return self;
 }
 void DaoxBuffer_Delete( DaoxBuffer *self )
 {
-	DaoxBuffer_Free( self );
+	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
 
-void DaoxBuffer_Init( DaoxBuffer *self )
-{
-	memset( self, 0, sizeof(DaoxBuffer) );
-	self->vertexCapacity = 16*1024;
-	self->triangleCapacity = 16*1024;
-}
-void DaoxBuffer_InitBuffers( DaoxBuffer *self );
 void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo )
 {
 	DaoGLVertex2D *vertex = NULL;
-	DaoxBuffer_Init( self );
+
+	self->mode = DAOX_GRAPHICS_2D;
 
 	self->traitCount = 2;
 	self->vertexSize = sizeof(DaoGLVertex2D);
@@ -945,13 +953,12 @@ void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo )
 	self->traits[1].count = 4;
 	self->traits[0].offset = NULL;
 	self->traits[1].offset = (void*) & vertex->texKLMO;
-
-	DaoxBuffer_InitBuffers( self );
 }
 void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv, int texmo )
 {
 	DaoGLVertex3D *vertex = NULL;
-	DaoxBuffer_Init( self );
+
+	self->mode = DAOX_GRAPHICS_3D;
 
 	self->traitCount = 5;
 	self->vertexSize = sizeof(DaoGLVertex3D);
@@ -971,13 +978,12 @@ void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv,
 	self->traits[2].offset = (void*) & vertex->tan;
 	self->traits[3].offset = (void*) & vertex->tex;
 	self->traits[4].offset = (void*) & vertex->tex;
-
-	DaoxBuffer_InitBuffers( self );
 }
 void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int texmo )
 {
 	DaoGLVertex3DVG *vertex = NULL;
-	DaoxBuffer_Init( self );
+
+	self->mode = DAOX_GRAPHICS_3DVG;
 
 	self->traitCount = 4;
 	self->vertexSize = sizeof(DaoGLVertex3DVG);
@@ -994,8 +1000,6 @@ void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int te
 	self->traits[1].offset = (void*) & vertex->norm;
 	self->traits[2].offset = (void*) & vertex->texKLMO;
 	self->traits[3].offset = (void*) & vertex->texKLMO.m;
-
-	DaoxBuffer_InitBuffers( self );
 }
 void DaoxBuffer_Free( DaoxBuffer *self )
 {
@@ -1014,7 +1018,7 @@ void DaoxBuffer_SetVertexBufferAttributes( DaoxBuffer *self )
 		glVertexAttribPointer( uniform, count, GL_FLOAT, GL_FALSE, stride, offset );
 	}
 }
-void DaoxBuffer_InitBuffers( DaoxBuffer *self )
+void DaoxBuffer_BindBuffers( DaoxBuffer *self )
 {
 	glGenVertexArrays( 1, & self->vertexVAO );
 	glGenBuffers( 1, & self->vertexVBO );
@@ -1067,6 +1071,104 @@ DaoGLTriangle* DaoxBuffer_MapTriangles( DaoxBuffer *self, int count )
 	return (DaoGLTriangle*) glMapBufferRange( GL_ELEMENT_ARRAY_BUFFER, self->triangleOffset*self->triangleSize, dataSize, GL_MAP_WRITE_BIT|GL_MAP_UNSYNCHRONIZED_BIT|GL_MAP_INVALIDATE_BUFFER_BIT );
 }
 
+
+
+DaoxContext* DaoxContext_New()
+{
+	DaoxContext *self = (DaoxContext*) dao_calloc(1,sizeof(DaoxContext));
+	DaoCstruct_Init( (DaoCstruct*) self, daox_type_context );
+	self->shaders = DList_New(DAO_DATA_VALUE);
+	self->buffers = DList_New(DAO_DATA_VALUE);
+	self->textures = DList_New(DAO_DATA_VALUE);
+	return self;
+}
+void DaoxContext_Delete( DaoxContext *self )
+{
+	DaoxContext_Clear( self );
+	DaoCstruct_Free( (DaoCstruct*) self );
+	dao_free( self );
+}
+void DaoxTexture_Free( DaoxTexture *self );
+void DaoxContext_Clear( DaoxContext *self )
+{
+	int i;
+	for(i=0; i<self->shaders->size; ++i){
+		DaoxShader *shader = (DaoxShader*) self->shaders->items.pValue[i];
+		DaoxShader_Free( shader );
+	}
+	for(i=0; i<self->buffers->size; ++i){
+		DaoxBuffer *buffer = (DaoxBuffer*) self->buffers->items.pValue[i];
+		DaoxBuffer_Free( buffer );
+	}
+	for(i=0; i<self->textures->size; ++i){
+		DaoxTexture *texture = (DaoxTexture*) self->textures->items.pValue[i];
+		DaoxTexture_Free( texture );
+	}
+	DList_Clear( self->shaders );
+	DList_Clear( self->buffers );
+	DList_Clear( self->textures );
+}
+
+int DaoxContext_BindShader( DaoxContext *self, DaoxShader *shader )
+{
+	if( shader->ctx != self ) DList_Append( self->shaders, shader );
+	shader->ctx = self;  /* No GC, should only be used for pointer comparison; */
+	switch( shader->mode ){
+	case DAOX_GRAPHICS_2D : DaoxShader_Build2D( shader ); break;
+	case DAOX_GRAPHICS_3D : DaoxShader_Build3D( shader ); break;
+	}
+	return 1;
+}
+int DaoxContext_BindBuffer( DaoxContext *self, DaoxBuffer *buffer )
+{
+	if( buffer->ctx != self ) DList_Append( self->buffers, buffer );
+	buffer->ctx = self;  /* No GC, should only be used for pointer comparison; */
+	DaoxBuffer_BindBuffers( buffer );
+	return 1;
+}
+void DaoxTexture_Free( DaoxTexture *self )
+{
+	GLuint tid = self->tid;
+	if( tid == 0 ) return;
+	glDeleteTextures( 1, & tid );
+	self->tid = 0;
+}
+int DaoxContext_BindTexture( DaoxContext *self, DaoxTexture *texture )
+{
+	uchar_t *data;
+	GLuint tid = 0;
+	int W, H;
+
+	if( texture->image == NULL ) return 0;
+
+	data = texture->image->imageData;
+	W = texture->image->width;
+	H = texture->image->height;
+
+	if( W == 0 || H == 0 ) return 0;
+
+	if( texture->ctx == self && texture->tid ) return 1;
+	if( texture->tid ) DaoxTexture_Free( texture );
+
+	if( texture->ctx != self ){
+		DList_Append( self->textures, texture );
+		texture->ctx = self;
+	}
+
+	glGenTextures( 1, & tid );
+	texture->tid = tid;
+
+	glBindTexture(GL_TEXTURE_2D, texture->tid);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	if( texture->image->depth == DAOX_IMAGE_BIT24 ){
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, W, H, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	}else if( texture->image->depth == DAOX_IMAGE_BIT32 ){
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, W, H, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return 1;
+}
 
 
 

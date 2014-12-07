@@ -66,16 +66,17 @@ struct DaoxRenderer
 
 	DaoxViewFrustum  frustum;
 
-	DaoxScene   *scene;
-	DaoxCamera  *camera;
+	DaoxScene    *scene;
+	DaoxCamera   *camera;
 
-	DaoxMesh    *axisMesh;
-	DaoxModel   *worldAxis;
-	DaoxModel   *localAxis;
+	DaoxMesh     *axisMesh;
+	DaoxModel    *worldAxis;
+	DaoxModel    *localAxis;
 
-	DaoxShader  *shader;
-	DaoxBuffer  *buffer;
-	DaoxBuffer  *bufferVG;
+	DaoxContext  *context;
+	DaoxShader   *shader;
+	DaoxBuffer   *buffer;
+	DaoxBuffer   *bufferVG;
 
 	DList   *tasks;
 	DList   *canvases;
@@ -84,7 +85,7 @@ struct DaoxRenderer
 };
 extern DaoType *daox_type_renderer;
 
-DaoxRenderer* DaoxRenderer_New();
+DaoxRenderer* DaoxRenderer_New( DaoxContext *ctx );
 void DaoxRenderer_Delete( DaoxRenderer *self );
 void DaoxRenderer_InitShaders( DaoxRenderer *self );
 void DaoxRenderer_InitBuffers( DaoxRenderer *self );
