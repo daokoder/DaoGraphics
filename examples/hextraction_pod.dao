@@ -1,8 +1,6 @@
 
 load graphics;
 
-window = Graphics::Window( 960, 640, 'Hextraction Pod' )
-
 resource = Graphics::Resource()
 
 scene = resource.LoadObjFile( "../media/hextraction_pod/hextraction_pod.obj" )
@@ -25,4 +23,6 @@ camera.Orient( $Y );
 scene.AddNode( camera );
 
 
+window = Graphics::Window( 960, 640, 'Hextraction Pod' )
 window.Show( scene, 100, 1 )
+window.Quit()

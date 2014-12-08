@@ -40,8 +40,6 @@ struct DaoxPainter
 
 	uchar_t  showMesh;
 
-	float  deviceWidth;
-	float  deviceHeight;
 
 	DaoxOBBox2D   obbox;
 	DaoxVector3D  campos;

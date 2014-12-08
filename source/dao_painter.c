@@ -40,8 +40,6 @@ DaoxPainter* DaoxPainter_New( DaoxContext *ctx )
 	GC_IncRC( self->buffer );
 	DaoxPainter_InitShaders( self );
 	DaoxPainter_InitBuffers( self );
-	self->deviceWidth = 300;
-	self->deviceHeight = 200;
 	return self;
 }
 void DaoxPainter_Delete( DaoxPainter *self )
@@ -67,8 +65,8 @@ void DaoxPainter_InitBuffers( DaoxPainter *self )
 float DaoxPainter_CanvasScale( DaoxPainter *self, DaoxCanvas *canvas )
 {
 	DaoxAABBox2D box = canvas->viewport;
-	float xscale = fabs( box.right - box.left ) / (self->deviceWidth + 1);
-	float yscale = fabs( box.top - box.bottom ) / (self->deviceHeight + 1);
+	float xscale = fabs( box.right - box.left ) / (self->context->deviceWidth + 1);
+	float yscale = fabs( box.top - box.bottom ) / (self->context->deviceHeight + 1);
 	return 0.5 * (xscale + yscale);
 }
 
@@ -717,23 +715,23 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor( bgcolor.red, bgcolor.green, bgcolor.blue, bgcolor.alpha );
 
-	if( width > self->deviceWidth ){
-		xmoreWin = width - self->deviceWidth;
+	if( width > self->context->deviceWidth ){
+		xmoreWin = width - self->context->deviceWidth;
 		xmoreScene = xmoreWin * canvasWidth / width;
-		destWidth = self->deviceWidth;
+		destWidth = self->context->deviceWidth;
 		subViewport.right = right - xmoreScene;
 	}else{
-		xwin = (self->deviceWidth - width);
+		xwin = (self->context->deviceWidth - width);
 		margin = xwin * canvasWidth / width;
 		subViewport.right += margin;
 	}
-	if( height > self->deviceHeight ){
-		ymoreWin = height - self->deviceHeight;
+	if( height > self->context->deviceHeight ){
+		ymoreWin = height - self->context->deviceHeight;
 		ymoreScene = ymoreWin * canvasHeight / height;
-		destHeight = self->deviceHeight;
+		destHeight = self->context->deviceHeight;
 		subViewport.top = top - ymoreScene;
 	}else{
-		ywin = (self->deviceHeight - height);
+		ywin = (self->context->deviceHeight - height);
 		margin = ywin * canvasHeight / height;
 		subViewport.top += margin;
 	}
@@ -747,7 +745,7 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 		subViewport = viewport;
 		subViewport.left = canvasRight;
 		rect2 = rect;
-		rect2.left += self->deviceWidth;
+		rect2.left += self->context->deviceWidth;
 		DaoxPainter_PaintSubSceneImage( self, canvas, subViewport, image, rect2 );
 	}
 
@@ -755,7 +753,7 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 		subViewport = viewport;
 		subViewport.bottom = canvasTop;
 		rect2 = rect;
-		rect2.bottom += self->deviceHeight;
+		rect2.bottom += self->context->deviceHeight;
 		DaoxPainter_PaintSubSceneImage( self, canvas, subViewport, image, rect2 );
 	}
 
@@ -764,8 +762,8 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 		subViewport.left = canvasRight;
 		subViewport.bottom = canvasTop;
 		rect2 = rect;
-		rect2.left += self->deviceWidth;
-		rect2.bottom += self->deviceHeight;
+		rect2.left += self->context->deviceWidth;
+		rect2.bottom += self->context->deviceHeight;
 		DaoxPainter_PaintSubSceneImage( self, canvas, subViewport, image, rect2 );
 	}
 }
@@ -778,10 +776,5 @@ void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAA
 
 	rect.right = width - 1;
 	rect.top = height - 1;
-	/*
-	// XXX: for some reason, rendering once will produce some artifacts
-	// when the output image is big and require subdividing the viewport!
-	*/
-	DaoxPainter_PaintSubSceneImage( self, canvas, viewport, image, rect );
 	DaoxPainter_PaintSubSceneImage( self, canvas, viewport, image, rect );
 }

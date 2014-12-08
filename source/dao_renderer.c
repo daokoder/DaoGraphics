@@ -64,8 +64,6 @@ DaoxRenderer* DaoxRenderer_New( DaoxContext *ctx )
 	if( ctx == NULL ) ctx = DaoxContext_New();
 	GC_Assign( & self->context, ctx );
 
-	self->deviceWidth  = 300;
-	self->deviceHeight = 200;
 	self->tasks = DList_New(0);
 	self->taskCache = DList_New(0);
 	self->canvases = DList_New(0);
@@ -595,7 +593,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		GC_Assign( & self->camera, cam );
 	}
 	cam = self->camera;
-	cam->aspectRatio = self->deviceWidth / (float) self->deviceHeight;
+	cam->aspectRatio = self->context->deviceWidth / (float) self->context->deviceHeight;
 
 	//DaoxMatrix4D_Print( & rotation );
 #if 0
@@ -610,7 +608,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	//DaoxMatrix4D_Print( & objectToWorld );
 
 	DaoxViewFrustum_Init( & fm, cam );
-	fm.ratio = self->deviceWidth / (fm.right - fm.left);
+	fm.ratio = self->context->deviceWidth / (fm.right - fm.left);
 
 	if( self->showAxis ) DaoxSceneNode_Move( (DaoxSceneNode*) self->worldAxis, fm.axisOrigin );
 
@@ -719,8 +717,6 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		DaoxPainter painter;
 		memset( & painter, 0, sizeof(DaoxPainter) );
 		painter.showMesh = self->showMesh;
-		painter.deviceWidth = self->deviceWidth;
-		painter.deviceHeight = self->deviceHeight;
 		painter.shader = self->shader;
 		painter.buffer = self->bufferVG;
 		painter.context = self->context;

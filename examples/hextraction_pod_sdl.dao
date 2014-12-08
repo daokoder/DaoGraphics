@@ -114,7 +114,8 @@ routine main()
     if( renderer == none ) Abort( "Renderer creation failed" );
 
 	var (scene, camera) = LoadScene()
-	var dao_renderer = Graphics::Renderer( WINDOW_WIDTH, WINDOW_HEIGHT );
+	var dao_context = Graphics::Context( WINDOW_WIDTH, WINDOW_HEIGHT )
+	var dao_renderer = Graphics::Renderer( dao_context );
 	dao_renderer.SetCurrentCamera( camera )
 
 	# Main render loop 
@@ -158,5 +159,6 @@ routine main()
 		dao_renderer.Render( scene )
 		SDL_RenderPresent( renderer );
 	}
+	dao_context.Quit()
 	SDL_Quit();
 }

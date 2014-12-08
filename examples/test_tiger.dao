@@ -54,13 +54,14 @@ routine main( fps_limit = 30, compute_fps = 0 )
 	LoadTiger( canvas );
 
 	window.Show( canvas, fps_limit, compute_fps )
+	window.Quit()
 }
 routine main( save : string, width = 1200, height = 900 )
 {
     # Must be called before Graphics::Canvas():
 	window = Graphics::Window( 800, 600, 'Graphics Demo: Tiger' )
 
-	painter = Graphics::Painter();
+	painter = Graphics::Painter( window.GetContext() );
 	canvas = Graphics::Canvas();
 	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 	LoadTiger( canvas );
@@ -69,4 +70,5 @@ routine main( save : string, width = 1200, height = 900 )
 	canvas.SetViewport( -400, 400, -300, 300 );
 	painter.RenderToImage( canvas, image, width, height );
 	image.Save( save );
+	window.Quit()
 }

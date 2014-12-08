@@ -61,8 +61,6 @@ struct DaoxRenderer
 
 	uchar_t  showAxis;
 	uchar_t  showMesh;
-	uint_t   deviceWidth;
-	uint_t   deviceHeight;
 
 	DaoxViewFrustum  frustum;
 

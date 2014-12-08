@@ -1519,7 +1519,7 @@ static void PAINTER_Paint( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxPainterMeths[]=
 {
-	{ PAINTER_New,            "Painter( contex: DaoxContext|none )" },
+	{ PAINTER_New,            "Painter( contex: Context )" },
 	{ PAINTER_RenderToImage,  "RenderToImage( self: Painter, canvas: Canvas, image: Image, width: int, height: int )" },
 	{ PAINTER_Paint,  "Paint( self: Painter, canvas: Canvas )" },
 	{ NULL, NULL }
@@ -1546,10 +1546,8 @@ DaoTypeBase DaoxPainter_Typer =
 
 static void RENDR_New( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxContext *ctx = (DaoxContext*) DaoValue_CastCstruct( p[2], daox_type_context );
+	DaoxContext *ctx = (DaoxContext*) DaoValue_CastCstruct( p[0], daox_type_context );
 	DaoxRenderer *self = DaoxRenderer_New( ctx );
-	self->deviceWidth  = p[0]->xInteger.value;
-	self->deviceHeight = p[1]->xInteger.value;
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
 static void RENDR_SetCurrentCamera( DaoProcess *proc, DaoValue *p[], int N )
@@ -1581,7 +1579,7 @@ static void RENDR_Render( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxRendererMeths[]=
 {
-	{ RENDR_New,         "Renderer( width = 300, height = 200 )" },
+	{ RENDR_New,         "Renderer( contex: Context )" },
 	{ RENDR_SetCurrentCamera,  "SetCurrentCamera( self: Renderer, camera: Camera )" },
 	{ RENDR_GetCurrentCamera,  "GetCurrentCamera( self: Renderer ) => Camera" },
 	{ RENDR_Enable,  "Enable( self: Renderer, what: enum<axis,mesh>, bl = true )" },
@@ -1833,8 +1831,22 @@ DaoTypeBase DaoxBuffer_Typer =
 
 
 
+static void CTX_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxContext *self = DaoxContext_New();
+	self->deviceWidth  = p[0]->xInteger.value;
+	self->deviceHeight = p[1]->xInteger.value;
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static void CTX_Quit( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxContext *self = (DaoxContext*) p[0];
+	DaoxContext_Clear( self );
+}
 static DaoFuncItem DaoxContextMeths[]=
 {
+	{ CTX_New,   "Context( width: int, height: int )" },
+	{ CTX_Quit,  "Quit( self: Context )" },
 	{ NULL, NULL }
 };
 
@@ -1843,7 +1855,7 @@ static void DaoxContext_GetGCFields( void *p, DList *values, DList *lists, DList
 	DaoxContext *self = (DaoxContext*) p;
 	if( remove && (self->shaders->size + self->buffers->size + self->textures->size) ){
 		fprintf( stderr, "WARNING: Automatic deletion of graphics contexts may be unsafe!\n" );
-		fprintf( stderr, "-------  Please manually release them first!\n" );
+		fprintf( stderr, "-------  Please manually quit them first!\n" );
 	}
 	DList_Append( lists, self->shaders );
 	DList_Append( lists, self->buffers );
@@ -1944,8 +1956,6 @@ DAO_DLL void DaoGraphics_InitTest()
 	DaoxScene_AddNode( scene, (DaoxSceneNode*) terrain->terrain );
 
 	renderer = DaoxRenderer_New( NULL );
-	renderer->deviceWidth  = 200;
-	renderer->deviceHeight = 500;
 
 	DaoGC_IncRC( (DaoValue*) scene );
 	DaoGC_IncRC( (DaoValue*) renderer );

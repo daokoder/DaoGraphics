@@ -299,8 +299,8 @@ static void WIN_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxWindow *self = DaoxWindow_New();
 	DString_Assign( self->title, p[2]->xString.value );
-	self->width = p[0]->xInteger.value;
-	self->height = p[1]->xInteger.value;
+	self->width  = self->context->deviceWidth  = p[0]->xInteger.value;
+	self->height = self->context->deviceHeight = p[1]->xInteger.value;
 	self->handle = glfwCreateWindow( self->width, self->height, self->title->chars, NULL, NULL);
 	if( self->handle == NULL ) DaoProcess_RaiseError( proc, NULL, "Failed to create window" );
 	glfwSetWindowUserPointer( self->handle, self );
@@ -308,6 +308,11 @@ static void WIN_New( DaoProcess *proc, DaoValue *p[], int N )
 	glfwHideWindow( self->handle );
 	glfwMakeContextCurrent( self->handle );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static void WIN_Ctx( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxWindow *self = (DaoxWindow*) p[0];
+	DaoProcess_PutValue( proc, (DaoValue*) self->context );
 }
 static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 {
@@ -341,14 +346,10 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 	}
 	if( self->painter == NULL && (canvas != NULL || self->widget != NULL) ){
 		self->painter = DaoxPainter_New( self->context );
-		self->painter->deviceWidth = self->width;
-		self->painter->deviceHeight = self->height;
 		DaoGC_IncRC( (DaoValue*) self->painter );
 	}
 	if( self->renderer == NULL && scene != NULL ){
 		self->renderer = DaoxRenderer_New( self->context );
-		self->renderer->deviceWidth = self->width;
-		self->renderer->deviceHeight = self->height;
 		DaoGC_IncRC( (DaoValue*) self->renderer );
 	}
 	if( canvas != NULL ){
@@ -416,13 +417,22 @@ static void WIN_Hide( DaoProcess *proc, DaoValue *p[], int N )
 	self->visible = 0;
 	glfwHideWindow( self->handle );
 }
+static void WIN_Quit( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxWindow *self = (DaoxWindow*) p[0];
+	self->visible = 0;
+	glfwHideWindow( self->handle );
+	DaoxContext_Clear( self->context );
+}
 
 static DaoFuncItem DaoxWindowMeths[]=
 {
 	{ WIN_New,   "Window( width = 300, height = 200, title = '' )" },
+	{ WIN_Ctx,   "GetContext( self: Window ) => Context" },
 	{ WIN_Show,  "Show( self: Window, canvas: Canvas, fps = 30, test_fps = false )" },
 	{ WIN_Show,  "Show( self: Window, scene: Scene, fps = 30, test_fps = false )" },
 	{ WIN_Hide,  "Hide( self: Window )" },
+	{ WIN_Quit,  "Quit( self: Window )" },
 	{ NULL, NULL }
 };
 

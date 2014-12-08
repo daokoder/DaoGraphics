@@ -31,7 +31,6 @@
 // TODO: SVG Tiny backend;
 //
 // TODO:
-// * multiple line, rect and ellipse in one item;
 // * type for color and transformation matrix?
 // * locating item by point;
 */

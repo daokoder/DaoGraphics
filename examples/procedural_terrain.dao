@@ -98,6 +98,7 @@ scene.AddNode( light4 );
 
 window = Graphics::Window( 960, 640, "Terrain" )
 window.Show( scene, 10, 1 )
+window.Quit()
 
 #{
 Graphics::glutInit( 900, 600, 'Tank', 15, 1 )

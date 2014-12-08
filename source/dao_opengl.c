@@ -843,10 +843,13 @@ void DaoxShader_Free( DaoxShader *self )
 	if( self->vertexShader ) glDeleteShader( self->vertexShader );
 	if( self->fragmentShader ) glDeleteShader( self->fragmentShader );
 	if( self->program ) glDeleteProgram( self->program );
+	if( self->textures.dashSampler ) glDeleteTextures( 1, & self->textures.dashSampler );
+	if( self->textures.gradientSampler ) glDeleteTextures( 1, & self->textures.gradientSampler );
+	self->program = 0;
 	self->vertexShader = 0;
 	self->fragmentShader = 0;
-	self->program = 0;
-	// TODO: samplers;
+	self->textures.dashSampler = 0;
+	self->textures.gradientSampler = 0;
 }
 
 void DaoxShader_MakeGradientSampler( DaoxShader *self, DaoxGradient *gradient, int fill )
@@ -1003,7 +1006,9 @@ void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int te
 }
 void DaoxBuffer_Free( DaoxBuffer *self )
 {
-	// TODO
+	if( self->vertexVAO ) glDeleteVertexArrays( 1, & self->vertexVAO );
+	if( self->vertexVBO ) glDeleteBuffers( 1, & self->vertexVBO );
+	if( self->triangleVBO ) glDeleteBuffers( 1, & self->triangleVBO );
 }
 
 void DaoxBuffer_SetVertexBufferAttributes( DaoxBuffer *self )
@@ -1080,6 +1085,8 @@ DaoxContext* DaoxContext_New()
 	self->shaders = DList_New(DAO_DATA_VALUE);
 	self->buffers = DList_New(DAO_DATA_VALUE);
 	self->textures = DList_New(DAO_DATA_VALUE);
+	self->deviceWidth  = 300;
+	self->deviceHeight = 200;
 	return self;
 }
 void DaoxContext_Delete( DaoxContext *self )

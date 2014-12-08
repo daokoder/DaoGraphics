@@ -1079,8 +1079,10 @@ DaoxTerrainGenerator* DaoxTerrainGenerator_New()
 }
 void DaoxTerrainGenerator_Delete( DaoxTerrainGenerator *self )
 {
+	DaoRandGenerator_Delete( self->randGenerator );
 	DaoCstruct_Free( (DaoCstruct*) self );
-// TODO
+	GC_DecRC( self->terrain );
+	dao_free( self );
 }
 
 void DaoxTerrainGenerator_ApplyFaultLine2( DaoxTerrainGenerator *self, DaoxTerrainBlock *unit, DaoxTerrainTriangle *triangle )

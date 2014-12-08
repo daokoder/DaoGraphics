@@ -152,7 +152,11 @@ canvas.AddImage( image, 500, -850, 200 );
 
 routine main( view3d = 0 )
 {
-	if( view3d == 0 ) return window.Show( canvas, 1000, 1 )
+	if( view3d == 0 ){
+		window.Show( canvas, 1000, 1 )
+		window.Quit()
+		return
+	}
 
 	scene = Graphics::Scene();
 	
@@ -175,4 +179,5 @@ routine main( view3d = 0 )
 	scene.AddNode( canvas );
 	
 	window.Show( scene, 1000, 1 )
+	window.Quit()
 }

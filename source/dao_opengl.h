@@ -257,6 +257,9 @@ struct DaoxContext
 	DList  *shaders;
 	DList  *buffers;
 	DList  *textures;
+
+	int  deviceWidth;
+	int  deviceHeight;
 };
 extern DaoType *daox_type_context;
 
