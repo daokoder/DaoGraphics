@@ -47,8 +47,10 @@ project_sources =
 }
 
 
+glname = DaoMake::IsPlatform( "MACOSX" ) ? "OpenGL3" : "OpenGL";
+
 daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
-opengl = DaoMake::FindPackage( "OpenGL3", $OPTIONAL )
+opengl = DaoMake::FindPackage( glname, $OPTIONAL )
 gles   = DaoMake::FindPackage( "OpenGLES", $OPTIONAL )
 
 if( daovm == none or (opengl == none and gles == none) ) return

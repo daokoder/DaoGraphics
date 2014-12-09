@@ -302,7 +302,10 @@ static void WIN_New( DaoProcess *proc, DaoValue *p[], int N )
 	self->width  = self->context->deviceWidth  = p[0]->xInteger.value;
 	self->height = self->context->deviceHeight = p[1]->xInteger.value;
 	self->handle = glfwCreateWindow( self->width, self->height, self->title->chars, NULL, NULL);
-	if( self->handle == NULL ) DaoProcess_RaiseError( proc, NULL, "Failed to create window" );
+	if( self->handle == NULL ){
+		DaoProcess_RaiseError( proc, NULL, "Failed to create window" );
+		return;
+	}
 	glfwSetWindowUserPointer( self->handle, self );
 	glfwSetWindowCloseCallback( self->handle, DaoxWindow_CloseCallback );
 	glfwHideWindow( self->handle );

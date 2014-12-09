@@ -1,12 +1,63 @@
 
 project = DaoMake::Project( "GLFW" )
 
-headers = { "src/internal.h", "include/GLFW/glfw3.h", "include/GLFW/glfw3native.h" }
-sources = { "src/context.c", "src/init.c", "src/input.c", "src/monitor.c", "src/window.c" }
+common_headers = 
+{
+	"src/internal.h",
+	"include/GLFW/glfw3.h",
+	"include/GLFW/glfw3native.h"
+}
+common_sources = 
+{
+	"src/context.c",
+	"src/init.c",
+	"src/input.c",
+	"src/monitor.c",
+	"src/window.c"
+}
+
+macosx_headers =
+{
+	"src/cocoa_platform.h",
+	"src/iokit_joystick.h",
+	"src/posix_tls.h",
+	"src/nsgl_context.h"
+}
+macosx_sources =
+{
+	"src/cocoa_init.m",
+	"src/cocoa_monitor.m",
+	"src/cocoa_window.m",
+	"src/iokit_joystick.m",
+	"src/nsgl_context.m",
+	"src/mach_time.c",
+	"src/posix_tls.c",
+}
+
+unix_headers =
+{
+	"src/x11_platform.h",
+	"src/xkb_unicode.h",
+	"src/linux_joystick.h",
+	"src/posix_time.h",
+	"src/posix_tls.h"
+}
+unix_sources =
+{
+	"src/x11_init.c",
+	"src/x11_monitor.c",
+	"src/x11_window.c",
+	"src/xkb_unicode.c",
+	"src/linux_joystick.c",
+	"src/posix_time.c",
+	"src/posix_tls.c",
+	"src/glx_context.c"
+}
+
 
 project.AddIncludePath( "include", "src" )
 
-objects = project.AddObjects( sources, headers )
+objects = project.AddObjects( common_sources, common_headers )
 
 lib = project.AddStaticLibrary( "glfw", objects )
 
@@ -38,7 +89,7 @@ if (GLFW_USE_EGL)
     endif()
 
     set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMake/modules")
-    find_package(EGL REQUIRED)
+    find_dep(EGL REQUIRED)
 
     if (NOT _GLFW_USE_OPENGL)
         set(GLFW_BUILD_EXAMPLES OFF)
@@ -50,15 +101,15 @@ else()
 endif()
 
 if (_GLFW_USE_OPENGL)
-    find_package(OpenGL REQUIRED)
+    find_dep(OpenGL REQUIRED)
 elseif (_GLFW_USE_GLESV1)
-    find_package(GLESv1 REQUIRED)
+    find_dep(GLESv1 REQUIRED)
 elseif (_GLFW_USE_GLESV2)
-    find_package(GLESv2 REQUIRED)
+    find_dep(GLESv2 REQUIRED)
 endif()
 #}
 
-#find_package(Threads REQUIRED)
+#find_dep(Threads REQUIRED)
 
 
 #--------------------------------------------------------------------
@@ -69,6 +120,8 @@ endif()
 # Detect and select backend APIs
 #--------------------------------------------------------------------
 
+deps = { "OpenGL" }
+
 project.AddDefinition( "_GLFW_HAS_DLOPEN", "1" )
 if( DaoMake::IsPlatform( "WIN32" ) ){
 	project.AddDefinition( "_GLFW_WIN32", "1" )
@@ -77,26 +130,26 @@ if( DaoMake::IsPlatform( "WIN32" ) ){
 	project.AddDefinition( "_GLFW_COCOA", "1" )
 	project.AddDefinition( "_GLFW_NSGL", "1" )
 	project.AddDefinition( "_GLFW_USE_OPENGL", "1" )
-
-	objects.AddHeaders( "src/cocoa_platform.h", "src/iokit_joystick.h", "src/posix_tls.h" )
-	objects.AddSources( "src/cocoa_init.m", "src/cocoa_monitor.m", "src/cocoa_window.m")
-	objects.AddSources( "src/iokit_joystick.m", "src/mach_time.c", "src/posix_tls.c" )
-	objects.AddHeaders( "src/nsgl_context.h" )
-	objects.AddSources( "src/nsgl_context.m" )
-
-	names = { "Cocoa", "OpenGL", "IOKit", "CoreFoundation", "CoreVideo" }
-	names.iterate { [name]
-		framework = DaoMake::FindPackage( name, $REQUIRED )
-		project.UseSharedLibrary( framework )
-		lib.UseSharedLibrary( framework )
-	}
+	objects.AddHeaders( macosx_headers )
+	objects.AddSources( macosx_sources )
+	deps = { "Cocoa", "OpenGL", "IOKit", "CoreFoundation", "CoreVideo" }
 }else if( DaoMake::IsPlatform( "UNIX" ) ){
+	project.AddCompilingFlag( "-fPIC" )
+	project.AddLinkingFlag( "-lrt -lm" )
 	project.AddDefinition( "_GLFW_X11", "1")
 	project.AddDefinition( "_GLFW_GLX", "1" )
-	x11 = DaoMake::FindPackage( "X11", $REQUIRED )
-	project.UseSharedLibrary( x11 )
+	project.AddDefinition( "_GLFW_USE_OPENGL", "1" )
+	objects.AddHeaders( unix_headers )
+	objects.AddSources( unix_sources )
+	deps = { "OpenGL","X11","Xrandr","Xinerama","XInput","Xf86VidMode","XKB","Xcursor" }
 }else{
 	std.error( "No supported platform was detected" )
+}
+
+deps.iterate { [name]
+	dep = DaoMake::FindPackage( name, $REQUIRED )
+	project.UseSharedLibrary( dep )
+	lib.UseSharedLibrary( dep )
 }
 
 

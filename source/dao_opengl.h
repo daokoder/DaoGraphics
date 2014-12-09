@@ -42,8 +42,8 @@
 #else
 
 # define GL3_PROTOTYPES
-  //#include <GL/gl.h>
-# include <GL/gl3.h>
+# include <GL/gl.h>
+//# include <GL/gl3.h>
 # define __gl_h_
 
 #endif
