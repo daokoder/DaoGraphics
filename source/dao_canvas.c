@@ -670,8 +670,6 @@ void DaoxCanvas_AddCharNodes( DaoxCanvas *self, DaoxCanvasText *textItem, DArray
 			DaoxPathSegment *res1 = DaoxPath_LocateByDistance( textPath, offset, & pos1 );
 			DaoxPathSegment *res2 = DaoxPath_LocateByDistance( textPath, offset+adv, & pos2 );
 
-			printf( ">> %c: %f %f %f\n", ch, pos1.x, pos1.y, pos1.z );
-
 			if( pos1.z > -EPSILON ){
 				float dx = pos2.x - pos1.x;
 				float dy = pos2.y - pos1.y;

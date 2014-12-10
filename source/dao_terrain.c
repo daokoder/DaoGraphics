@@ -151,7 +151,6 @@ void DaoxTerrain_SetRectAutoBlocks( DaoxTerrain *self, float width, float length
 		xnum = M;
 		ynum = N;
 	}
-	printf( "xnum = %i, ynum = %i; %g %g\n", xnum, ynum, width/xnum, length/ynum );
 	self->shape = DAOX_RECT_TERRAIN;
 	self->rows = ynum;
 	self->columns = xnum;
@@ -966,8 +965,10 @@ void DaoxTerrain_BuildMesh( DaoxTerrain *self, DaoxTerrainBlock *unit )
 	for(i=0; i<unit->sides; ++i) DaoxTerrain_ResetVertices( self, unit, unit->splits[i] );
 	for(i=0; i<unit->sides; ++i) DaoxTerrain_ExportVertices( self, unit, unit->splits[i] );
 	for(i=0; i<unit->sides; ++i) DaoxTerrain_ExportTriangles( self, unit, unit->splits[i] );
+#ifdef DEBUG
 	printf( "vertices: %i\n", unit->mesh->vertices->size );
 	printf( "triangles: %i\n", unit->mesh->triangles->size );
+#endif
 	for(i=0; i<unit->mesh->vertices->size; ++i){
 		DaoxVertex *vertex = unit->mesh->vertices->data.vertices + i;
 		vertex->tex.x *= self->textureScale;
@@ -987,7 +988,6 @@ void DaoxTerrain_FinalizeMesh( DaoxTerrain *self )
 		for(unit=self->first; unit!=self->last->next; unit=unit->next){
 			DaoxTerrain_AdjustUnit( self, unit );
 		}
-		printf( "adjust: %i\n", self->changes );
 	}
 	for(unit=self->first; unit!=self->last->next; unit=unit->next){
 		for(j=0; j<unit->sides; ++j) DaoxTerrain_ResetVertices( self, unit, unit->splits[j] );
@@ -997,7 +997,6 @@ void DaoxTerrain_FinalizeMesh( DaoxTerrain *self )
 		DaoxTerrain_BuildMesh( self, unit );
 		count += 1;
 	}
-	printf( "DaoxTerrain_Rebuild %i %i\n", count, self->mesh->units->size );
 	DaoxMesh_UpdateTree( self->mesh, 128 );
 	DaoxMesh_ResetBoundingBox( self->mesh );
 	self->base.obbox = self->mesh->obbox;
@@ -1005,7 +1004,6 @@ void DaoxTerrain_FinalizeMesh( DaoxTerrain *self )
 void DaoxTerrain_Rebuild( DaoxTerrain *self )
 {
 	DaoxTerrainBlock *unit;
-	printf( "DaoxTerrain_Rebuild\n" );
 	DaoxTerrain_InitBlocks( self );
 	for(unit=self->first; unit!=self->last->next; unit=unit->next){
 		DaoxTerrain_RebuildUnit( self, unit );
@@ -1177,7 +1175,6 @@ void DaoxTerrainGenerator_Update( DaoxTerrainGenerator *self, int iterations )
 	DaoxVector2D *faultNorm = & self->faultNorm;
 	int i, j, k;
 
-	printf( "DaoxTerrain_Update:\n" );
 	for(i=0; i<iterations; ++i){
 		float randAngle;
 		faultPoint->x = self->diameter * (DaoRandGenerator_GetUniform( randgen ) - 0.5);
@@ -1189,11 +1186,14 @@ void DaoxTerrainGenerator_Update( DaoxTerrainGenerator *self, int iterations )
 		DaoxTerrainGenerator_ApplyFaultLine( self );
 		while(1){
 			DaoxVector2D faultDir = DaoxMatrix3D_RotateVector( *faultNorm, 0.5*M_PI );
-			self->faultDist = self->faultDist * DaoRandGenerator_GetNormal( randgen );
+			float randvar = DaoRandGenerator_GetNormal( randgen );
+			float randdir = DaoRandGenerator_GetUniform( randgen ) < 0.5;
+			self->faultDist = self->faultDist * (0.5 + 0.1*randvar);
+			if( randdir ) self->faultDist *= -1.0;
 			if( fabs( self->faultDist ) < 0.05 * self->diameter ) break;
 			faultPoint->x += self->faultDist * faultDir.x;
 			faultPoint->y += self->faultDist * faultDir.y;
-			randAngle = 0.5 * M_PI * (1.0 + DaoRandGenerator_GetNormal( randgen ));
+			randAngle = 0.5 * M_PI + 0.25 * M_PI * DaoRandGenerator_GetNormal( randgen );
 			*faultNorm = DaoxMatrix3D_RotateVector( faultDir, randAngle );
 			*faultNorm = DaoxVector2D_Normalize( faultNorm );
 			if( DaoRandGenerator_GetUniform( randgen ) ){
@@ -1215,7 +1215,6 @@ void DaoxTerrainGenerator_Generate( DaoxTerrainGenerator *self, int iterations, 
 
 	self->diameter = terrain->width;
 	DaoRandGenerator_Seed( self->randGenerator, seed );
-	printf( "DaoxTerrain_Generate:\n" );
 	for(unit=terrain->first; unit!=terrain->last->next; unit=unit->next){
 		unit->center->pos.z = 0.0;
 		for(j=0; j<unit->sides; ++j) unit->spokes[j]->end->pos.z = 0.0;

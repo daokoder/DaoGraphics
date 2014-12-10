@@ -151,7 +151,6 @@ static DaoxMeshUnit* DaoxObjParser_ConstructMeshUnit( DaoxObjParser *self, DaoxM
 	}
 	self->flist->size = 0;
 	DMap_Reset( self->faceVertMap );
-	printf( "triangle count: %i\n", tcount );
 	return unit;
 }
 
@@ -167,7 +166,6 @@ int DaoxResource_LoadObjMtlSource( DaoxResource *self, DaoxObjParser *parser, DS
 	double numbers[4] = {0.0};
 	daoint i, j, k, N, N1;
 
-	printf( "DaoxResource_LoadObjMtlSource\n" );
 	DaoLexer_Tokenize( parser->lexer2, source->chars, 0 );
 	tokens = parser->lexer2->tokens->items.pToken;
 	N = parser->lexer2->tokens->size;
@@ -180,7 +178,6 @@ int DaoxResource_LoadObjMtlSource( DaoxResource *self, DaoxObjParser *parser, DS
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
-			printf( "new material: %s\n", string->chars );
 			material = DaoxMaterial_New();
 			DString_Assign( material->name, string );
 			DMap_Insert( self->materials, material->name, material );
@@ -193,7 +190,6 @@ int DaoxResource_LoadObjMtlSource( DaoxResource *self, DaoxObjParser *parser, DS
 			const char *s = strstr( keys, token->string.chars );
 			int ctype = (s - keys) / 2;
 			DaoxColor *color = & material->diffuse;
-			printf( "ctype %i %s\n", ctype, token->string.chars );
 			k = 0;
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DaoToken *tok = tokens[i];
@@ -223,7 +219,6 @@ int DaoxResource_LoadObjMtlSource( DaoxResource *self, DaoxObjParser *parser, DS
 				DString_Append( string, & tokens[i]->string );
 			}
 			image = DaoxResource_LoadImage( self, string, path );
-			printf( "texture: %p %s %s\n", image, string->chars, path->chars );
 			texture = DaoxTexture_New();
 			if( image ) DaoxTexture_SetImage( texture, image );
 			DaoxMaterial_SetTexture( material, texture, which );
@@ -278,7 +273,6 @@ DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DStr
 	daoint i, j, k, N, N1, tcount = 0;
 	int smooth = 1;
 
-	printf( "DaoxResource_LoadObjSource\n" );
 	DaoLexer_Tokenize( parser->lexer, source->chars, 0 );
 	tokens = parser->lexer->tokens->items.pToken;
 	N = parser->lexer->tokens->size;
@@ -290,7 +284,6 @@ DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DStr
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
-			printf( "loading MTL: %s %s\n", string->chars, path->chars );
 			if( DaoxResource_SearchFile( self, string, path ) ){
 				if( DaoxResource_ReadFile( self, string, source2 ) ){
 					DaoxResource_LoadObjMtlSource( self, parser, source2, path );
@@ -349,7 +342,6 @@ DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DStr
 		}else if( token->type == DTOK_IDENTIFIER && token->string.size == 1
 				&& (token->string.chars[0] == 'o' || token->string.chars[0] == 'g') ){
 			if( model && parser->flist->size ){
-				printf( ">> %i %i %i\n", vcount, vtcount, tcount );
 				unit = DaoxObjParser_ConstructMeshUnit( parser, mesh );
 				DaoxMeshUnit_SetMaterial( unit, material );
 				DaoxMesh_UpdateTree( mesh, 0 ); 
@@ -363,7 +355,7 @@ DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DStr
 			while( (++i) < N && tokens[i]->line == token->line ) {
 				DString_Append( string, & tokens[i]->string );
 			}
-			printf( "node: %s %i\n", string->chars, i );
+			//printf( "node: %s %i\n", string->chars, i );
 			if( model == NULL ){
 				model = DaoxModel_New();
 				mesh = DaoxMesh_New();
@@ -382,7 +374,7 @@ DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DStr
 				DString_Append( string, & tokens[i]->string );
 			}
 			it = DMap_Find( self->materials, string );
-			printf( ">> %s %p\n", string->chars, it );
+			//printf( ">> %s %p\n", string->chars, it );
 			if( it ) material = (DaoxMaterial*) it->value.pVoid;
 		}else if( DaoxToken_CheckKeyword( token, "s" ) ){
 			smooth = DaoToken_ToInteger( tokens[i+1] ); /* XXX: s off */
@@ -419,17 +411,16 @@ DaoxScene* DaoxResource_LoadObjSource( DaoxResource *self, DString *source, DStr
 		fflush( stdout );
 	}
 	if( model ){
-		printf( ">> %i %i %i %i\n", vcount, vtcount, vncount, tcount );
+		//printf( ">> %i %i %i %i\n", vcount, vtcount, vncount, tcount );
 		unit = DaoxObjParser_ConstructMeshUnit( parser, mesh );
 		DaoxMeshUnit_SetMaterial( unit, material );
 		DaoxMesh_UpdateTree( mesh, 0 ); 
 		DaoxMesh_ResetBoundingBox( mesh );
 		DaoxMesh_UpdateNormTangents( mesh, 0, 1 );
-		DaoxOBBox3D_Print( & mesh->obbox );
 		DaoxModel_SetMesh( model, mesh );
 		DaoxScene_AddNode( scene, (DaoxSceneNode*) model );
 	}
-	printf( "nodes: %i\n", scene->nodes->size );
+	//printf( "nodes: %i\n", scene->nodes->size );
 	DaoxObjParser_Delete( parser );
 	DString_Delete( source2 );
 	DString_Delete( string );
@@ -447,7 +438,7 @@ DaoxScene* DaoxResource_LoadObjFile( DaoxResource *self, DString *file, DString 
 	DString *source = DString_New(1);
 
 	file = DString_Copy( file );
-	printf( "DaoxResource_LoadObjFile: %s %s\n", file->chars, path->chars );
+	//printf( "DaoxResource_LoadObjFile: %s %s\n", file->chars, path->chars );
 	if( DaoxResource_SearchFile( self, file, path ) ){
 		if( DaoxResource_ReadFile( self, file, source ) ){
 			DString_Change( file, "[^/\\]* $", "", 0 );

@@ -594,11 +594,6 @@ void DaoxCamera_Orient( DaoxCamera *self, int xyz )
 	float angle = DaoxVector3D_Angle( & cameraUp, & projection );
 	float dot = DaoxVector3D_Dot( & cross, & cameraDirection );
 	DaoxCamera_RotateBy( self, 2*M_PI - angle );
-	printf( "DaoxCamera_AdjustToHorizon: %g %g %i\n", dot, angle, xyz );
-	DaoxVector3D_Print( & cameraDirection );
-	DaoxVector3D_Print( & cameraUp );
-	DaoxVector3D_Print( & projection );
-	DaoxVector3D_Print( & cross );
 }
 void DaoxCamera_LookAt( DaoxCamera *self, DaoxVector3D pos )
 {

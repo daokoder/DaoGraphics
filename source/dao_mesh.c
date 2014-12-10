@@ -203,9 +203,9 @@ void DaoxMeshUnit_UpdateTree( DaoxMeshUnit *self, int maxtriangles )
 
 	DaoxMeshChunk_ResetBoundingBox( self->tree, points );
 	self->obbox = self->tree->obbox;
-	DaoxOBBox3D_Print( & self->obbox );
+	//DaoxOBBox3D_Print( & self->obbox );
 
-	printf( "DaoxMeshUnit_UpdateTree: %i\n", maxtriangles );
+	//printf( "DaoxMeshUnit_UpdateTree: %i\n", maxtriangles );
 	DList_Append( nodes, self->tree );
 	for(i=0; i<nodes->size; ++i){
 		DaoxMeshChunk *node = (DaoxMeshChunk*) nodes->items.pVoid[i];

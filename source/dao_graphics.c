@@ -1975,7 +1975,6 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
 	DaoNamespace *ns;
 	dao_vmspace_graphics = vmSpace;
-	printf( "DaoGraphics3D_OnLoad\n" );
 	ns = DaoVmSpace_GetNamespace( vmSpace, "Graphics" );
 	DaoNamespace_AddConst( nspace, ns->name, (DaoValue*) ns, DAO_PERM_PUBLIC );
 	DaoNamespace_WrapFunctions( ns, globalMeths );

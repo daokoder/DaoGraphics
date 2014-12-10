@@ -448,9 +448,6 @@ void DaoxPath_ArcBy2( DaoxPath *self, float cx, float cy, float degrees, float d
 	center.x = start.x + cx;
 	center.y = start.y + cy;
 
-	printf( "degrees = %15f:  %15f  %15f\n", degrees, start.x, start.y );
-	printf( "degrees = %15f:  %15f  %15f\n", degrees, center.x, center.y );
-
 	/* Make start relative to the center: */
 	start.x -= center.x;
 	start.y -= center.y;
@@ -2294,6 +2291,8 @@ DaoxPathMesh* DaoxPathCache_FindMesh( DaoxPathCache *self, DaoxPath *path, DaoxP
 	DaoxPathMesh_Reset( mesh, path, style );
 	DaoxPathMesh_Preprocess( mesh, self->triangulator );
 	if( style->width > 1E-9 ) DaoxMeshPath_ComputeStroke( mesh );
+#ifdef DEBUG
 	printf( "(%p) Cached paths: %i; Cached meshes: %i\n", self, self->pathCount, self->meshCount );
+#endif
 	return mesh;
 }
