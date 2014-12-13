@@ -237,8 +237,8 @@ int DaoxResource_LoadObjMtlFile( DaoxResource *self, DaoxObjParser *parser, cons
 {
 	int res;
 	FILE *fin = fopen( file, "r" );
-	DString *source = DString_New(1);
-	DString *path = DString_New(1);
+	DString *source = DString_New();
+	DString *path = DString_New();
 	DString_SetChars( path, file );
 	DString_Change( path, "%\\", "/", 0 );
 	DString_Change( path, "[^/]+ $", "", 1 );
@@ -435,7 +435,7 @@ InvalidFormat:
 DaoxScene* DaoxResource_LoadObjFile( DaoxResource *self, DString *file, DString *path )
 {
 	DaoxScene *scene = NULL;
-	DString *source = DString_New(1);
+	DString *source = DString_New();
 
 	file = DString_Copy( file );
 	//printf( "DaoxResource_LoadObjFile: %s %s\n", file->chars, path->chars );

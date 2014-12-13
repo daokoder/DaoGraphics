@@ -98,7 +98,7 @@ DaoxFont* DaoxFont_New()
 {
 	DaoxFont *self = (DaoxFont*) dao_calloc( 1, sizeof(DaoxFont) );
 	DaoCstruct_Init( (DaoCstruct*)self, daox_type_font );
-	self->buffer = DString_New(0);
+	self->buffer = DString_New();
 	self->glyphs = DMap_New(0,DAO_DATA_VALUE);
 	return self;
 }

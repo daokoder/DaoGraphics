@@ -675,7 +675,7 @@ void DaoxShader_CompileShader( DaoxShader *self, int type, DList *strings )
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 	if( !shader_ok ){
 		const char *log2;
-		DString *log = DString_New(1);
+		DString *log = DString_New();
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length );
 		DString_Resize( log, length );
 		log2 = DString_GetData(log);
@@ -711,7 +711,7 @@ void DaoxShader_Finalize( DaoxShader *self )
 	glGetProgramiv( self->program, GL_LINK_STATUS, &program_ok );
 	if( !program_ok ){
 		const char *log2;
-		DString *log = DString_New(1);
+		DString *log = DString_New();
 		glGetProgramiv( self->program, GL_INFO_LOG_LENGTH, &length );
 		DString_Resize( log, length );
 		log2 = DString_GetData(log);

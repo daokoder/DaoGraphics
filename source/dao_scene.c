@@ -81,7 +81,7 @@ DaoxMaterial* DaoxMaterial_New()
 	self->diffuse = daox_black_color;
 	self->specular = daox_black_color;
 	self->emission = daox_black_color;
-	self->name = DString_New(1);
+	self->name = DString_New();
 	return self;
 }
 void DaoxMaterial_Delete( DaoxMaterial *self )

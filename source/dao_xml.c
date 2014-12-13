@@ -33,8 +33,8 @@ DaoXmlNode* DaoXmlNode_New()
 	DaoXmlNode *self = (DaoXmlNode*) dao_calloc( 1, sizeof(DaoXmlNode) );
 	self->parent = NULL;
 	self->children = DList_New(0);
-	self->name = DString_New(1);
-	self->content = DString_New(1);
+	self->name = DString_New();
+	self->content = DString_New();
 	self->attributes = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	return self;
 }
@@ -198,9 +198,9 @@ enum DaoXmlParserState
 DaoXmlParser* DaoXmlParser_New()
 {
 	DaoXmlParser *self = (DaoXmlParser*) dao_calloc( 1, sizeof(DaoXmlParser) );
-	self->key = DString_New(1);
-	self->value = DString_New(1);
-	self->escape = DString_New(1);
+	self->key = DString_New();
+	self->value = DString_New();
+	self->escape = DString_New();
 	self->escapes = DHash_New( DAO_DATA_STRING, DAO_DATA_STRING );
 	DString_SetChars( self->key, "lt" );
 	DString_SetChars( self->value, "<" );
@@ -431,7 +431,7 @@ void DaoXmlNode_TestVisit( void *userdata, DaoXmlNode *parent, DaoXmlNode *node 
 DAO_DLL int DaoOnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	FILE *fin = fopen( "test.xml", "r" );
-	DString *xml = DString_New(1);
+	DString *xml = DString_New();
 	DaoXmlDOM *dom = DaoXmlDOM_New();
 	DaoXmlParser *parser = DaoXmlParser_New();
 	DaoFile_ReadAll( fin, xml, 1 );

@@ -61,7 +61,7 @@ project.AddDirectory( "glfw", "deps/glfw" )
 glfw = DaoMake::FindPackage( "GLFW", $REQUIRED )
 
 # In Linux, one may place GL/gl3.h under the current directory:
-DaoMake::Includes += project.SourcePath() + ";"
+DaoMake::Includes.append( project.SourcePath() )
 
 project_objs = project.AddObjects( project_sources, project_headers )
 project_dll  = project.AddSharedLibrary( "dao_graphics", project_objs )
