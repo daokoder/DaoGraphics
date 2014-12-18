@@ -52,9 +52,6 @@ struct DaoxResource
 	DMap  *geometries;
 	DMap  *terrains;
 
-	DaoXmlDOM     *xmlDOM;
-	DaoXmlParser  *xmlParser;
-
 	DaoVmSpace  *vmSpace;
 };
 extern DaoType *daox_type_resource;

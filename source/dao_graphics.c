@@ -1631,10 +1631,19 @@ static void RES_LoadObjFile( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxScene *scene = DaoxResource_LoadObjFile( self, file, codePath );
 	DaoProcess_PutValue( proc, (DaoValue*) scene );
 }
+static void RES_LoadDaeFile( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxResource *self = (DaoxResource*) p[0];
+	DString *file = p[1]->xString.value;
+	DString *codePath = proc->activeRoutine->nameSpace->path;
+	DaoxScene *scene = DaoxResource_LoadColladaFile( self, file, codePath );
+	DaoProcess_PutValue( proc, (DaoValue*) scene );
+}
 static DaoFuncItem DaoxResourceMeths[]=
 {
 	{ RES_New,              "Resource()" },
 	{ RES_LoadObjFile,      "LoadObjFile( self: Resource, file: string ) => Scene" },
+	{ RES_LoadDaeFile,      "LoadDaeFile( self: Resource, file: string ) => Scene" },
 	{ NULL, NULL }
 };
 static void DaoxResource_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )

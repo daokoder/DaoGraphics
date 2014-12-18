@@ -262,7 +262,7 @@ void DaoxRenderer_PrepareModel( DaoxRenderer *self, DaoxModel *model, DaoxMatrix
 		}
 	}
 }
-void DaoxRenderer_PrepareTerraing( DaoxRenderer *self, DaoxTerrain *terrain, DaoxMatrix4D *objectToWorld )
+void DaoxRenderer_PrepareTerrain( DaoxRenderer *self, DaoxTerrain *terrain, DaoxMatrix4D *objectToWorld )
 {
 	DaoxMesh *mesh = terrain->mesh;
 	DaoxDrawTask *task = NULL;
@@ -327,7 +327,7 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 	}
 
 	if( ctype == daox_type_terrain ){
-		DaoxRenderer_PrepareTerraing( self, (DaoxTerrain*) node, & objectToWorld );
+		DaoxRenderer_PrepareTerrain( self, (DaoxTerrain*) node, & objectToWorld );
 	}else{
 		DaoxRenderer_PrepareModel( self, model, & objectToWorld );
 	}

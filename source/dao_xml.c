@@ -379,6 +379,7 @@ int DaoXmlParser_ParseNode( DaoXmlParser *self, DaoXmlDOM *dom, DaoXmlNode *node
 
 	if( DaoXmlParser_SkipWhiteSpaces( self ) ) return 1;
 	if( DaoXmlParser_ParseIdentifier( self, node->name ) ) return 1;
+	DString_ToLower( node->name );
 
 	if( DaoXmlParser_SkipWhiteSpaces( self ) ) return 1;
 	while( self->source < self->end && isalpha( *self->source ) ){

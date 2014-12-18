@@ -35,7 +35,7 @@
 
 
 
-typedef struct DaoxObjParser DaoxObjParser;
+typedef struct DaoxObjParser      DaoxObjParser;
 
 struct DaoxObjParser
 {
@@ -53,5 +53,63 @@ DaoxObjParser* DaoxObjParser_New();
 void DaoxObjParser_Delete( DaoxObjParser *self );
 
 DaoxScene* DaoxResource_LoadObjFile( DaoxResource *self, DString *file, DString *path );
+
+
+
+typedef struct DaoxIntTuple   DaoxIntTuple;
+typedef struct DaoxIntTuples  DaoxIntTuples;
+typedef struct DaoxColladaParser  DaoxColladaParser;
+
+
+struct DaoxIntTuple
+{
+	int  index;
+	int  reduced;
+	int  offset;
+	int  values[7];
+};
+
+
+struct DaoxIntTuples
+{
+	DaoxIntTuple  *tuples;
+	uint_t        *counts;
+	uint_t         size;
+	uint_t         capacity;
+	uint_t         dim;
+	uint_t         max;
+};
+
+
+
+struct DaoxColladaParser
+{
+	DaoxResource  *resource;
+	DaoXmlParser  *xmlParser;
+	DaoXmlDOM     *xmlDOM;
+
+	DString  *path;
+	DString  *string;
+	DMap     *tags;
+
+	DArray  *integers;
+	DArray  *integers2;
+	DArray  *floats;
+	DArray  *floats2;
+	DArray  *floats3;
+	DArray  *positions;
+	DArray  *normals;
+	DArray  *tangents;
+	DArray  *texcoords;
+
+	DaoxIntTuples  *tuples;
+	DaoxIntTuples  *tuples2;
+};
+DaoxColladaParser* DaoxColladaParser_New( DaoxResource *resource );
+void DaoxColladaParser_Delete( DaoxColladaParser *self );
+
+
+DaoxScene* DaoxResource_LoadColladaFile( DaoxResource *self, DString *file, DString *path );
+
 
 #endif

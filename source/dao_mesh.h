@@ -79,6 +79,7 @@ void DaoxMeshUnit_Delete( DaoxMeshUnit *self );
 void DaoxMeshUnit_MoveBy( DaoxMeshUnit *self, float dx, float dy, float dz );
 void DaoxMeshUnit_ScaleBy( DaoxMeshUnit *self, float fx, float fy, float fz );
 void DaoxMeshUnit_SetMaterial( DaoxMeshUnit *self, DaoxMaterial *material );
+void DaoxMeshUnit_UpdateNormTangents( DaoxMeshUnit *self, int donormal, int dotangent );
 
 
 

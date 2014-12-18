@@ -52,8 +52,6 @@ DaoxResource* DaoxResource_New( DaoVmSpace *vms )
 	self->materials  = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	self->geometries = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
 	self->terrains   = DHash_New( DAO_DATA_STRING, DAO_DATA_VALUE );
-	self->xmlDOM     = DaoXmlDOM_New();
-	self->xmlParser  = DaoXmlParser_New();
 	self->vmSpace = vms;
 	return self;
 }
@@ -69,8 +67,6 @@ void DaoxResource_Delete( DaoxResource *self )
 	DMap_Delete( self->materials );
 	DMap_Delete( self->geometries );
 	DMap_Delete( self->terrains );
-	DaoXmlDOM_Delete( self->xmlDOM );
-	DaoXmlParser_Delete( self->xmlParser );
 	dao_free( self );
 }
 DaoxScene* DaoxResource_GetScene( DaoxResource *self )
