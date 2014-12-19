@@ -1073,10 +1073,11 @@ int DaoxColladaParser_HandleController( DaoxColladaParser *self, DaoXmlNode *nod
 		int m = integers->data.ints[i];
 		if( m > 4 ) m = 4;
 		for(j=0; j<m; ++j){
-			int *ids = integers2->data.ints + k;
+			int *ids = integers2->data.ints + 2*k;
 			param->joints[j] = ids[jointInputOffset];
 			param->weights[j] = floats->data.floats[ids[weightInputOffset]];
 		}
+		k += integers->data.ints[i];
 	}
 
 	if( (att = DaoXmlNode_GetAttributeMBS( skinNode, "source" )) == NULL ) return 0;//TODO

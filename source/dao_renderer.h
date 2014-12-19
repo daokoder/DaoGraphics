@@ -51,6 +51,7 @@ struct DaoxDrawTask
 	DaoxMaterial  *material;
 	DaoxTerrainBlock  *hexTile;
 	DaoxTerrain       *hexTerrain;
+	DaoxSkeleton      *skeleton;
 };
 
 
@@ -74,9 +75,11 @@ struct DaoxRenderer
 	DaoxContext  *context;
 	DaoxShader   *shader;
 	DaoxBuffer   *buffer;
+	DaoxBuffer   *bufferSK;
 	DaoxBuffer   *bufferVG;
 
 	DList   *tasks;
+	DList   *tasks2;
 	DList   *canvases;
 	DList   *taskCache;
 	DMap    *map;

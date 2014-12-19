@@ -282,12 +282,14 @@ struct DaoxSkeleton
 
 	DList         *joints;
 	DArray        *skinMats;
+	DArray        *skinMats2;
 	DaoxMatrix4D   bindMat;
 };
 extern DaoType *daox_type_skeleton;
 
 DaoxSkeleton* DaoxSkeleton_New();
 void DaoxSkeleton_Delete( DaoxSkeleton *self );
+void DaoxSkeleton_UpdateSkinningMatrices( DaoxSkeleton *self );
 
 
 

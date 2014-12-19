@@ -670,6 +670,7 @@ DaoxSkeleton* DaoxSkeleton_New()
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_skeleton );
 	self->joints = DList_New( DAO_DATA_VALUE );
 	self->skinMats = DArray_New( sizeof(DaoxMatrix4D) );
+	self->skinMats2 = DArray_New( sizeof(DaoxMatrix4D) );
 	self->bindMat = DaoxMatrix4D_Identity();
 	return self;
 }
@@ -678,8 +679,21 @@ void DaoxSkeleton_Delete( DaoxSkeleton *self )
 #warning "TODO: GC!"
 	DList_Delete( self->joints );
 	DArray_Delete( self->skinMats );
+	DArray_Delete( self->skinMats2 );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
+}
+void DaoxSkeleton_UpdateSkinningMatrices( DaoxSkeleton *self )
+{
+	int i;
+	DArray_Resize( self->skinMats2, self->skinMats->size );
+	for(i=0; i<self->skinMats->size; ++i){
+		DaoxSceneNode *node = self->joints->items.pSceneNode[i];
+		DaoxMatrix4D mat = DaoxSceneNode_GetWorldTransform( node );
+		mat = DaoxMatrix4D_Product( & mat, self->skinMats->data.matrices4d + i );
+		mat = DaoxMatrix4D_Product( & mat, & self->bindMat );
+		self->skinMats2->data.matrices4d[i] = mat;
+	}
 }
 
 

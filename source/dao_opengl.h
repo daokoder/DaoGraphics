@@ -59,6 +59,8 @@ typedef struct DaoGLVertex3D    DaoGLVertex3D;
 typedef struct DaoGLVertex3DVG  DaoGLVertex3DVG;
 typedef struct DaoGLTriangle    DaoGLTriangle;
 
+typedef struct DaoGLSkinVertex3D  DaoGLSkinVertex3D;
+
 typedef struct DaoxContext      DaoxContext;
 typedef struct DaoxShader       DaoxShader;
 typedef struct DaoxBuffer       DaoxBuffer;
@@ -101,6 +103,16 @@ struct DaoGLVertex3D
 	struct { GLfloat  x, y; }     tex;
 };
 
+struct DaoGLSkinVertex3D
+{
+	struct { GLfloat  x, y, z; }  pos;
+	struct { GLfloat  x, y, z; }  norm;
+	struct { GLfloat  x, y, z; }  tan;
+	struct { GLfloat  x, y; }     tex;
+	struct { GLfloat  j[4]; }     joints;
+	struct { GLfloat  w[4]; }     weights;
+};
+
 struct DaoGLVertex3DVG
 {
 	struct { GLfloat  x, y, z; }     pos;
@@ -139,6 +151,8 @@ struct DaoxShader
 		uint_t  lightCount;
 		uint_t  lightSource;
 		uint_t  lightIntensity;
+		uint_t  skinning;
+		uint_t  skinMatRows;
 		uint_t  ambientColor;
 		uint_t  diffuseColor;
 		uint_t  specularColor;
@@ -174,6 +188,8 @@ struct DaoxShader
 		uint_t  texCoord;
 		uint_t  texMO;
 		uint_t  texKLMO;
+		uint_t  joints;
+		uint_t  weights;
 	} attributes;
 
 	struct {
@@ -225,7 +241,7 @@ struct DaoxBuffer
 		uint_t  uniform;
 		uint_t  count;
 		void   *offset;
-	} traits[5];
+	} traits[7];
 };
 extern DaoType *daox_type_buffer;
 
@@ -233,7 +249,8 @@ DaoxBuffer* DaoxBuffer_New();
 void DaoxBuffer_Delete( DaoxBuffer *self );
 
 void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo );
-void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv, int texmo );
+void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv );
+void DaoxBuffer_Init3DSK( DaoxBuffer *self, int pos, int norm, int tan, int texuv, int joints, int weights );
 void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int texmo );
 void DaoxBuffer_Free( DaoxBuffer *self );
 

@@ -1614,6 +1614,7 @@ static void DaoxRenderer_GetGCFields( void *p, DList *values, DList *lists, DLis
 	DList_Append( values, self->shader );
 	DList_Append( values, self->buffer );
 	DList_Append( values, self->bufferVG );
+	DList_Append( values, self->bufferSK );
 	DList_Append( values, self->context );
 	DList_Append( values, self->axisMesh );
 	DList_Append( values, self->worldAxis );
@@ -1624,6 +1625,7 @@ static void DaoxRenderer_GetGCFields( void *p, DList *values, DList *lists, DLis
 		self->shader = NULL;
 		self->buffer = NULL;
 		self->bufferVG = NULL;
+		self->bufferSK = NULL;
 		self->context = NULL;
 		self->axisMesh = NULL;
 		self->worldAxis = NULL;

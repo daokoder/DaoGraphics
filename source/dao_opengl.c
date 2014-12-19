@@ -310,20 +310,23 @@ void main(void) \n\
 static const char *const daox_vertex_shader3d_body =
 "uniform int  vectorGraphics;\n\
 uniform int  lightCount;\n\
+uniform int  skinning;\n\
 uniform vec3 cameraPosition;\n\
 uniform mat4 projMatrix;\n\
 uniform mat4 viewMatrix;\n\
 uniform mat4 modelMatrix;\n\
 uniform float graphScale; \n\
+uniform mat4 skinMatRows[128];\n\
 \n\
 in vec3 position;\n\
 in vec3 normal;\n\
 in vec3 tangent;\n\
 in vec2 texCoord;\n\
 in vec2 texMO;\n\
+in vec4 joints;\n\
+in vec4 weights;\n\
 \n\
 out vec2  vertexPosition; \n\
-out vec4  vertexColor;\n\
 out vec3  bezierKLM; \n\
 out float pathOffset; \n\
 \n\
@@ -339,14 +342,21 @@ void main(void)\n\
 		varPosition.x = position.x * graphScale;\n\
 		varPosition.y = position.y * graphScale;\n\
 	}\n\
-	vec3 worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
+	vec4 worldPosition = modelMatrix * vec4( varPosition, 1.0 );\n\
+	if( skinning != 0 ){ \n\
+		vec4 skinPosition = skinMatRows[int(joints[0])] * worldPosition * weights[0] + \n\
+			skinMatRows[int(joints[1])] * worldPosition * weights[1] + \n\
+			skinMatRows[int(joints[2])] * worldPosition * weights[2] + \n\
+			skinMatRows[int(joints[3])] * worldPosition * weights[3]; \n\
+		worldPosition = skinPosition;\n\
+	}\n\
 	varNormal = normal;\n\
 	varTangent = tangent;\n\
 	varTexCoord = texCoord;\n\
 	vertexPosition = vec2( varPosition ); \n\
 	bezierKLM = vec3( texCoord, texMO[0] ); \n\
 	pathOffset = texMO[1]; \n\
-	gl_Position = projMatrix * viewMatrix * vec4( worldPosition, 1.0 );\n\
+	gl_Position = projMatrix * viewMatrix * worldPosition;\n\
 }\n";
 
 
@@ -764,6 +774,8 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.lightCount = glGetUniformLocation(self->program, "lightCount");
 	self->uniforms.lightSource = glGetUniformLocation(self->program, "lightSource");
 	self->uniforms.lightIntensity = glGetUniformLocation(self->program, "lightIntensity");
+	self->uniforms.skinning = glGetUniformLocation(self->program, "skinning");
+	self->uniforms.skinMatRows = glGetUniformLocation(self->program, "skinMatRows");
 	self->uniforms.ambientColor = glGetUniformLocation(self->program, "ambientColor");
 	self->uniforms.diffuseColor = glGetUniformLocation(self->program, "diffuseColor");
 	self->uniforms.specularColor = glGetUniformLocation(self->program, "specularColor");
@@ -787,6 +799,8 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->attributes.tangent = glGetAttribLocation(self->program, "tangent");
 	self->attributes.texCoord = glGetAttribLocation(self->program, "texCoord");
 	self->attributes.texMO = glGetAttribLocation(self->program, "texMO");
+	self->attributes.joints = glGetAttribLocation(self->program, "joints");
+	self->attributes.weights = glGetAttribLocation(self->program, "weights");
 }
 void DaoxShader_InitVGSamplers( DaoxShader *self )
 {
@@ -957,30 +971,44 @@ void DaoxBuffer_Init2D( DaoxBuffer *self, int pos, int klmo )
 	self->traits[0].offset = NULL;
 	self->traits[1].offset = (void*) & vertex->texKLMO;
 }
-void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv, int texmo )
+void DaoxBuffer_Init3D( DaoxBuffer *self, int pos, int norm, int tan, int texuv )
 {
 	DaoGLVertex3D *vertex = NULL;
 
 	self->mode = DAOX_GRAPHICS_3D;
 
-	self->traitCount = 5;
+	self->traitCount = 4;
 	self->vertexSize = sizeof(DaoGLVertex3D);
 	self->triangleSize = sizeof(DaoGLTriangle);
 	self->traits[0].uniform = pos;
 	self->traits[1].uniform = norm;
 	self->traits[2].uniform = tan;
 	self->traits[3].uniform = texuv;
-	self->traits[4].uniform = texmo;
 	self->traits[0].count = 3;
 	self->traits[1].count = 3;
 	self->traits[2].count = 3;
 	self->traits[3].count = 2;
-	self->traits[4].count = 2;
 	self->traits[0].offset = NULL;
 	self->traits[1].offset = (void*) & vertex->norm;
 	self->traits[2].offset = (void*) & vertex->tan;
 	self->traits[3].offset = (void*) & vertex->tex;
-	self->traits[4].offset = (void*) & vertex->tex;
+}
+void DaoxBuffer_Init3DSK( DaoxBuffer *self, int pos, int norm, int tan, int texuv, int joints, int weights )
+{
+	DaoGLSkinVertex3D *vertex = NULL;
+
+	DaoxBuffer_Init3D( self, pos, norm, tan, texuv );
+
+	self->traitCount = 6;
+	self->vertexSize = sizeof(DaoGLSkinVertex3D);
+
+	self->traits[4].uniform = joints;
+	self->traits[4].count = 4;
+	self->traits[4].offset = (void*) & vertex->joints;
+
+	self->traits[5].uniform = joints;
+	self->traits[5].count = 4;
+	self->traits[5].offset = (void*) & vertex->weights;
 }
 void DaoxBuffer_Init3DVG( DaoxBuffer *self, int pos, int norm, int texuv, int texmo )
 {
