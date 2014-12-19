@@ -84,13 +84,27 @@ struct DaoxIntTuples
 
 struct DaoxColladaParser
 {
+	DaoxScene     *currentScene;
+	DaoxModel     *currentModel;
 	DaoxResource  *resource;
 	DaoXmlParser  *xmlParser;
 	DaoXmlDOM     *xmlDOM;
 
+	DaoXmlNode  *libLights;
+	DaoXmlNode  *libCameras;
+	DaoXmlNode  *libImages;
+	DaoXmlNode  *libEffects;
+	DaoXmlNode  *libMaterials;
+	DaoXmlNode  *libGeometries;
+	DaoXmlNode  *libControllers;
+	DaoXmlNode  *libVisualScenes;
+
+	DString  *jointName;
 	DString  *path;
 	DString  *string;
 	DMap     *tags;
+
+	DMap     *materials;
 
 	DArray  *integers;
 	DArray  *integers2;
@@ -101,6 +115,7 @@ struct DaoxColladaParser
 	DArray  *normals;
 	DArray  *tangents;
 	DArray  *texcoords;
+	DArray  *skinparams;
 
 	DaoxIntTuples  *tuples;
 	DaoxIntTuples  *tuples2;

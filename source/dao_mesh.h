@@ -32,17 +32,22 @@
 #include "dao_common.h"
 
 
-typedef struct DaoxMesh     DaoxMesh;
+typedef struct DaoxSkinParam  DaoxSkinParam;
+typedef struct DaoxMeshChunk  DaoxMeshChunk;
+typedef struct DaoxMeshUnit   DaoxMeshUnit;
+typedef struct DaoxMesh       DaoxMesh;
 
 
+
+struct DaoxSkinParam
+{
+	int    joints[4];
+	float  weights[4];
+};
 
 /*
 // All coordinates in the mesh vertices and bouding boxes are local.
 */
-
-
-typedef struct DaoxMeshChunk  DaoxMeshChunk;
-typedef struct DaoxMeshUnit   DaoxMeshUnit;
 
 struct DaoxMeshChunk
 {
@@ -66,6 +71,7 @@ struct DaoxMeshUnit
 	DaoxMesh        *mesh;
 	DaoxMeshChunk   *tree;
 	DaoxMaterial    *material;
+	DArray          *skinParams;
 	DArray          *vertices;  /* <DaoxVertex>: local coordinates; */
 	DArray          *triangles; /* <DaoxTriangle>: local coordinates (for face norms); */
 	DaoxOBBox3D      obbox;     /* local coordinates; */

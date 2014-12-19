@@ -72,6 +72,7 @@ DaoxMeshUnit* DaoxMeshUnit_New()
 {
 	DaoxMeshUnit *self = (DaoxMeshUnit*) dao_calloc( 1, sizeof(DaoxMeshUnit) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_mesh_unit );
+	self->skinParams = DArray_New( sizeof(DaoxSkinParam) );
 	self->vertices = DArray_New( sizeof(DaoxVertex) );
 	self->triangles = DArray_New( sizeof(DaoxTriangle) );
 	self->tree = NULL;
@@ -82,6 +83,7 @@ DaoxMeshUnit* DaoxMeshUnit_New()
 void DaoxMeshUnit_Delete( DaoxMeshUnit *self )
 {
 	if( self->tree ) DaoxMeshChunk_Delete( self->tree );
+	DArray_Delete( self->skinParams );
 	DArray_Delete( self->vertices );
 	DArray_Delete( self->triangles );
 	DaoGC_DecRC( (DaoValue*) self->mesh );

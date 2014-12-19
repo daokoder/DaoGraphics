@@ -1267,6 +1267,26 @@ DaoTypeBase DaoxLight_Typer =
 	(FuncPtrDel)DaoxLight_Delete, DaoxSceneNode_GetGCFields
 };
 
+
+
+DaoTypeBase DaoxJoint_Typer =
+{
+	"Joint", NULL, NULL, NULL,
+	{ & DaoxSceneNode_Typer, NULL }, {NULL},
+	(FuncPtrDel)DaoxJoint_Delete, DaoxSceneNode_GetGCFields
+};
+
+
+DaoTypeBase DaoxSkeleton_Typer =
+{
+	"Skeleton", NULL, NULL, NULL, { NULL }, {NULL},
+	(FuncPtrDel)DaoxSkeleton_Delete, NULL
+};
+
+
+
+
+
 static void MOD_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxModel *self = (DaoxModel*) p[0];
@@ -1623,12 +1643,20 @@ static void RES_New( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxResource *self = DaoxResource_New( proc->vmSpace );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void RES_RaiseLoadingError( DaoProcess *proc )
+{
+	DaoProcess_RaiseError( proc, NULL, "Model loading failed!" );
+}
 static void RES_LoadObjFile( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxResource *self = (DaoxResource*) p[0];
 	DString *file = p[1]->xString.value;
 	DString *codePath = proc->activeRoutine->nameSpace->path;
 	DaoxScene *scene = DaoxResource_LoadObjFile( self, file, codePath );
+	if( scene == NULL ){
+		RES_RaiseLoadingError( proc );
+		return;
+	}
 	DaoProcess_PutValue( proc, (DaoValue*) scene );
 }
 static void RES_LoadDaeFile( DaoProcess *proc, DaoValue *p[], int N )
@@ -1637,6 +1665,10 @@ static void RES_LoadDaeFile( DaoProcess *proc, DaoValue *p[], int N )
 	DString *file = p[1]->xString.value;
 	DString *codePath = proc->activeRoutine->nameSpace->path;
 	DaoxScene *scene = DaoxResource_LoadColladaFile( self, file, codePath );
+	if( scene == NULL ){
+		RES_RaiseLoadingError( proc );
+		return;
+	}
 	DaoProcess_PutValue( proc, (DaoValue*) scene );
 }
 static DaoFuncItem DaoxResourceMeths[]=
@@ -1924,6 +1956,8 @@ DaoType *daox_type_material = NULL;
 DaoType *daox_type_scene_node = NULL;
 DaoType *daox_type_camera = NULL;
 DaoType *daox_type_light = NULL;
+DaoType *daox_type_joint = NULL;
+DaoType *daox_type_skeleton = NULL;
 DaoType *daox_type_model = NULL;
 DaoType *daox_type_terrain = NULL;
 DaoType *daox_type_scene = NULL;
@@ -2020,6 +2054,8 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_scene_node = DaoNamespace_WrapType( ns, & DaoxSceneNode_Typer, 0 );
 	daox_type_camera = DaoNamespace_WrapType( ns, & DaoxCamera_Typer, 0 );
 	daox_type_light = DaoNamespace_WrapType( ns, & DaoxLight_Typer, 0 );
+	daox_type_joint = DaoNamespace_WrapType( ns, & DaoxJoint_Typer, 0 );
+	daox_type_skeleton = DaoNamespace_WrapType( ns, & DaoxSkeleton_Typer, 0 );
 	daox_type_model = DaoNamespace_WrapType( ns, & DaoxModel_Typer, 0 );
 	daox_type_terrain = DaoNamespace_WrapType( ns, & DaoxTerrain_Typer, 0 );
 

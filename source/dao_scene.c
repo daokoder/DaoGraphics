@@ -650,6 +650,42 @@ void DaoxLight_PointAtXYZ( DaoxLight *self, float x, float y, float z )
 
 
 
+DaoxJoint* DaoxJoint_New()
+{
+	DaoxJoint *self = (DaoxJoint*) dao_calloc( 1, sizeof(DaoxJoint) );
+	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_joint );
+	return self;
+}
+void DaoxJoint_Delete( DaoxJoint *self )
+{
+	DaoxSceneNode_Free( (DaoxSceneNode*) self );
+	dao_free( self );
+}
+
+
+
+DaoxSkeleton* DaoxSkeleton_New()
+{
+	DaoxSkeleton *self = (DaoxSkeleton*) dao_calloc( 1, sizeof(DaoxSkeleton) );
+	DaoCstruct_Init( (DaoCstruct*) self, daox_type_skeleton );
+	self->joints = DList_New( DAO_DATA_VALUE );
+	self->skinMats = DArray_New( sizeof(DaoxMatrix4D) );
+	self->bindMat = DaoxMatrix4D_Identity();
+	return self;
+}
+void DaoxSkeleton_Delete( DaoxSkeleton *self )
+{
+#warning "TODO: GC!"
+	DList_Delete( self->joints );
+	DArray_Delete( self->skinMats );
+	DaoCstruct_Free( (DaoCstruct*) self );
+	dao_free( self );
+}
+
+
+
+
+
 DaoxModel* DaoxModel_New()
 {
 	DaoxModel *self = (DaoxModel*) dao_calloc( 1, sizeof(DaoxModel) );

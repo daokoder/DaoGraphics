@@ -88,7 +88,7 @@ DaoXmlNode* DaoXmlNode_GetChildMBS( DaoXmlNode *self, const char *name )
 	DString name2 = DString_WrapChars( name );
 	return DaoXmlNode_GetChild( self, & name2 );
 }
-DaoXmlNode* DaoXmlNode_GetChildWithAttribute( DaoXmlNode *self, DString *key, DString *value )
+DaoXmlNode* DaoXmlNode_GetChildByAttribute( DaoXmlNode *self, DString *key, DString *value )
 {
 	daoint i;
 	for(i=0; i<self->children->size; ++i){
@@ -98,11 +98,11 @@ DaoXmlNode* DaoXmlNode_GetChildWithAttribute( DaoXmlNode *self, DString *key, DS
 	}
 	return NULL;
 }
-DaoXmlNode* DaoXmlNode_GetChildWithAttributeMBS( DaoXmlNode *self, const char *key, const char *value )
+DaoXmlNode* DaoXmlNode_GetChildByAttributeMBS( DaoXmlNode *self, const char *key, const char *value )
 {
 	DString key2 = DString_WrapChars( key );
 	DString value2 = DString_WrapChars( value );
-	return DaoXmlNode_GetChildWithAttribute( self, & key2, & value2 );
+	return DaoXmlNode_GetChildByAttribute( self, & key2, & value2 );
 }
 void* DaoXmlNode_GetAncestorData( DaoXmlNode *self, DString *name, int level )
 {
@@ -379,7 +379,6 @@ int DaoXmlParser_ParseNode( DaoXmlParser *self, DaoXmlDOM *dom, DaoXmlNode *node
 
 	if( DaoXmlParser_SkipWhiteSpaces( self ) ) return 1;
 	if( DaoXmlParser_ParseIdentifier( self, node->name ) ) return 1;
-	DString_ToLower( node->name );
 
 	if( DaoXmlParser_SkipWhiteSpaces( self ) ) return 1;
 	while( self->source < self->end && isalpha( *self->source ) ){

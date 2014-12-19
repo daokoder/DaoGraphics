@@ -66,8 +66,8 @@ DaoXmlNode* DaoXmlNode_GetAncestor( DaoXmlNode *self, DString *name, int level )
 DaoXmlNode* DaoXmlNode_GetAncestorMBS( DaoXmlNode *self, const char *name, int level );
 DaoXmlNode* DaoXmlNode_GetChild( DaoXmlNode *self, DString *name );
 DaoXmlNode* DaoXmlNode_GetChildMBS( DaoXmlNode *self, const char *name );
-DaoXmlNode* DaoXmlNode_GetChildWithAttribute( DaoXmlNode *self, DString *key, DString *value );
-DaoXmlNode* DaoXmlNode_GetChildWithAttributeMBS( DaoXmlNode *self, const char *key, const char *value );
+DaoXmlNode* DaoXmlNode_GetChildByAttribute( DaoXmlNode *self, DString *key, DString *value );
+DaoXmlNode* DaoXmlNode_GetChildByAttributeMBS( DaoXmlNode *self, const char *key, const char *value );
 
 void* DaoXmlNode_GetAncestorData( DaoXmlNode *self, DString *name, int level );
 void* DaoXmlNode_GetAncestorDataMBS( DaoXmlNode *self, const char *name, int level );

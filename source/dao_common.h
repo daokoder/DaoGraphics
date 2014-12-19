@@ -47,8 +47,11 @@
 #define DAO_ARRAY_ITEM_TYPES \
 	struct DaoxVector2D     *vectors2d; \
 	struct DaoxVector3D     *vectors3d; \
+	struct DaoxMatrix4D     *matrices4d; \
 	struct DaoxVertex       *vertices;  \
 	struct DaoxTriangle     *triangles; \
+	struct DaoxQuaternion   *quaternions; \
+	struct DaoxSkinParam    *skinparams; \
 	struct DaoxColor        *colors;    \
 	struct DaoxPathSegment  *segments;  \
 	struct DaoxDrawTask     *drawtasks;

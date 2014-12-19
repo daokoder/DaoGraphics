@@ -46,6 +46,8 @@ typedef struct DaoxTexture     DaoxTexture;
 typedef struct DaoxSceneNode   DaoxSceneNode;
 typedef struct DaoxCamera      DaoxCamera;
 typedef struct DaoxLight       DaoxLight;
+typedef struct DaoxJoint       DaoxJoint;
+typedef struct DaoxSkeleton    DaoxSkeleton;
 typedef struct DaoxModel       DaoxModel;
 typedef struct DaoxScene       DaoxScene;
 
@@ -261,10 +263,39 @@ void DaoxLight_MoveXYZ( DaoxLight *self, float x, float y, float z );
 void DaoxLight_PointAtXYZ( DaoxLight *self, float x, float y, float z );
 
 
+
+struct DaoxJoint
+{
+	DaoxSceneNode  base;
+	DaoxVector3D   orientation;  /* local space (axis-angle); */
+};
+extern DaoType *daox_type_joint;
+
+DaoxJoint* DaoxJoint_New();
+void DaoxJoint_Delete( DaoxJoint *self );
+
+
+
+struct DaoxSkeleton
+{
+	DAO_CSTRUCT_COMMON;
+
+	DList         *joints;
+	DArray        *skinMats;
+	DaoxMatrix4D   bindMat;
+};
+extern DaoType *daox_type_skeleton;
+
+DaoxSkeleton* DaoxSkeleton_New();
+void DaoxSkeleton_Delete( DaoxSkeleton *self );
+
+
+
 struct DaoxModel
 {
 	DaoxSceneNode  base;
 	DaoxMesh      *mesh;
+	DaoxSkeleton  *skeleton;
 };
 extern DaoType *daox_type_model;
 
