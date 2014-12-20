@@ -327,6 +327,7 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 	int fpsTest = p[3]->xBoolean.value;
 	double fpsTestTime = 0.0;
 	double timeInterval = 0.0;
+	double lastFrameStart = 0.0;
 	float currentFPS = 0.0;
 	size_t fpsCount = 0;
 	char chars[32];
@@ -381,9 +382,13 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 	while( self->visible && ! glfwWindowShouldClose( self->handle ) ){
 		double frameStartTime = 0.0;
 		double frameEndTime = 0.0;
-		if( fpsTest ) frameStartTime = glfwGetTime();
+		frameStartTime = glfwGetTime();
 		if( canvas ) DaoxPainter_Paint( self->painter, canvas, canvas->viewport );
-		if( scene )  DaoxRenderer_Render( self->renderer, scene, scene->camera );
+		if( scene ){
+			DaoxScene_Update( scene, frameStartTime - lastFrameStart );
+			DaoxRenderer_Render( self->renderer, scene, scene->camera );
+		}
+		lastFrameStart = frameStartTime;
 		if( fpsTest ){
 			if( fpsCount % 10 == 0 ){
 				int i, n = sprintf( chars, "%.1f", currentFPS );

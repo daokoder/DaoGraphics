@@ -334,6 +334,7 @@ void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type )
 	DaoCstruct_Init( (DaoCstruct*) self, type );
 	self->renderable = 0;
 	self->parent = NULL;
+	self->animations = NULL;
 	self->children = DList_New( DAO_DATA_VALUE );
 	self->scale = DaoxVector3D_XYZ( 1.0, 1.0, 1.0 );
 	self->rotation = self->translation = DaoxVector3D_XYZ( 0.0, 0.0, 0.0 );
@@ -377,17 +378,15 @@ void DaoxSceneNode_Move( DaoxSceneNode *self, DaoxVector3D pos )
 }
 DaoxMatrix4D DaoxSceneNode_GetParentTransform( DaoxSceneNode *self )
 {
-	DaoxQuaternion quaternion = DaoxQuaternion_FromRotation( & self->rotation );
-	DaoxMatrix4D transform = DaoxMatrix4D_FromQuaternion( & quaternion );
-	DaoxMatrix4D scale = DaoxMatrix4D_Identity();
-	transform.B1 = self->translation.x;
-	transform.B2 = self->translation.y;
-	transform.B3 = self->translation.z;
-	scale.A11 = self->scale.x;
-	scale.A22 = self->scale.y;
-	scale.A33 = self->scale.z;
-	transform = DaoxMatrix4D_Product( & transform, & scale );
-	return transform;
+	DaoxMatrix4D trans = DaoxMatrix4D_Combine( self->scale, self->rotation, self->translation );
+	if( self->animations ){
+		int i;
+		for(i=0; i<self->animations->size; ++i){
+			DaoxAnimation *anim = self->animations->items.pAnimation[i];
+			trans = DaoxMatrix4D_Product( & trans, & anim->transform );
+		}
+	}
+	return trans;
 }
 DaoxMatrix4D DaoxSceneNode_GetWorldTransform( DaoxSceneNode *self )
 {
@@ -410,6 +409,19 @@ void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child )
 {
 	GC_Assign( & child->parent, self );
 	DList_Append( self->children, child );
+}
+void DaoxSceneNode_Update( DaoxSceneNode *self, float dtime )
+{
+	int i;
+	for(i=0; i<self->children->size; ++i){
+		DaoxSceneNode *node = self->children->items.pSceneNode[i];
+		DaoxSceneNode_Update( node, dtime );
+	}
+	if( self->animations == NULL ) return;
+	for(i=0; i<self->animations->size; ++i){
+		DaoxAnimation *anim = self->animations->items.pAnimation[i];
+		DaoxAnimation_Update( anim, dtime );
+	}
 }
 
 
@@ -654,6 +666,18 @@ DaoxJoint* DaoxJoint_New()
 {
 	DaoxJoint *self = (DaoxJoint*) dao_calloc( 1, sizeof(DaoxJoint) );
 	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_joint );
+
+#if 0
+	DaoxModel *model = DaoxModel_New();
+	DaoxMesh *mesh = DaoxMesh_New();
+	DaoxMesh_MakeBoxObject( mesh );
+	DaoxMesh_UpdateTree( mesh, 0 );
+	DaoxModel_SetMesh( model, mesh );
+	model->base.scale.x = 0.2;
+	model->base.scale.y = 0.2;
+	model->base.scale.z = 0.2;
+	DaoxSceneNode_AddChild( (DaoxSceneNode*)self, (DaoxSceneNode*)model );
+#endif
 	return self;
 }
 void DaoxJoint_Delete( DaoxJoint *self )
@@ -689,10 +713,10 @@ void DaoxSkeleton_UpdateSkinningMatrices( DaoxSkeleton *self )
 	DArray_Resize( self->skinMats2, self->skinMats->size );
 	for(i=0; i<self->skinMats->size; ++i){
 		DaoxSceneNode *node = self->joints->items.pSceneNode[i];
-		DaoxMatrix4D mat = DaoxSceneNode_GetWorldTransform( node );
-		mat = DaoxMatrix4D_Product( & mat, self->skinMats->data.matrices4d + i );
-		mat = DaoxMatrix4D_Product( & mat, & self->bindMat );
-		self->skinMats2->data.matrices4d[i] = mat;
+		DaoxMatrix4D world = DaoxSceneNode_GetWorldTransform( node );
+		DaoxMatrix4D mat = self->bindMat;
+		mat = DaoxMatrix4D_Product( self->skinMats->data.matrices4d + i, & mat );
+		self->skinMats2->data.matrices4d[i] = DaoxMatrix4D_Product( & world, & mat );;
 	}
 }
 
@@ -751,5 +775,13 @@ void DaoxScene_AddNode( DaoxScene *self, DaoxSceneNode *node )
 	if( node->ctype == daox_type_camera ) self->camera = (DaoxCamera*) node;
 }
 
+void DaoxScene_Update( DaoxScene *self, float dtime )
+{
+	int i;
+	for(i=0; i<self->nodes->size; ++i){
+		DaoxSceneNode *node = self->nodes->items.pSceneNode[i];
+		DaoxSceneNode_Update( node, dtime );
+	}
+}
 
 

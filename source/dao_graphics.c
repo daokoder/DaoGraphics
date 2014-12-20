@@ -1640,6 +1640,17 @@ DaoTypeBase DaoxRenderer_Typer =
 
 
 
+
+DaoTypeBase DaoxAnimation_Typer =
+{
+	"Animation", NULL, NULL, NULL, { NULL }, {NULL},
+	(FuncPtrDel)DaoxAnimation_Delete, NULL
+};
+
+
+
+
+
 static void RES_New( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxResource *self = DaoxResource_New( proc->vmSpace );
@@ -1965,6 +1976,7 @@ DaoType *daox_type_terrain = NULL;
 DaoType *daox_type_scene = NULL;
 DaoType *daox_type_painter = NULL;
 DaoType *daox_type_renderer = NULL;
+DaoType *daox_type_animation = NULL;
 DaoType *daox_type_resource = NULL;
 DaoType *daox_type_terrain_block = NULL;
 DaoType *daox_type_terrain_generator = NULL;
@@ -2065,6 +2077,7 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_scene = DaoNamespace_WrapType( ns, & DaoxScene_Typer, 0 );
 	daox_type_painter = DaoNamespace_WrapType( ns, & DaoxPainter_Typer, 0 );
 	daox_type_renderer = DaoNamespace_WrapType( ns, & DaoxRenderer_Typer, 0 );
+	daox_type_animation = DaoNamespace_WrapType( ns, & DaoxAnimation_Typer, 0 );
 	daox_type_resource = DaoNamespace_WrapType( ns, & DaoxResource_Typer, 0 );
 	daox_type_terrain_block = DaoNamespace_WrapType( ns, & DaoxTerrainBlock_Typer, 0 );
 	daox_type_terrain_generator = DaoNamespace_WrapType( ns, & DaoxTerrainGenerator_Typer, 0 );

@@ -804,6 +804,20 @@ DaoxMatrix4D  DaoxMatrix4D_TranslationOnly( DaoxMatrix4D *self )
 	res.B3 = self->B3;
 	return res;
 }
+DaoxMatrix4D DaoxMatrix4D_Combine( DaoxVector3D scale, DaoxVector3D rot, DaoxVector3D trans )
+{
+	DaoxQuaternion quaternion = DaoxQuaternion_FromRotation( & rot );
+	DaoxMatrix4D transform = DaoxMatrix4D_FromQuaternion( & quaternion );
+	DaoxMatrix4D scalemat = DaoxMatrix4D_Identity();
+	transform.B1 = trans.x;
+	transform.B2 = trans.y;
+	transform.B3 = trans.z;
+	scalemat.A11 = scale.x;
+	scalemat.A22 = scale.y;
+	scalemat.A33 = scale.z;
+	transform = DaoxMatrix4D_Product( & transform, & scalemat );
+	return transform;
+}
 void DaoxMatrix4D_Print( DaoxMatrix4D *self )
 {
 	float (*mat)[4] = (float(*)[4]) self;

@@ -600,6 +600,21 @@ static const char* const collada_tags[] =
 	"extra"
 };
 
+static const char* const collada_channel_tags[] =
+{
+	"scale.X" ,
+	"scale.Y" ,
+	"scale.Z" ,
+	"rotateX.ANGLE" ,
+	"rotateY.ANGLE" ,
+	"rotateZ.ANGLE" ,
+	"location.X" ,
+	"location.Y" ,
+	"location.Z" ,
+	"translate",
+	"transform"
+};
+
 
 
 DaoxIntTuples* DaoxIntTuples_New()
@@ -685,8 +700,8 @@ DaoxColladaParser* DaoxColladaParser_New( DaoxResource *resource )
 	size_t i;
 	DaoxColladaParser *self = (DaoxColladaParser*) dao_calloc( 1, sizeof(DaoxColladaParser) );
 	self->resource = resource;
-	self->xmlParser  = DaoXmlParser_New();
-	self->xmlDOM     = DaoXmlDOM_New();
+	self->parser  = DaoXmlParser_New();
+	self->dom     = DaoXmlDOM_New();
 	self->tuples = DaoxIntTuples_New();
 	self->tuples2 = DaoxIntTuples_New();
 	self->floats = DArray_New( sizeof(float) );
@@ -701,17 +716,22 @@ DaoxColladaParser* DaoxColladaParser_New( DaoxResource *resource )
 	self->skinparams = DArray_New( sizeof(DaoxSkinParam) );
 	self->string = DString_New(1);
 	self->tags = DHash_New( DAO_DATA_STRING, 0 );
+	self->channels = DHash_New( DAO_DATA_STRING, 0 );
 	self->materials = DHash_New( DAO_DATA_STRING, 0 );
 	for(i=1; i<=DAE_EXTRA; ++i){
 		DString tag = DString_WrapChars( collada_tags[i-1] );
 		DMap_Insert( self->tags, & tag, (void*) i );
 	}
+	for(i=0; i<=DAOX_ANIMATE_TF; ++i){
+		DString tag = DString_WrapChars( collada_channel_tags[i] );
+		DMap_Insert( self->channels, & tag, (void*) i );
+	}
 	return self;
 }
 void DaoxColladaParser_Delete( DaoxColladaParser *self )
 {
-	DaoXmlParser_Delete( self->xmlParser );
-	DaoXmlDOM_Delete( self->xmlDOM );
+	DaoXmlParser_Delete( self->parser );
+	DaoXmlDOM_Delete( self->dom );
 	DaoxIntTuples_Delete( self->tuples );
 	DaoxIntTuples_Delete( self->tuples2 );
 	DArray_Delete( self->floats );
@@ -726,6 +746,7 @@ void DaoxColladaParser_Delete( DaoxColladaParser *self )
 	DArray_Delete( self->skinparams );
 	DString_Delete( self->string );
 	DMap_Delete( self->materials );
+	DMap_Delete( self->channels );
 	DMap_Delete( self->tags );
 	dao_free( self );
 }
@@ -1070,19 +1091,22 @@ int DaoxColladaParser_HandleController( DaoxColladaParser *self, DaoXmlNode *nod
 	memset( self->skinparams->data.base, 0, self->skinparams->size*sizeof(DaoxSkinParam) );
 	for(i=0,k=0; i<integers->size; ++i){
 		DaoxSkinParam *param = & self->skinparams->data.skinparams[i];
+		double sum = 0.0;
 		int m = integers->data.ints[i];
 		if( m > 4 ) m = 4;
 		for(j=0; j<m; ++j){
 			int *ids = integers2->data.ints + 2*k;
 			param->joints[j] = ids[jointInputOffset];
 			param->weights[j] = floats->data.floats[ids[weightInputOffset]];
+			sum += param->weights[j];
 		}
+		for(j=0; j<m; ++j) param->weights[j] /= sum + EPSILON;
 		k += integers->data.ints[i];
 	}
 
 	if( (att = DaoXmlNode_GetAttributeMBS( skinNode, "source" )) == NULL ) return 0;//TODO
 	node2 = DaoXmlNode_GetChildByAttributeMBS( self->libGeometries, "id", att->chars+1 );
-	DaoXmlDOM_Traverse( self->xmlDOM, node2, self, DaoxColladaParser_Parse );
+	DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_Parse );
 
 	node->data = model = DaoxModel_New();
 	model->skeleton = skeleton;
@@ -1114,6 +1138,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 	DaoxColor tmpColor;
 	DaoxVector3D vector;
 	DaoxVector3D vector2;
+	DaoxVector3D *pvector;
 	DaoxMatrix4D matrix;
 	DaoXmlNode *pred = NULL, *child = NULL;
 	DaoXmlNode *node2;
@@ -1130,7 +1155,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 
 	if( node->data != NULL ) return 1;
 
-	printf( "%s %i %i\n", node->name->chars, id, DAE_INSTANCE_GEOMETRY );
+	//printf( "%s %i %i\n", node->name->chars, id, DAE_INSTANCE_GEOMETRY );
 	node->id = id;
 	switch( id ){
 	case DAE_UNSUPPORTED :
@@ -1226,15 +1251,14 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 	case DAE_INIT_FROM :
 		if( (texture = (DaoxTexture*) DaoXmlNode_GetAncestorDataMBS( node, "image", 1 )) ){
 			/* Always assuming relative path for simplicity: */
-			DString path = DString_WrapChars( "." );
-			DaoxImage *image = DaoxResource_LoadImage( resource, node->content, & path );
+			DaoxImage *image = DaoxResource_LoadImage( resource, node->content, self->path );
 			if( image ) DaoxTexture_SetImage( texture, image );
 			node->data = texture;
 		}else{
 			char *id = node->content->chars;
 			node2 = DaoXmlNode_GetChildByAttributeMBS( self->libImages, "id", id );
 			if( node2->data == NULL ){
-				DaoXmlDOM_Traverse( self->xmlDOM, node2, self, DaoxColladaParser_Parse );
+				DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_Parse );
 			}
 			node->data = node2->data;
 		}
@@ -1292,7 +1316,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		for(i=0,instances=0; i<node->children->size; ++i){
 			child = (DaoXmlNode*) node->children->items.pVoid[i];
 			if( strncmp( child->name->chars, "instance_", 9 ) != 0 ) continue;
-			DaoXmlDOM_Traverse( self->xmlDOM, child, self, DaoxColladaParser_Parse );
+			DaoXmlDOM_Traverse( self->dom, child, self, DaoxColladaParser_Parse );
 			if( child->data != NULL ){
 				sceneNode = (DaoxSceneNode*) child->data;
 				instances += 1;
@@ -1304,7 +1328,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		for(i=0; i<node->children->size; ++i){
 			child = (DaoXmlNode*) node->children->items.pVoid[i];
 			if( strncmp( child->name->chars, "instance_", 9 ) != 0 ){
-				DaoXmlDOM_Traverse( self->xmlDOM, child, self, DaoxColladaParser_Parse );
+				DaoXmlDOM_Traverse( self->dom, child, self, DaoxColladaParser_Parse );
 				continue;
 			}
 			if( child->data != NULL ){
@@ -1332,9 +1356,17 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		if( sceneNode == NULL ) break;
 		if( DString_ParseFloats( node->content, floats, 0 ) != 4 ) break; // TODO
 		fvalue = floats->data.floats[3] * M_PI / 180.0;
-		if( floats->data.floats[0] > 0.9 ) sceneNode->rotation.x = fvalue; else
-		if( floats->data.floats[1] > 0.9 ) sceneNode->rotation.y = fvalue; else
-		if( floats->data.floats[2] > 0.9 ) sceneNode->rotation.z = fvalue;
+		pvector = & sceneNode->rotation;
+		if( sceneNode->ctype == daox_type_joint ){
+			DaoxJoint *joint = (DaoxJoint*) sceneNode;
+			att = DaoXmlNode_GetAttributeMBS( node, "sid" );
+			if( DString_FindChars( att, "Orient", 0 ) != DAO_NULLPOS ){
+				pvector = & joint->orientation;
+			}
+		}
+		if( floats->data.floats[0] > 0.9 ) pvector->x = fvalue; else
+		if( floats->data.floats[1] > 0.9 ) pvector->y = fvalue; else
+		if( floats->data.floats[2] > 0.9 ) pvector->z = fvalue;
 		break;
 	case DAE_MATRIX :
 		sceneNode = (DaoxSceneNode*) DaoXmlNode_GetAncestorDataMBS( node, "node", 1 );
@@ -1342,20 +1374,51 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 
 		if( DString_ParseFloats( node->content, floats, 0 ) != 16 ) break; // TODO
 		matrix = DaoxMatrix4D_InitColumnMajor( floats->data.floats );
+		sceneNode->translation.x = matrix.B1;
+		sceneNode->translation.y = matrix.B2;
+		sceneNode->translation.z = matrix.B3;
 #warning"DAE_MATRIX"
 		//sceneNode->transform = DaoxMatrix4D_MulMatrix( & matrix, & sceneNode->transform );
+#if 0
+		{
+			DaoxMatrix4D 
+			double sinPitch, cosPitch, sinRoll, cosRoll, sinYaw, cosYaw;
+
+			sinPitch = -colMatrix[2][0];
+			cosPitch = sqrt(1 - sinPitch*sinPitch);
+
+			if ( abs(cosPitch) > EPSILON ) 
+			{
+				sinRoll = colMatrix[2][1] / cosPitch;
+				cosRoll = colMatrix[2][2] / cosPitch;
+				sinYaw = colMatrix[1][0] / cosPitch;
+				cosYaw = colMatrix[0][0] / cosPitch;
+			} 
+			else 
+			{
+				sinRoll = -colMatrix[1][2];
+				cosRoll = colMatrix[1][1];
+				sinYaw = 0;
+				cosYaw = 1;
+			}
+
+			angles.yaw   = atan2(sinYaw, cosYaw) * 180 / PI;
+			angles.pitch = atan2(sinPitch, cosPitch) * 180 / PI;
+			angles.roll  = atan2(sinRoll, cosRoll) * 180 / PI;
+		}
+#endif
 		break;
 	case DAE_INSTANCE_CAMERA :
 		att = DaoXmlNode_GetAttributeMBS( node, "url" );
 		node2 = DaoXmlNode_GetChildByAttributeMBS( self->libCameras, "id", att->chars+1 );
-		DaoXmlDOM_Traverse( self->xmlDOM, node2, self, DaoxColladaParser_Parse );
+		DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_Parse );
 		node->data = node2->data;
 		if( node->data == NULL ) break; // TODO
 		break;
 	case DAE_INSTANCE_LIGHT :
 		att = DaoXmlNode_GetAttributeMBS( node, "url" );
 		node2 = DaoXmlNode_GetChildByAttributeMBS( self->libLights, "id", att->chars+1 );
-		DaoXmlDOM_Traverse( self->xmlDOM, node2, self, DaoxColladaParser_Parse );
+		DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_Parse );
 		node->data = node2->data;
 		if( node->data == NULL ) break; // TODO
 		break;
@@ -1364,7 +1427,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		if( material == NULL ) break;
 		att = DaoXmlNode_GetAttributeMBS( node, "url" );
 		node2 = DaoXmlNode_GetChildByAttributeMBS( self->libEffects, "id", att->chars+1 );
-		DaoXmlDOM_Traverse( self->xmlDOM, node2, self, DaoxColladaParser_Parse );
+		DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_Parse );
 		node->data = node2->data;
 		if( node->data ) DaoxMaterial_CopyFrom( material, (DaoxMaterial*) node->data );
 		break;
@@ -1372,7 +1435,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		if( (att = DaoXmlNode_GetAttributeMBS( node, "symbol" )) == NULL ) goto ErrorMissingID;
 		if( (att2 = DaoXmlNode_GetAttributeMBS( node, "target" )) ==NULL ) goto ErrorMissingID;
 		node2 = DaoXmlNode_GetChildByAttributeMBS( self->libMaterials, "id", att2->chars+1 );
-		DaoXmlDOM_Traverse( self->xmlDOM, node2, self, DaoxColladaParser_Parse );
+		DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_Parse );
 		if( node2->data == NULL ) break; // TODO
 		material = (DaoxMaterial*) node2->data;
 		it = DMap_Find( self->materials, att );
@@ -1388,7 +1451,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 	case DAE_INSTANCE_GEOMETRY :
 		att = DaoXmlNode_GetAttributeMBS( node, "url" );
 		node2 = DaoXmlNode_GetChildByAttributeMBS( self->libGeometries, "id", att->chars+1 );
-		DaoXmlDOM_Traverse( self->xmlDOM, node2, self, DaoxColladaParser_Parse );
+		DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_Parse );
 		if( node2->data == NULL ) break; //XXX
 		node->data = model = DaoxModel_New();
 		DaoxModel_SetMesh( model, (DaoxMesh*) node2->data );
@@ -1458,31 +1521,171 @@ int DaoxColladaParser_AttachJoints( void *userdata, DaoXmlNode *node )
 	printf( "bones: %s\n", names->chars );
 	name = DString_New();
 	self->currentModel = model;
+	node2 = self->libVisualScenes;
 	while( offset < names->size ){
 		int pos = DString_FindChar( names, ' ', offset );
 		if( pos == DAO_NULLPOS ) pos = names->size;
 		DString_SubString( names, name, offset, pos - offset );
-		node2 = DaoXmlNode_GetChildByAttributeMBS( node, "sid", name->chars );
 		self->jointName = name;
-		DaoXmlDOM_Traverse( self->xmlDOM, node2, self, DaoxColladaParser_AttachJoint );
+		DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_AttachJoint );
 		offset = pos + 1;
 	}
 	DString_Delete( names );
 	DString_Delete( name );
 	return 1;
 }
+int DaoXml_FindNodeByID( void *userdata, DaoXmlNode *node )
+{
+	DString *name = (DString*) userdata;
+	DString *att = DaoXmlNode_GetAttributeMBS( node, "id" );
+	return att != NULL && DString_EQ( att, name );
+}
+DaoXmlNode*  DaoXmlNode_GetSource( DaoXmlNode *host, DaoXmlNode *sampler, const char *semantic )
+{
+	DaoXmlNode *node = DaoXmlNode_GetChildByAttributeMBS( sampler, "semantic", semantic );
+	if( node ){ 
+		DString *att = DaoXmlNode_GetAttributeMBS( node, "source" );
+		return  DaoXmlNode_GetChildByAttributeMBS( host, "id", att->chars+1 );
+	}
+	return NULL;
+}
+void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node )
+{
+	DaoValue *dvalue;
+	DaoxSceneNode *sceneNode;
+	DaoxAnimation *animation;
+	DaoxKeyFrame staticFrame;
+	DaoXmlNode *vscenes = self->libVisualScenes;
+	DaoXmlNode *channelNode = DaoXmlNode_GetChildMBS( node, "channel" );
+	DaoXmlNode *inputNode, *outputNode, *interNode;
+	DaoXmlNode *intanNode, *outtanNode;
+	DaoXmlNode *samplerNode, *targetNode;
+	DaoXmlNode *node2;
+	DString *att;
+	DNode *it;
+	int channel;
+	int i, pos;
 
+	if( channelNode == NULL ) return; // TODO
+
+	att = DaoXmlNode_GetAttributeMBS( channelNode, "target" );
+	pos = DString_FindChar( att, '/', 0 );
+	DString_SubString( att, self->string, 0, pos );
+
+	targetNode = DaoXmlDOM_Search( self->dom, vscenes, self->string, DaoXml_FindNodeByID );
+
+	if( targetNode == NULL || targetNode->data == NULL ) return; // TODO
+	printf( "animation: %s %p\n", self->string->chars, targetNode->data );
+
+	DString_SubString( att, self->string, pos+1, -1 );
+	it = DMap_Find( self->channels, self->string );
+	if( it == NULL ) return;
+	channel = it->value.pInt;
+
+	dvalue = (DaoValue*) targetNode->data;
+	sceneNode = (DaoxSceneNode*) DaoValue_CastCstruct( dvalue, daox_type_scene_node );
+	printf( "animation: %s %p\n", self->string->chars, sceneNode );
+	if( sceneNode == NULL ) return;
+
+	att = DaoXmlNode_GetAttributeMBS( channelNode, "source" );
+	samplerNode = DaoXmlNode_GetChildByAttributeMBS( node, "id", att->chars+1 );
+
+	inputNode = DaoXmlNode_GetSource( node, samplerNode, "INPUT" );
+	outputNode = DaoXmlNode_GetSource( node, samplerNode, "OUTPUT" );
+	interNode = DaoXmlNode_GetSource( node, samplerNode, "INTERPOLATION" );
+	intanNode = DaoXmlNode_GetSource( node, samplerNode, "IN_TANGENT" );
+	outtanNode = DaoXmlNode_GetSource( node, samplerNode, "OUT_TANGENT" );
+
+	if( inputNode == NULL || outputNode == NULL || interNode == NULL ) return; //TODO
+
+	printf( "animation: %s %p\n", self->string->chars, interNode );
+
+	animation = DaoxAnimation_New();
+	animation->channel = channel;
+	if( sceneNode->animations == NULL ) sceneNode->animations = DList_New( DAO_DATA_VALUE );
+	DList_Append( sceneNode->animations, animation );
+
+	node2 = DaoXmlNode_GetChildMBS( inputNode, "float_array" );
+	DString_ParseFloats( node2->content, self->floats, 0 );
+	DArray_Resize( animation->keyFrames, self->floats->size );
+	memset( & staticFrame, 0, sizeof(DaoxKeyFrame) );
+	staticFrame.matrix = DaoxMatrix4D_Identity();
+	for(i=0; i<animation->keyFrames->size; ++i){
+		animation->keyFrames->data.keyframes[i] = staticFrame;
+		animation->keyFrames->data.keyframes[i].time = self->floats->data.floats[i];
+	}
+	node2 = DaoXmlNode_GetChildMBS( outputNode, "float_array" );
+	DString_ParseFloats( node2->content, self->floats, 0 );
+	// TODO: check size;
+	for(i=0; i<animation->keyFrames->size; ++i){
+		DaoxKeyFrame *frame = animation->keyFrames->data.keyframes + i;
+		float *floats;
+		switch( channel ){
+		case DAOX_ANIMATE_SX : case DAOX_ANIMATE_SY : case DAOX_ANIMATE_SZ :
+		case DAOX_ANIMATE_RX : case DAOX_ANIMATE_RY : case DAOX_ANIMATE_RZ :
+		case DAOX_ANIMATE_TX : case DAOX_ANIMATE_TY : case DAOX_ANIMATE_TZ :
+			frame->scalar = self->floats->data.floats[i];
+			break;
+		case DAOX_ANIMATE_TL :
+			floats = self->floats->data.floats + 3*i;
+			frame->vector = DaoxVector3D_XYZ( floats[0], floats[1], floats[2] );
+			break;
+		case DAOX_ANIMATE_TF :
+			floats = self->floats->data.floats + 16*i;
+			frame->matrix = DaoxMatrix4D_InitColumnMajor( floats );
+			break;
+		}
+	}
+	node2 = DaoXmlNode_GetChildMBS( interNode, "Name_array" );
+	DString_Assign( self->string, node2->content );
+	DString_Change( self->string, "LINEAR", "0", 0 );
+	DString_Change( self->string, "BEZIER", "1", 0 );
+	DString_Change( self->string, "HERMITE", "2", 0 );
+	DString_Change( self->string, "BSPLINE", "3", 0 );
+	DString_ParseIntegers( self->string, self->integers, 0 );
+	for(i=0; i<animation->keyFrames->size; ++i){
+		DaoxKeyFrame *frame = animation->keyFrames->data.keyframes + i;
+		frame->curve = self->integers->data.ints[i];
+	}
+	if( intanNode && outtanNode ){
+		int stride;
+		node2 = DaoXmlNode_GetChildMBS( intanNode, "float_array" );
+		DString_ParseFloats( node2->content, self->floats, 0 );
+		stride = self->floats->size / animation->keyFrames->size;
+		for(i=0; i<animation->keyFrames->size; ++i){
+			DaoxKeyFrame *frame = animation->keyFrames->data.keyframes + i;
+			float *floats = self->floats->data.floats + i*stride;
+			switch( stride ){
+			case 3: frame->tangent1.z = floats[2];
+			case 2: frame->tangent1.y = floats[1];
+			case 1: frame->tangent1.x = floats[0];
+			}
+		}
+		node2 = DaoXmlNode_GetChildMBS( outtanNode, "float_array" );
+		DString_ParseFloats( node2->content, self->floats, 0 );
+		stride = self->floats->size / animation->keyFrames->size;
+		for(i=0; i<animation->keyFrames->size; ++i){
+			DaoxKeyFrame *frame = animation->keyFrames->data.keyframes + i;
+			float *floats = self->floats->data.floats + i*stride;
+			switch( stride ){
+			case 3: frame->tangent2.z = floats[2];
+			case 2: frame->tangent2.y = floats[1];
+			case 1: frame->tangent2.x = floats[0];
+			}
+		}
+	}
+}
 
 DaoxScene* DaoxResource_LoadColladaSource( DaoxResource *self, DString *source, DString *path )
 {
 	DaoxColladaParser *parser = DaoxColladaParser_New( self );
-	DaoXmlDOM *dom = parser->xmlDOM;
+	DaoXmlDOM *dom = parser->dom;
 	DaoxScene *scene = NULL;
 	DString *att;
 	int i;
 
 	parser->path = path;
-	DaoXmlParser_Parse( parser->xmlParser, parser->xmlDOM, source );
+	DaoXmlParser_Parse( parser->parser, parser->dom, source );
 
 	parser->libLights = DaoXmlNode_GetChildMBS( dom->root, "library_lights" );
 	parser->libCameras = DaoXmlNode_GetChildMBS( dom->root, "library_cameras" );
@@ -1491,6 +1694,7 @@ DaoxScene* DaoxResource_LoadColladaSource( DaoxResource *self, DString *source, 
 	parser->libMaterials = DaoXmlNode_GetChildMBS( dom->root, "library_materials" );
 	parser->libGeometries = DaoXmlNode_GetChildMBS( dom->root, "library_geometries" );
 	parser->libControllers = DaoXmlNode_GetChildMBS( dom->root, "library_controllers" );
+	parser->libAnimations = DaoXmlNode_GetChildMBS( dom->root, "library_animations" );
 	parser->libVisualScenes = DaoXmlNode_GetChildMBS( dom->root, "library_visual_scenes" );
 
 	for(i=0; i<dom->root->children->size; ++i){
@@ -1504,6 +1708,13 @@ DaoxScene* DaoxResource_LoadColladaSource( DaoxResource *self, DString *source, 
 		node = DaoXmlNode_GetChildByAttributeMBS( parser->libVisualScenes, "id", att->chars+1);
 		DaoXmlDOM_Traverse( dom, node, parser, DaoxColladaParser_Parse );
 		DaoXmlDOM_Traverse( dom, node, parser, DaoxColladaParser_AttachJoints );
+	}
+	if( parser->libAnimations ){
+		for(i=0; i<parser->libAnimations->children->size; ++i){
+			DaoXmlNode *node = (DaoXmlNode*) parser->libAnimations->children->items.pVoid[i];
+			if( strcmp( node->name->chars, "animation" ) != 0 ) continue;
+			DaoxColladaParser_ParseAnimation( parser, node );
+		}
 	}
 	scene = parser->currentScene;
 	DaoxColladaParser_Delete( parser );

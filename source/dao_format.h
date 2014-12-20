@@ -87,8 +87,8 @@ struct DaoxColladaParser
 	DaoxScene     *currentScene;
 	DaoxModel     *currentModel;
 	DaoxResource  *resource;
-	DaoXmlParser  *xmlParser;
-	DaoXmlDOM     *xmlDOM;
+	DaoXmlParser  *parser;
+	DaoXmlDOM     *dom;
 
 	DaoXmlNode  *libLights;
 	DaoXmlNode  *libCameras;
@@ -97,6 +97,7 @@ struct DaoxColladaParser
 	DaoXmlNode  *libMaterials;
 	DaoXmlNode  *libGeometries;
 	DaoXmlNode  *libControllers;
+	DaoXmlNode  *libAnimations;
 	DaoXmlNode  *libVisualScenes;
 
 	DString  *jointName;
@@ -105,6 +106,7 @@ struct DaoxColladaParser
 	DMap     *tags;
 
 	DMap     *materials;
+	DMap     *channels;
 
 	DArray  *integers;
 	DArray  *integers2;

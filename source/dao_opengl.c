@@ -342,14 +342,15 @@ void main(void)\n\
 		varPosition.x = position.x * graphScale;\n\
 		varPosition.y = position.y * graphScale;\n\
 	}\n\
-	vec4 worldPosition = modelMatrix * vec4( varPosition, 1.0 );\n\
+	vec4 worldPosition = vec4( varPosition, 1.0 );\n\
 	if( skinning != 0 ){ \n\
-		vec4 skinPosition = skinMatRows[int(joints[0])] * worldPosition * weights[0] + \n\
+		worldPosition = \n\
+			skinMatRows[int(joints[0])] * worldPosition * weights[0] + \n\
 			skinMatRows[int(joints[1])] * worldPosition * weights[1] + \n\
 			skinMatRows[int(joints[2])] * worldPosition * weights[2] + \n\
 			skinMatRows[int(joints[3])] * worldPosition * weights[3]; \n\
-		worldPosition = skinPosition;\n\
 	}\n\
+	worldPosition = modelMatrix * worldPosition;\n\
 	varNormal = normal;\n\
 	varTangent = tangent;\n\
 	varTexCoord = texCoord;\n\

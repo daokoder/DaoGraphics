@@ -42,6 +42,7 @@
 	struct DaoxCanvasNode    **pCanvasNode; \
 	struct DaoxSceneNode     **pSceneNode; \
 	struct DaoxTerrainBlock  **pTerrainBlock; \
+	struct DaoxAnimation     **pAnimation; \
 	struct DaoxDrawTask      **pDrawTask;
 
 #define DAO_ARRAY_ITEM_TYPES \
@@ -54,6 +55,7 @@
 	struct DaoxSkinParam    *skinparams; \
 	struct DaoxColor        *colors;    \
 	struct DaoxPathSegment  *segments;  \
+	struct DaoxKeyFrame     *keyframes; \
 	struct DaoxDrawTask     *drawtasks;
 
 
@@ -249,6 +251,7 @@ DaoxMatrix4D  DaoxMatrix4D_Translation( float x, float y, float z );
 DaoxMatrix4D  DaoxMatrix4D_FromQuaternion( DaoxQuaternion *rotation );
 DaoxMatrix4D  DaoxMatrix4D_AxisRotation( DaoxVector3D axis, float alpha );
 DaoxMatrix4D  DaoxMatrix4D_EulerRotation( float alpha, float beta, float gamma );
+DaoxMatrix4D  DaoxMatrix4D_Combine( DaoxVector3D scale, DaoxVector3D rot, DaoxVector3D trans );
 
 DaoxVector3D  DaoxMatrix4D_MulVector( DaoxMatrix4D *self, DaoxVector3D *vector, float w );
 DaoxVector3D  DaoxMatrix4D_Transform( DaoxMatrix4D *self, DaoxVector3D *vec );

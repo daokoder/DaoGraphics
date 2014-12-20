@@ -38,16 +38,17 @@
 #include "dao_font.h"
 #include "dao_image.h"
 #include "dao_mesh.h"
+#include "dao_animation.h"
 
 
 
 typedef struct DaoxTexture     DaoxTexture;
+typedef struct DaoxSkeleton    DaoxSkeleton;
 
 typedef struct DaoxSceneNode   DaoxSceneNode;
 typedef struct DaoxCamera      DaoxCamera;
 typedef struct DaoxLight       DaoxLight;
 typedef struct DaoxJoint       DaoxJoint;
-typedef struct DaoxSkeleton    DaoxSkeleton;
 typedef struct DaoxModel       DaoxModel;
 typedef struct DaoxScene       DaoxScene;
 
@@ -177,6 +178,7 @@ struct DaoxSceneNode
 
 	DaoxSceneNode  *parent;
 	DList          *children;
+	DList          *animations; // TODO: GC
 };
 extern DaoType *daox_type_scene_node;
 
@@ -197,6 +199,8 @@ DaoxMatrix4D DaoxSceneNode_GetParentTransform( DaoxSceneNode *self );
 DaoxMatrix4D DaoxSceneNode_GetWorldTransform( DaoxSceneNode *self );
 
 DaoxVector3D DaoxSceneNode_GetWorldPosition( DaoxSceneNode *self );
+
+void DaoxSceneNode_Update( DaoxSceneNode *self, float dtime );
 
 
 
@@ -328,7 +332,7 @@ void DaoxScene_Delete( DaoxScene *self );
 void DaoxScene_AddNode( DaoxScene *self, DaoxSceneNode *node );
 void DaoxScene_AddMaterial( DaoxScene *self, DString *name, DaoxMaterial *material );
 
-
+void DaoxScene_Update( DaoxScene *self, float dtime );
 
 
 #endif

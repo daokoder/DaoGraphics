@@ -183,17 +183,31 @@ void DaoXmlDOM_Traverse( DaoXmlDOM *self, DaoXmlNode *root, void *visitor, DaoXm
 	if( root == NULL ) root = self->root;
 	if( root == NULL ) return;
 
-	DaoXmlDOM_TraverseNode( self, root, visitor, visit );
+	return DaoXmlDOM_TraverseNode( self, root, visitor, visit );
+}
+
+DaoXmlNode* DaoXmlDOM_SearchNode( DaoXmlDOM *self, DaoXmlNode *node, void *visitor, DaoXmlNode_Visit visit )
+{
+	daoint i;
+	if( visit( visitor, node ) != 0 ) return node;
+	for(i=0; i<node->children->size; ++i){
+		DaoXmlNode *child = (DaoXmlNode*) node->children->items.pVoid[i];
+		child = DaoXmlDOM_SearchNode( self, child, visitor, visit );
+		if( child ) return child;
+	}
+	return NULL;
+}
+DaoXmlNode* DaoXmlDOM_Search( DaoXmlDOM *self, DaoXmlNode *root, void *visitor, DaoXmlNode_Visit visit )
+{
+	if( root == NULL ) root = self->root;
+	if( root == NULL ) return NULL;
+
+	return DaoXmlDOM_SearchNode( self, root, visitor, visit );
 }
 
 
 
 
-
-enum DaoXmlParserState
-{
-	DAO_XML_
-};
 
 DaoXmlParser* DaoXmlParser_New()
 {

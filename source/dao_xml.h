@@ -83,6 +83,9 @@ void DaoXmlDOM_Delete( DaoXmlDOM *self );
 
 void DaoXmlDOM_Traverse( DaoXmlDOM *self, DaoXmlNode *root, void *visitor, DaoXmlNode_Visit visit );
 
+/* Return the node on which "visit" produces one: */
+DaoXmlNode* DaoXmlDOM_Search( DaoXmlDOM *self, DaoXmlNode *root, void *visitor, DaoXmlNode_Visit visit );
+
 
 
 struct DaoXmlParser
