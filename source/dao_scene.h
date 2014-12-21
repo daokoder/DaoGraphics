@@ -44,6 +44,7 @@
 
 typedef struct DaoxTexture     DaoxTexture;
 typedef struct DaoxSkeleton    DaoxSkeleton;
+typedef struct DaoxController  DaoxController;
 
 typedef struct DaoxSceneNode   DaoxSceneNode;
 typedef struct DaoxCamera      DaoxCamera;
@@ -164,6 +165,15 @@ double DaoxViewFrustum_Difference( DaoxViewFrustum *self, DaoxViewFrustum *other
 
 
 
+struct DaoxController
+{
+	DaoxMatrix4D  transform;
+	DList        *animations; // TODO: GC
+};
+DaoxController* DaoxController_New();
+void DaoxController_Delete( DaoxController *self );
+
+
 
 struct DaoxSceneNode
 {
@@ -173,12 +183,11 @@ struct DaoxSceneNode
 
 	DaoxOBBox3D     obbox;        /* local space; */
 	DaoxVector3D    scale;        /* local space; */
-	DaoxVector3D    rotation;     /* local space (axis-angle); */
+	DaoxVector3D    rotation;     /* local space (angles); */
 	DaoxVector3D    translation;  /* parent space; */
-
+	DaoxController *controller;   /* control for additional transform; */
 	DaoxSceneNode  *parent;
 	DList          *children;
-	DList          *animations; // TODO: GC
 };
 extern DaoType *daox_type_scene_node;
 

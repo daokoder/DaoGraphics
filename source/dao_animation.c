@@ -54,12 +54,16 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 	int imin, first, last, frameCount = self->keyFrames->size;
 	float min, endtime, factor = 0.5;
 
+	self->time += dtime;
+	self->dtime += dtime;
+	if( self->dtime < 1E-3 ) return;
 	if( frameCount == 0 ) return;
 
 	endtime = self->keyFrames->data.keyframes[frameCount-1].time;
 	if( endtime < EPSILON ) return; // TODO
-	self->time += dtime;
+
 	while( self->time > endtime ) self->time -= endtime;
+	self->dtime = 0;
 
 	imin = -1;
 	min = endtime + 1.0;
@@ -101,6 +105,10 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 		P1.x = secondFrame->time;
 		P1.y = secondFrame->scalar;
 		break;
+	case DAOX_ANIMATE_TL :
+		P0 = firstFrame->vector;
+		P1 = secondFrame->vector;
+		break;
 	}
 	factor = (self->time - firstFrame->time) / (secondFrame->time - firstFrame->time);
 	if( firstFrame->time > secondFrame->time ){
@@ -115,6 +123,8 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 		case DAOX_ANIMATE_BSPLINE :
 			break;
 		}
+		self->transform = DaoxMatrix4D_Interpolate( & firstFrame->matrix, & secondFrame->matrix, factor );
+		return;
 	}else{
 		switch( firstFrame->curve ){
 		case DAOX_ANIMATE_LINEAR :
@@ -140,7 +150,6 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 	case DAOX_ANIMATE_TL : translate = vector; break;
 	case DAOX_ANIMATE_TF : break;
 	}
-	rotate = DaoxVector3D_Scale( & rotate, M_PI / 180.0 );
 	self->transform = DaoxMatrix4D_Combine( scale, rotate, translate );
 }
 

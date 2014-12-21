@@ -425,6 +425,23 @@ DaoxQuaternion DaoxQuaternion_FromRotation( DaoxVector3D *rotation )
 	res.z = sine * rotation->z / (angle + EPSILON);
 	return res;
 }
+DaoxQuaternion DaoxQuaternion_FromEulerAngles( float alpha, float beta, float gamma )
+{
+	DaoxQuaternion res, Q1, Q2, Q3 = { 0.0, 0.0, 0.0, 0.0 };
+	Q1 = Q2 = Q3;
+	Q1.w = cos( 0.5 * alpha );
+	Q1.z = sin( 0.5 * alpha );
+	Q2.w = cos( 0.5 * beta );
+	Q2.y = sin( 0.5 * beta );
+	Q3.w = cos( 0.5 * gamma );
+	Q3.x = sin( 0.5 * gamma );
+	res = DaoxQuaternion_Product( & Q1, & Q2 );
+	return DaoxQuaternion_Product( & res, & Q3 );
+}
+DaoxQuaternion DaoxQuaternion_FromEulerAngleVector( DaoxVector3D angles )
+{
+	return DaoxQuaternion_FromEulerAngles( angles.x, angles.y, angles.z );
+}
 
 DaoxQuaternion DaoxQuaternion_Product( DaoxQuaternion *self, DaoxQuaternion *other )
 {
@@ -629,6 +646,18 @@ DaoxMatrix4D  DaoxMatrix4D_Translation( float x, float y, float z )
 	res.B3 = z;
 	return res;
 }
+DaoxMatrix4D  DaoxMatrix4D_Scale( float sx, float sy, float sz )
+{
+	DaoxMatrix4D res = DaoxMatrix4D_Identity();
+	res.A11 = sx;
+	res.A22 = sy;
+	res.A33 = sz;
+	return res;
+}
+DaoxMatrix4D  DaoxMatrix4D_ScaleVector( DaoxVector3D scale )
+{
+	return DaoxMatrix4D_Scale( scale.x, scale.y, scale.z );
+}
 DaoxMatrix4D  DaoxMatrix4D_FromQuaternion( DaoxQuaternion *rotation )
 {
 	double w = rotation->w;
@@ -666,6 +695,10 @@ DaoxMatrix4D  DaoxMatrix4D_EulerRotation( float alpha, float beta, float gamma )
 	res.A32 =   sinAlpha * cosBeta;
 	res.A33 =   cosAlpha * cosBeta;
 	return res;
+}
+DaoxMatrix4D  DaoxMatrix4D_EulerRotationVector( DaoxVector3D angles )
+{
+	return DaoxMatrix4D_EulerRotation( angles.x, angles.y, angles.z );
 }
 DaoxMatrix4D  DaoxMatrix4D_AxisRotation( DaoxVector3D axis, float alpha )
 {
@@ -804,19 +837,25 @@ DaoxMatrix4D  DaoxMatrix4D_TranslationOnly( DaoxMatrix4D *self )
 	res.B3 = self->B3;
 	return res;
 }
-DaoxMatrix4D DaoxMatrix4D_Combine( DaoxVector3D scale, DaoxVector3D rot, DaoxVector3D trans )
+DaoxMatrix4D DaoxMatrix4D_Combine( DaoxVector3D S, DaoxVector3D R, DaoxVector3D T )
 {
-	DaoxQuaternion quaternion = DaoxQuaternion_FromRotation( & rot );
-	DaoxMatrix4D transform = DaoxMatrix4D_FromQuaternion( & quaternion );
-	DaoxMatrix4D scalemat = DaoxMatrix4D_Identity();
-	transform.B1 = trans.x;
-	transform.B2 = trans.y;
-	transform.B3 = trans.z;
-	scalemat.A11 = scale.x;
-	scalemat.A22 = scale.y;
-	scalemat.A33 = scale.z;
-	transform = DaoxMatrix4D_Product( & transform, & scalemat );
-	return transform;
+	DaoxMatrix4D rotation = DaoxMatrix4D_EulerRotationVector( R );
+	DaoxMatrix4D scale = DaoxMatrix4D_ScaleVector( S );
+	DaoxMatrix4D trans = DaoxMatrix4D_Product( & rotation, & scale );
+	trans.B1 = T.x;
+	trans.B2 = T.y;
+	trans.B3 = T.z;
+	return trans;
+}
+DaoxMatrix4D DaoxMatrix4D_Interpolate( DaoxMatrix4D *self, DaoxMatrix4D *other, float at )
+{
+	DaoxMatrix4D res;
+	float *mat1 = & self->A11;
+	float *mat2 = & other->A11;
+	float *mat3 = & res.A11;
+	int i;
+	for(i=0; i<12; ++i) mat3[i] = (1.0 - at) * mat1[i] + at * mat2[i];
+	return res;
 }
 void DaoxMatrix4D_Print( DaoxMatrix4D *self )
 {

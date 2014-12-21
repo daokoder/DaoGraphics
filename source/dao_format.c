@@ -1046,7 +1046,7 @@ int DaoxColladaParser_HandleController( DaoxColladaParser *self, DaoXmlNode *nod
 	child = DaoXmlNode_GetChildMBS( node, "bind_shape_matrix" );
 	if( child ){
 		DString_ParseFloats( child->content, floats, 0 );
-		skeleton->bindMat = DaoxMatrix4D_InitColumnMajor( floats->data.floats );
+		skeleton->bindMat = DaoxMatrix4D_InitRowMajor( floats->data.floats );
 	}
 
 	if( (child = DaoXmlNode_GetChildMBS( skinNode, "joints" )) == NULL ) return 0; // TODO
@@ -1068,7 +1068,7 @@ int DaoxColladaParser_HandleController( DaoxColladaParser *self, DaoXmlNode *nod
 	DString_ParseFloats( node2->content, floats, 0 );
 	for(i=0; i<boneCount; ++i){
 		float *mat = floats->data.floats + 16*i;
-		skeleton->skinMats->data.matrices4d[i] = DaoxMatrix4D_InitColumnMajor( mat );
+		skeleton->skinMats->data.matrices4d[i] = DaoxMatrix4D_InitRowMajor( mat );
 	}
 
 	nodeVertexWeights = DaoXmlNode_GetChildMBS( skinNode, "vertex_weights" );
@@ -1373,40 +1373,20 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		if( sceneNode == NULL ) break;
 
 		if( DString_ParseFloats( node->content, floats, 0 ) != 16 ) break; // TODO
-		matrix = DaoxMatrix4D_InitColumnMajor( floats->data.floats );
-		sceneNode->translation.x = matrix.B1;
-		sceneNode->translation.y = matrix.B2;
-		sceneNode->translation.z = matrix.B3;
-#warning"DAE_MATRIX"
-		//sceneNode->transform = DaoxMatrix4D_MulMatrix( & matrix, & sceneNode->transform );
-#if 0
-		{
-			DaoxMatrix4D 
-			double sinPitch, cosPitch, sinRoll, cosRoll, sinYaw, cosYaw;
-
-			sinPitch = -colMatrix[2][0];
-			cosPitch = sqrt(1 - sinPitch*sinPitch);
-
-			if ( abs(cosPitch) > EPSILON ) 
-			{
-				sinRoll = colMatrix[2][1] / cosPitch;
-				cosRoll = colMatrix[2][2] / cosPitch;
-				sinYaw = colMatrix[1][0] / cosPitch;
-				cosYaw = colMatrix[0][0] / cosPitch;
-			} 
-			else 
-			{
-				sinRoll = -colMatrix[1][2];
-				cosRoll = colMatrix[1][1];
-				sinYaw = 0;
-				cosYaw = 1;
-			}
-
-			angles.yaw   = atan2(sinYaw, cosYaw) * 180 / PI;
-			angles.pitch = atan2(sinPitch, cosPitch) * 180 / PI;
-			angles.roll  = atan2(sinRoll, cosRoll) * 180 / PI;
-		}
-#endif
+		/*
+		// Though the collada specification says the matrix is in column order,
+		// but it means only for operations (vector*matrix vs matrix*vector).
+		// The matrix element should be interpreted as if it is row order!
+		// <matrix>
+		//   1.0 0.0 0.0 2.0
+		//   0.0 1.0 0.0 3.0
+		//   0.0 0.0 1.0 4.0
+		//   0.0 0.0 0.0 1.0
+		// </matrix>
+		*/
+		matrix = DaoxMatrix4D_InitRowMajor( floats->data.floats );
+		if( sceneNode->controller == NULL ) sceneNode->controller = DaoxController_New();
+		sceneNode->controller->transform = matrix;
 		break;
 	case DAE_INSTANCE_CAMERA :
 		att = DaoXmlNode_GetAttributeMBS( node, "url" );
@@ -1602,8 +1582,11 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 
 	animation = DaoxAnimation_New();
 	animation->channel = channel;
-	if( sceneNode->animations == NULL ) sceneNode->animations = DList_New( DAO_DATA_VALUE );
-	DList_Append( sceneNode->animations, animation );
+	if( sceneNode->controller == NULL ) sceneNode->controller = DaoxController_New();
+	if( sceneNode->controller->animations == NULL ){
+		sceneNode->controller->animations = DList_New( DAO_DATA_VALUE );
+	}
+	DList_Append( sceneNode->controller->animations, animation );
 
 	node2 = DaoXmlNode_GetChildMBS( inputNode, "float_array" );
 	DString_ParseFloats( node2->content, self->floats, 0 );
@@ -1622,9 +1605,11 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 		float *floats;
 		switch( channel ){
 		case DAOX_ANIMATE_SX : case DAOX_ANIMATE_SY : case DAOX_ANIMATE_SZ :
-		case DAOX_ANIMATE_RX : case DAOX_ANIMATE_RY : case DAOX_ANIMATE_RZ :
 		case DAOX_ANIMATE_TX : case DAOX_ANIMATE_TY : case DAOX_ANIMATE_TZ :
 			frame->scalar = self->floats->data.floats[i];
+			break;
+		case DAOX_ANIMATE_RX : case DAOX_ANIMATE_RY : case DAOX_ANIMATE_RZ :
+			frame->scalar = self->floats->data.floats[i] * M_PI/180.0;
 			break;
 		case DAOX_ANIMATE_TL :
 			floats = self->floats->data.floats + 3*i;
@@ -1632,7 +1617,7 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 			break;
 		case DAOX_ANIMATE_TF :
 			floats = self->floats->data.floats + 16*i;
-			frame->matrix = DaoxMatrix4D_InitColumnMajor( floats );
+			frame->matrix = DaoxMatrix4D_InitRowMajor( floats );
 			break;
 		}
 	}

@@ -343,6 +343,7 @@ void main(void)\n\
 		varPosition.y = position.y * graphScale;\n\
 	}\n\
 	vec4 worldPosition = vec4( varPosition, 1.0 );\n\
+	worldPosition = modelMatrix * worldPosition;\n\
 	if( skinning != 0 ){ \n\
 		worldPosition = \n\
 			skinMatRows[int(joints[0])] * worldPosition * weights[0] + \n\
@@ -350,13 +351,18 @@ void main(void)\n\
 			skinMatRows[int(joints[2])] * worldPosition * weights[2] + \n\
 			skinMatRows[int(joints[3])] * worldPosition * weights[3]; \n\
 	}\n\
-	worldPosition = modelMatrix * worldPosition;\n\
 	varNormal = normal;\n\
 	varTangent = tangent;\n\
 	varTexCoord = texCoord;\n\
 	vertexPosition = vec2( varPosition ); \n\
 	bezierKLM = vec3( texCoord, texMO[0] ); \n\
 	pathOffset = texMO[1]; \n\
+//	bezierKLM.x = joints[0]/50.0;\n\
+//	bezierKLM.y = joints[1]/50.0;\n\
+//	bezierKLM.z = joints[2]/50.0;\n\
+//	bezierKLM.x = weights[0];\n\
+//	bezierKLM.y = weights[1];\n\
+//	bezierKLM.z = weights[2];\n\
 	gl_Position = projMatrix * viewMatrix * worldPosition;\n\
 }\n";
 
@@ -575,6 +581,7 @@ void main(void)\n\
 			texColor = BlendTerrainTextures( texColor, varTexCoord );\n\
 		}\n\
 	}\n\
+	//texColor = vec4(bezierKLM, 1.0);\n\
 	fragColor = ComputeAllLights( texColor );\n\
 	if( hasColorTexture2 > 0 ){\n\
 		if( texColor[3] < 0.9 ) discard;\n\
@@ -1007,7 +1014,7 @@ void DaoxBuffer_Init3DSK( DaoxBuffer *self, int pos, int norm, int tan, int texu
 	self->traits[4].count = 4;
 	self->traits[4].offset = (void*) & vertex->joints;
 
-	self->traits[5].uniform = joints;
+	self->traits[5].uniform = weights;
 	self->traits[5].count = 4;
 	self->traits[5].offset = (void*) & vertex->weights;
 }

@@ -179,6 +179,7 @@ void DaoxWindow_KeyCallback( GLFWwindow *window, int key, int scode, int action,
 		case GLFW_KEY_TAB :
 			if( glfwGetKey( window, key ) == GLFW_PRESS ){
 				self->renderer->showMesh = ! self->renderer->showMesh;
+				self->renderer->showAxis = ! self->renderer->showAxis;
 			}
 			break;
 		}

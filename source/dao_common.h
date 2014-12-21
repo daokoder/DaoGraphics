@@ -199,6 +199,9 @@ struct DaoxQuaternion
 DaoxQuaternion DaoxQuaternion_FromAxisAngle( DaoxVector3D *axis, float angle );
 DaoxQuaternion DaoxQuaternion_FromRotation( DaoxVector3D *rotation );
 
+DaoxQuaternion DaoxQuaternion_FromEulerAngles( float alpha, float beta, float gamma );
+DaoxQuaternion DaoxQuaternion_FromEulerAngleVector( DaoxVector3D angles );
+
 DaoxQuaternion DaoxQuaternion_Product( DaoxQuaternion *self, DaoxQuaternion *other );
 
 DaoxVector3D DaoxQuaternion_Rotate( DaoxQuaternion *self, DaoxVector3D *vector );
@@ -248,9 +251,12 @@ DaoxMatrix4D  DaoxMatrix4D_InitColumnMajor( float M[16] );
 DaoxMatrix4D  DaoxMatrix4D_InitRows( float R0[4], float R1[4], float R2[4] );
 DaoxMatrix4D  DaoxMatrix4D_InitColumns( float C0[3], float C1[3], float C2[3], float C3[3] );
 DaoxMatrix4D  DaoxMatrix4D_Translation( float x, float y, float z );
+DaoxMatrix4D  DaoxMatrix4D_Scale( float sx, float sy, float sz );
+DaoxMatrix4D  DaoxMatrix4D_ScaleVector( DaoxVector3D scale );
 DaoxMatrix4D  DaoxMatrix4D_FromQuaternion( DaoxQuaternion *rotation );
 DaoxMatrix4D  DaoxMatrix4D_AxisRotation( DaoxVector3D axis, float alpha );
 DaoxMatrix4D  DaoxMatrix4D_EulerRotation( float alpha, float beta, float gamma );
+DaoxMatrix4D  DaoxMatrix4D_EulerRotationVector( DaoxVector3D angles );
 DaoxMatrix4D  DaoxMatrix4D_Combine( DaoxVector3D scale, DaoxVector3D rot, DaoxVector3D trans );
 
 DaoxVector3D  DaoxMatrix4D_MulVector( DaoxMatrix4D *self, DaoxVector3D *vector, float w );
@@ -260,6 +266,8 @@ DaoxMatrix4D  DaoxMatrix4D_Product( DaoxMatrix4D *self, DaoxMatrix4D *other );
 DaoxMatrix4D  DaoxMatrix4D_Inverse( DaoxMatrix4D *self );
 DaoxMatrix4D  DaoxMatrix4D_RotationOnly( DaoxMatrix4D *self );
 DaoxMatrix4D  DaoxMatrix4D_TranslationOnly( DaoxMatrix4D *self );
+
+DaoxMatrix4D  DaoxMatrix4D_Interpolate( DaoxMatrix4D *self, DaoxMatrix4D *other, float at );
 
 void DaoxMatrix4D_Print( DaoxMatrix4D *self );
 

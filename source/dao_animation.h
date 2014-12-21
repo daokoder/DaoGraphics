@@ -76,6 +76,7 @@ struct DaoxAnimation
 	DAO_CSTRUCT_COMMON;
 
 	float         time;
+	float         dtime;
 	short         channel;
 	DArray       *keyFrames;
 	DaoxMatrix4D  transform;
