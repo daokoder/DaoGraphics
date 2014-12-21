@@ -714,6 +714,7 @@ DaoxColladaParser* DaoxColladaParser_New( DaoxResource *resource )
 	self->tangents  = DArray_New( sizeof(DaoxVector3D) );
 	self->texcoords = DArray_New( sizeof(DaoxVector2D) );
 	self->skinparams = DArray_New( sizeof(DaoxSkinParam) );
+	self->indexfloats = DArray_New( sizeof(DaoxIndexFloat) );
 	self->string = DString_New(1);
 	self->tags = DHash_New( DAO_DATA_STRING, 0 );
 	self->channels = DHash_New( DAO_DATA_STRING, 0 );
@@ -744,6 +745,7 @@ void DaoxColladaParser_Delete( DaoxColladaParser *self )
 	DArray_Delete( self->tangents );
 	DArray_Delete( self->texcoords );
 	DArray_Delete( self->skinparams );
+	DArray_Delete( self->indexfloats );
 	DString_Delete( self->string );
 	DMap_Delete( self->materials );
 	DMap_Delete( self->channels );
@@ -1093,14 +1095,24 @@ int DaoxColladaParser_HandleController( DaoxColladaParser *self, DaoXmlNode *nod
 		DaoxSkinParam *param = & self->skinparams->data.skinparams[i];
 		double sum = 0.0;
 		int m = integers->data.ints[i];
+		self->indexfloats->size = 0;
+		for(j=0; j<m; ++j){
+			int *ids = integers2->data.ints + 2*(k+j);
+			int joint = ids[jointInputOffset];
+			float weight = floats->data.floats[ids[weightInputOffset]];
+			DArray_PushIndexFloat( self->indexfloats, joint, -weight );
+		}
+		DArray_SortIndexFloats( self->indexfloats );
 		if( m > 4 ) m = 4;
 		for(j=0; j<m; ++j){
-			int *ids = integers2->data.ints + 2*k;
-			param->joints[j] = ids[jointInputOffset];
-			param->weights[j] = floats->data.floats[ids[weightInputOffset]];
-			sum += param->weights[j];
+			DaoxIndexFloat *jw = self->indexfloats->data.indexfloats + j;
+			param->joints[j] = jw->index;
+			param->weights[j] = - jw->value;
+			sum += - jw->value;
 		}
-		for(j=0; j<m; ++j) param->weights[j] /= sum + EPSILON;
+		if( m != integers->data.ints[i] ){
+			for(j=0; j<m; ++j) param->weights[j] /= sum + EPSILON;
+		}
 		k += integers->data.ints[i];
 	}
 
@@ -1257,6 +1269,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		}else{
 			char *id = node->content->chars;
 			node2 = DaoXmlNode_GetChildByAttributeMBS( self->libImages, "id", id );
+			if( node2 == NULL ) break; //TODO;
 			if( node2->data == NULL ){
 				DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_Parse );
 			}

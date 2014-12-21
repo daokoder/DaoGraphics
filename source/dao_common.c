@@ -486,13 +486,27 @@ DaoxVector3D DaoxQuaternion_Rotate( DaoxQuaternion *self, DaoxVector3D *vector )
 	res.z = prod.z;
 	return res;
 }
-void DaoxQuaternion_ToRotation( DaoxQuaternion *self, DaoxVector3D *rotation )
+DaoxVector3D DaoxQuaternion_ToRotation( DaoxQuaternion *self )
 {
+	DaoxVector3D rotation;
 	double norm = sqrt( self->x * self->x + self->y * self->y + self->z * self->z );
 	double angle = 2.0 * atan( norm / (self->w + EPSILON) );
-	rotation->x = self->x * angle / norm;
-	rotation->y = self->y * angle / norm;
-	rotation->z = self->z * angle / norm;
+	rotation.x = self->x * angle / norm;
+	rotation.y = self->y * angle / norm;
+	rotation.z = self->z * angle / norm;
+	return rotation;
+}
+DaoxVector3D DaoxQuaternion_ToRotationAngles( DaoxQuaternion *self )
+{
+	DaoxVector3D angles;
+	float q0 = self->w;
+	float q1 = self->x;
+	float q2 = self->y;
+	float q3 = self->z;
+	angles.x = atan2( 2*(q0*q1 + q2*q3), 1-2*(q1*q1 + q2*q2) );
+	angles.y = asin ( 2*(q0*q2 - q3*q1) );
+	angles.z = atan2( 2*(q0*q3 + q1*q2), 1-2*(q2*q2 + q3*q3) );
+	return angles;
 }
 
 
@@ -1454,4 +1468,47 @@ DaoxTriangle* DArray_PushTriangleIJK( DArray *self, int i, int j, int k )
 	item->index[1] = j;
 	item->index[2] = k;
 	return item;
+}
+DaoxIndexFloat* DArray_PushIndexFloat( DArray *self, int index, float value )
+{
+	DaoxIndexFloat *item = (DaoxIndexFloat*) DArray_Push( self );
+	item->index = index;
+	item->value = value;
+	return item;
+}
+
+void DaoxIndexFloats_PartialQuickSort( DaoxIndexFloat *data, int first, int last, int part )
+{
+	int lower=first+1, upper=last;
+	float pivot;
+	DaoxIndexFloat val;
+
+	if( first >= last ) return;
+	val = data[first];
+	data[first] = data[ (first+last)/2 ];
+	data[ (first+last)/2 ] = val;
+	pivot = data[ first ].value;
+
+	while( lower <= upper ){
+		while( lower <= last && data[lower].value < pivot ) lower ++;
+		while( pivot < data[upper].value ) upper --;
+		if( lower < upper ){
+			val = data[lower];
+			data[lower] = data[upper];
+			data[upper] = val;
+			upper --;
+		}
+		lower ++;
+	}
+	val = data[first];
+	data[first] = data[upper];
+	data[upper] = val;
+	if( first < upper-1 ) DaoxIndexFloats_PartialQuickSort( data, first, upper-1, part );
+	if( upper >= part ) return;
+	if( upper+1 < last ) DaoxIndexFloats_PartialQuickSort( data, upper+1, last, part );
+}
+void DArray_SortIndexFloats( DArray *self )
+{
+	if( self->size <= 1 ) return;
+	DaoxIndexFloats_PartialQuickSort( self->data.indexfloats, 0, self->size-1, self->size );
 }

@@ -7,9 +7,11 @@ Media file descriptions:
 Public domain image downloaded from wikipedia.org.
 Link: http://en.wikipedia.org/wiki/File:Heightmap.png
 
+
 >> media/mandrill.png
 
 Standard testing image in public domain.
+
 
 >> hextraction_pod
 
@@ -27,6 +29,16 @@ License: Creative Commons Attribution-ShareAlike 3.0 (CC-BY-SA 3.0);
 
 Download Link: http://opengameart.org/content/hextraction-base-player-pod
 License Link: http://creativecommons.org/licenses/by-sa/3.0/
+
+
+>> astroboy_walk
+
+Files:
+media/astroboy_walk/astroboy_walk.dae (slightly modified)
+media/astroboy_walk/astroboy_walk.jpg (renamed)
+
+Copyright 2008 Sony Computer Entertainment Inc. 
+Licensed under the Creative Commons Attribution Noncommercial Share Alike license.
 
 
 >> textures/cliff_with_grass.png

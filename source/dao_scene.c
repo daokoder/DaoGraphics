@@ -349,15 +349,15 @@ void DaoxController_Update( DaoxController *self, float dtime )
 }
 DaoxMatrix4D DaoxController_GetTransform( DaoxController *self )
 {
-	DaoxMatrix4D trans = self->transform;
-	if( self->animations ){
-		int i;
-		DaoxMatrix4D mat = DaoxMatrix4D_Identity();
-		for(i=0; i<self->animations->size; ++i){
-			DaoxAnimation *anim = self->animations->items.pAnimation[i];
-			mat = DaoxMatrix4D_Product( & anim->transform, & mat );
-		}
-		trans = DaoxMatrix4D_Product( & trans, & mat );
+	DaoxMatrix4D trans;
+	int i;
+
+	if( self->animations == NULL ) return self->transform;
+
+	trans = DaoxMatrix4D_Identity();
+	for(i=0; i<self->animations->size; ++i){
+		DaoxAnimation *anim = self->animations->items.pAnimation[i];
+		trans = DaoxMatrix4D_Product( & anim->transform, & trans );
 	}
 	return trans;
 }
@@ -413,9 +413,19 @@ void DaoxSceneNode_Move( DaoxSceneNode *self, DaoxVector3D pos )
 }
 DaoxMatrix4D DaoxSceneNode_GetParentTransform( DaoxSceneNode *self )
 {
-	DaoxMatrix4D rotation = DaoxMatrix4D_EulerRotationVector( self->rotation );
-	DaoxMatrix4D scale = DaoxMatrix4D_ScaleVector( self->scale );
-	DaoxMatrix4D trans = DaoxMatrix4D_Product( & rotation, & scale );
+	DaoxMatrix4D trans;
+
+	if( self->controller ){
+		DList *animations = self->controller->animations;
+		/* Note: Rotation from animation should be applied before orientation: */
+		trans = DaoxController_GetTransform( self->controller );
+		if( animations == NULL ) return trans;
+		if( animations->items.pAnimation[0]->channel == DAOX_ANIMATE_TF ) return trans;
+	}else{
+		DaoxMatrix4D rotation = DaoxMatrix4D_EulerRotationVector( self->rotation );
+		DaoxMatrix4D scale = DaoxMatrix4D_ScaleVector( self->scale );
+		trans = DaoxMatrix4D_Product( & rotation, & scale );
+	}
 
 	if( self->ctype == daox_type_joint ){
 		DaoxJoint *joint = (DaoxJoint*) self;
@@ -426,10 +436,6 @@ DaoxMatrix4D DaoxSceneNode_GetParentTransform( DaoxSceneNode *self )
 	trans.B2 = self->translation.y;
 	trans.B3 = self->translation.z;
 
-	if( self->controller ){
-		DaoxMatrix4D mat = DaoxController_GetTransform( self->controller );
-		trans = DaoxMatrix4D_Product( & trans, & mat );
-	}
 	return trans;
 }
 DaoxMatrix4D DaoxSceneNode_GetWorldTransform( DaoxSceneNode *self )
@@ -487,7 +493,7 @@ void DaoxPointable_PointAt( DaoxPointable *self, DaoxVector3D pos )
 		float angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
 		DaoxQuaternion rot = DaoxQuaternion_FromAxisAngle( & axis, -angle );
 		rot = DaoxQuaternion_Product( & rot, & rotation );
-		DaoxQuaternion_ToRotation( & rot, & self->base.rotation );
+		self->base.rotation = DaoxQuaternion_ToRotationAngles( & rot );
 	}
 }
 void DaoxPointable_PointAtXYZ( DaoxPointable *self, float x, float y, float z )
@@ -517,7 +523,7 @@ void DaoxPointable_Move( DaoxPointable *self, DaoxVector3D pos )
 		float angle = DaoxVector3D_Angle( & newPointDirection, & pointDirection );
 		DaoxQuaternion rot = DaoxQuaternion_FromAxisAngle( & axis, -angle );
 		rot = DaoxQuaternion_Product( & rot, & rotation );
-		DaoxQuaternion_ToRotation( & rot, & self->base.rotation );
+		self->base.rotation = DaoxQuaternion_ToRotationAngles( & rot );
 	}
 	self->base.translation = pos;
 
@@ -630,7 +636,7 @@ void DaoxCamera_RotateBy( DaoxCamera *self, float alpha )
 	DaoxQuaternion rotation = DaoxQuaternion_FromEulerAngleVector( self->base.rotation );
 	DaoxQuaternion rotation2 = DaoxQuaternion_FromAxisAngle( & cameraDirection, alpha );
 	rotation = DaoxQuaternion_Product( & rotation2, & rotation );
-	DaoxQuaternion_ToRotation( & rotation, & self->base.rotation );
+	self->base.rotation = DaoxQuaternion_ToRotationAngles( & rotation );
 }
 void DaoxCamera_Orient( DaoxCamera *self, int xyz )
 {

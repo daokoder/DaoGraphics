@@ -53,6 +53,7 @@
 	struct DaoxTriangle     *triangles; \
 	struct DaoxQuaternion   *quaternions; \
 	struct DaoxSkinParam    *skinparams; \
+	struct DaoxIndexFloat   *indexfloats; \
 	struct DaoxColor        *colors;    \
 	struct DaoxPathSegment  *segments;  \
 	struct DaoxKeyFrame     *keyframes; \
@@ -88,6 +89,8 @@ typedef struct DaoxAABBox2D    DaoxAABBox2D;
 
 typedef struct DaoxVertex      DaoxVertex;
 typedef struct DaoxTriangle    DaoxTriangle;
+
+typedef struct DaoxIndexFloat  DaoxIndexFloat;
 
 extern const DaoxColor daox_black_color;
 extern const DaoxColor daox_white_color;
@@ -205,7 +208,8 @@ DaoxQuaternion DaoxQuaternion_FromEulerAngleVector( DaoxVector3D angles );
 DaoxQuaternion DaoxQuaternion_Product( DaoxQuaternion *self, DaoxQuaternion *other );
 
 DaoxVector3D DaoxQuaternion_Rotate( DaoxQuaternion *self, DaoxVector3D *vector );
-void DaoxQuaternion_ToRotation( DaoxQuaternion *self, DaoxVector3D *rotation );
+DaoxVector3D DaoxQuaternion_ToRotation( DaoxQuaternion *self );
+DaoxVector3D DaoxQuaternion_ToRotationAngles( DaoxQuaternion *self );
 
 
 
@@ -371,6 +375,14 @@ struct DaoxTriangle
 
 
 
+struct DaoxIndexFloat
+{
+	int    index;
+	float  value;
+};
+
+
+
 DaoxVector2D* DArray_PushVector2D( DArray *self, DaoxVector2D *vector2d );
 DaoxVector3D* DArray_PushVector3D( DArray *self, DaoxVector3D *vector3d );
 DaoxVertex*   DArray_PushVertex( DArray *self, DaoxVertex *vertex );
@@ -379,10 +391,9 @@ DaoxTriangle* DArray_PushTriangle( DArray *self, DaoxTriangle *triangle );
 DaoxVector2D* DArray_PushVectorXY( DArray *self, float x, float y );
 DaoxVector3D* DArray_PushVectorXYZ( DArray *self, float x, float y, float z );
 DaoxTriangle* DArray_PushTriangleIJK( DArray *self, int i, int j, int k );
+DaoxIndexFloat* DArray_PushIndexFloat( DArray *self, int index, float value );
 
-
-
-
+void DArray_SortIndexFloats( DArray *self );
 
 
 extern DaoVmSpace *dao_vmspace_graphics;

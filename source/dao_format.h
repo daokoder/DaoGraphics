@@ -118,6 +118,7 @@ struct DaoxColladaParser
 	DArray  *tangents;
 	DArray  *texcoords;
 	DArray  *skinparams;
+	DArray  *indexfloats;
 
 	DaoxIntTuples  *tuples;
 	DaoxIntTuples  *tuples2;
