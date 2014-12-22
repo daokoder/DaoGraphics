@@ -76,7 +76,10 @@ enum DaoxGraphicsMode
 
 enum DaoxSamplerID
 {
-	DAOX_DASH_SAMPLER = 2 ,
+	DAOX_DIFFUSE_TEXTURE = 0,
+	DAOX_EMISSION_TEXTURE ,
+	DAOX_BUMP_TEXTURE ,
+	DAOX_DASH_SAMPLER ,
 	DAOX_GRADIENT_SAMPLER ,
 	DAOX_TILE_TEXTURE1 ,
 	DAOX_TILE_TEXTURE2 ,
@@ -157,11 +160,13 @@ struct DaoxShader
 		uint_t  diffuseColor;
 		uint_t  specularColor;
 		uint_t  emissionColor;
-		uint_t  fade_factor;
+		uint_t  shininess;
 		uint_t  material;
-		uint_t  hasColorTexture;
+		uint_t  hasDiffuseTexture;
+		uint_t  hasEmissionTexture;
 		uint_t  hasBumpTexture;
-		uint_t  colorTexture;
+		uint_t  diffuseTexture;
+		uint_t  emissionTexture;
 		uint_t  bumpTexture;
 		uint_t  alphaBlending;
 		uint_t  graphScale;

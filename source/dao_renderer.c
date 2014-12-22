@@ -495,11 +495,25 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self, DList *drawtasks, DaoxBuffer
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
+int DaoxRenderer_SetupTexture( DaoxRenderer *self, DaoxTexture *texture, int id, int uniform )
+{
+	if( texture->changed || texture->tid == 0 ){
+		DaoxContext_BindTexture( self->context, texture );
+	}
+	if( texture->tid ){
+		glActiveTexture( GL_TEXTURE0 + id );
+		glBindTexture( GL_TEXTURE_2D, texture->tid );
+		glUniform1i( uniform, id );
+		return 1;
+	}
+	return 0;
+}
 void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 {
 	DaoxColor dark = {0.2, 0.2, 0.2, 1.0};
 	DaoxTexture *bumpTexture = NULL;
-	DaoxTexture *colorTexture = NULL;
+	DaoxTexture *diffuseTexture = NULL;
+	DaoxTexture *emissionTexture = NULL;
 	DaoxMaterial *material = drawtask->material;
 	DaoxColor ambient = material ? material->ambient : dark;
 	DaoxColor diffuse = material ? material->diffuse : dark;
@@ -511,7 +525,8 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	int terrainTileType = 0;
 	int tileTextureCount = 0;
 	int tileTextureScale = 0;
-	int hasColorTexture = 0;
+	int hasDiffuseTexture = 0;
+	int hasEmissionTexture = 0;
 	int hasBumpTexture = 0;
 	int i, j, k;
 
@@ -527,6 +542,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	glUniform4fv( self->shader->uniforms.diffuseColor, 1, & diffuse.red );
 	glUniform4fv( self->shader->uniforms.specularColor, 1, & specular.red );
 	glUniform4fv( self->shader->uniforms.emissionColor, 1, & emission.red );
+	glUniform1f( self->shader->uniforms.shininess, material ? material->shininess : 2 );
 
 	if( drawtask->skeleton ){
 		GLfloat matRows[128][16];
@@ -540,7 +556,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	}
 	glUniform1i( self->shader->uniforms.skinning, drawtask->skeleton != NULL );
 
-	if( drawtask->hexTile && drawtask->hexTile->mesh->material && drawtask->hexTile->mesh->material->texture1 ){
+	if( drawtask->hexTile && drawtask->hexTile->mesh->material && drawtask->hexTile->mesh->material->diffuseTexture ){
 		DaoxMaterial *material = drawtask->hexTile->mesh->material;
 		terrainTileType = drawtask->terrainTileType;
 		tileTextureCount = 7;
@@ -549,11 +565,11 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 			DaoxTerrainBlock *neighbor = drawtask->hexTile->neighbors[i];
 			DaoxMaterial *material2 = neighbor ? neighbor->mesh->material : material;
 			if( material2 == NULL ) material2 = material;
-			if( material->texture1->changed || material->texture1->tid == 0 ){
-				DaoxContext_BindTexture( self->context, material->texture1 );
+			if( material->diffuseTexture->changed || material->diffuseTexture->tid == 0 ){
+				DaoxContext_BindTexture( self->context, material->diffuseTexture );
 			}
 			glActiveTexture(GL_TEXTURE0 + DAOX_TILE_TEXTURE1 + i);
-			glBindTexture(GL_TEXTURE_2D, material2->texture1->tid);
+			glBindTexture(GL_TEXTURE_2D, material2->diffuseTexture->tid);
 			glUniform1i(self->shader->uniforms.tileTextures[i], DAOX_TILE_TEXTURE1 + i );
 		}
 	}
@@ -561,35 +577,31 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	glUniform1i( self->shader->uniforms.tileTextureCount, tileTextureCount );
 	glUniform1f( self->shader->uniforms.tileTextureScale, tileTextureScale );
 
-	if( material != NULL ) colorTexture = material->texture1;
-	if( colorTexture ){
-		if( colorTexture->changed || colorTexture->tid == 0 ){
-			DaoxContext_BindTexture( self->context, colorTexture );
-		}
-		if( colorTexture->tid ){
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, colorTexture->tid);
-			glUniform1i(self->shader->uniforms.colorTexture, 0 );
-			hasColorTexture = 1;
-		}
+	if( material != NULL ) diffuseTexture = material->diffuseTexture;
+	if( diffuseTexture ){
+		int uniform = self->shader->uniforms.diffuseTexture;
+		hasDiffuseTexture = 
+			DaoxRenderer_SetupTexture( self, diffuseTexture, DAOX_DIFFUSE_TEXTURE, uniform );
 	}
-	if( material != NULL ) bumpTexture = material->texture2;
+	if( material != NULL ) emissionTexture = material->emissionTexture;
+	if( emissionTexture ){
+		int uniform = self->shader->uniforms.emissionTexture;
+		hasEmissionTexture = 
+			DaoxRenderer_SetupTexture( self, emissionTexture, DAOX_EMISSION_TEXTURE, uniform );
+	}
+	if( material != NULL ) bumpTexture = material->bumpTexture;
 	if( bumpTexture ){
-		if( bumpTexture->changed || bumpTexture->tid == 0 ){
-			DaoxContext_BindTexture( self->context, bumpTexture );
-		}
-		if( bumpTexture->tid ){
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, bumpTexture->tid);
-			glUniform1i(self->shader->uniforms.bumpTexture, 1 );
-			hasBumpTexture = 1;
-		}
+		int uniform = self->shader->uniforms.bumpTexture;
+		hasBumpTexture = 
+			DaoxRenderer_SetupTexture( self, bumpTexture, DAOX_BUMP_TEXTURE, uniform );
 	}
 	//printf( "hasBumpTexture = %i\n", hasBumpTexture );
-	glUniform1i(self->shader->uniforms.hasColorTexture, hasColorTexture );
+	glUniform1i(self->shader->uniforms.hasDiffuseTexture, hasDiffuseTexture );
+	glUniform1i(self->shader->uniforms.hasEmissionTexture, hasEmissionTexture );
 	glUniform1i(self->shader->uniforms.hasBumpTexture, hasBumpTexture );
 	glDrawRangeElements( drawtask->shape, 0, M, M, GL_UNSIGNED_INT, (void*)K );
-	glUniform1i(self->shader->uniforms.hasColorTexture, 0 );
+	glUniform1i(self->shader->uniforms.hasDiffuseTexture, 0 );
+	glUniform1i(self->shader->uniforms.hasEmissionTexture, 0 );
 	glUniform1i(self->shader->uniforms.hasBumpTexture, 0 );
 	/* TODO: better hint for glDrawRangeElements(); */
 }
@@ -719,7 +731,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUseProgram( self->shader->program );
 
 	glUniform1i(self->shader->uniforms.vectorGraphics, 0 );
-	glUniform1i(self->shader->uniforms.hasColorTexture, 0 );
+	glUniform1i(self->shader->uniforms.hasDiffuseTexture, 0 );
 	glUniform1i(self->shader->uniforms.hasBumpTexture, 0 );
 	glUniform1i(self->shader->uniforms.dashCount, 0 );
 	glUniform1i(self->shader->uniforms.gradientType, 0 );

@@ -28,6 +28,7 @@
 
 #include "dao_format.h"
 #include "dao_xml.h"
+#include "dao_opengl.h"
 
 
 
@@ -210,9 +211,9 @@ int DaoxResource_LoadObjMtlSource( DaoxResource *self, DaoxObjParser *parser, DS
 		}else if( DaoxToken_CheckKeywords( token, "^ (map_Kd|map_Bump) $" ) ){
 			int which = 0;
 			if( strcmp( token->string.chars, "map_Kd" ) == 0 ){
-				which = 1;
+				which = DAOX_DIFFUSE_TEXTURE;
 			}else{
-				which = 2;
+				which = DAOX_BUMP_TEXTURE;
 			}
 			DString_Reset( string, 0 );
 			while( (++i) < N && tokens[i]->line == token->line ) {
@@ -1242,6 +1243,12 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 			}
 		}
 		break;
+	case DAE_SHININESS :
+		material = (DaoxMaterial*) DaoXmlNode_GetAncestorDataMBS( node, "effect", 4 );
+		if( material == NULL ) break;
+		node2 = DaoXmlNode_GetChildMBS( node, "float" );
+		if( node2 ) material->shininess = strtod( node2->content->chars, NULL );
+		break;
 	case DAE_OPTICS :
 		break;
 	case DAE_PERSPECTIVE :
@@ -1307,7 +1314,12 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		child = DaoXmlNode_GetChildMBS( child, "surface" );
 		child = DaoXmlNode_GetChildMBS( child, "init_from" );
 		if( child->data == NULL ) break;
-		DaoxMaterial_SetTexture( material, (DaoxTexture*) child->data, 1 );
+		kk = -1;
+		switch( node->parent->id ){
+		case DAE_EMISSION : kk = DAOX_EMISSION_TEXTURE; break;
+		case DAE_DIFFUSE  : kk = DAOX_DIFFUSE_TEXTURE; break;
+		}
+		if( kk >= 0 ) DaoxMaterial_SetTexture( material, (DaoxTexture*) child->data, kk );
 		break;
 	case DAE_NODE :
 		sceneNode = NULL;

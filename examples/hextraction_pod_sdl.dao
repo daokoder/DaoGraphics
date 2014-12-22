@@ -28,11 +28,11 @@ routine LoadScene()
 	scene = resource.LoadObjFile( "../media/hextraction_pod/hextraction_pod.obj" )
 
 	# light types not supported yet!
-	light = Graphics::Light( $spot, 0.3, 0.3, 0.3 )
+	light = Graphics::Light( $spot, 0.5, 0.5, 0.5 )
 	light.Move( 800, 500, 400 )
 	scene.AddNode( light );
 
-	light = Graphics::Light( $spot, 0.2, 0.2, 0.2 )
+	light = Graphics::Light( $spot, 0.5, 0.5, 0.5 )
 	light.Move( 0, 800, 0 )
 	scene.AddNode( light );
 

@@ -1078,7 +1078,7 @@ static DaoFuncItem DaoxMaterialMeths[]=
 		"SetColor( self: Material, ...: tuple<enum<ambient,diffuse,specular,emission>,tuple<float,float,float>> )"
 	},
 	{ MAT_SetTexture,
-		"SetTexture( self: Material, texture: Texture, which: enum<first,second> = $first )"
+		"SetTexture( self: Material, texture: Texture, which: enum<diffuse,emission,bump> = $diffuse )"
 	},
 	{ NULL, NULL }
 };
@@ -1086,11 +1086,13 @@ static DaoFuncItem DaoxMaterialMeths[]=
 static void DaoxMaterial_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxMaterial *self = (DaoxMaterial*) p;
-	if( self->texture1 ) DList_Append( values, self->texture1 );
-	if( self->texture2 ) DList_Append( values, self->texture2 );
+	if( self->diffuseTexture ) DList_Append( values, self->diffuseTexture );
+	if( self->emissionTexture ) DList_Append( values, self->emissionTexture );
+	if( self->bumpTexture ) DList_Append( values, self->bumpTexture );
 	if( remove ){
-		self->texture1 = NULL;
-		self->texture2 = NULL;
+		self->diffuseTexture = NULL;
+		self->emissionTexture = NULL;
+		self->bumpTexture = NULL;
 	}
 }
 DaoTypeBase DaoxMaterial_Typer =

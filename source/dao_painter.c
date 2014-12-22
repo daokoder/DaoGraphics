@@ -256,7 +256,7 @@ void DaoxPainter_PaintItemData( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanva
 		strokeTriangleCount = mesh->strokeTriangles->size;
 	}
 
-	glUniform1i(shader->uniforms.hasColorTexture, 0 );
+	glUniform1i(shader->uniforms.hasDiffuseTexture, 0 );
 	glUniform4fv( shader->uniforms.brushColor, 1, & item->brush->strokeColor.red );
 
 	/* Use item->mesh->path->length, since item->path->length may have not been set: */
@@ -325,10 +325,10 @@ void DaoxPainter_PaintImageItem( DaoxPainter *self, DaoxCanvasNode *item )
 	//printf( "DaoxPainter_PaintImageItem %i\n", item->brush->texture->tid );
 	if( item->brush->texture->tid == 0 ) return;
 
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0 + DAOX_DIFFUSE_TEXTURE);
 	glBindTexture(GL_TEXTURE_2D, item->brush->texture->tid);
-	glUniform1i( self->shader->uniforms.hasColorTexture, 1 );
-	glUniform1i( self->shader->uniforms.colorTexture, 0 );
+	glUniform1i( self->shader->uniforms.hasDiffuseTexture, 1 );
+	glUniform1i( self->shader->uniforms.diffuseTexture, DAOX_DIFFUSE_TEXTURE );
 	glUniform1f( self->shader->uniforms.alphaBlending, 1.0 );
 	glUniform1i( self->shader->uniforms.dashCount, 0 );
 	glUniform1f( self->shader->uniforms.graphScale, item->scale );
@@ -575,7 +575,7 @@ void DaoxPainter_PaintCanvas( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera 
 	glUseProgram( self->shader->program );
 	glUniformMatrix4fv( self->shader->uniforms.projMatrix, 1, 0, matrix2 );
 	glUniformMatrix4fv( self->shader->uniforms.viewMatrix, 1, 0, matrix3 );
-	glUniform1i(self->shader->uniforms.hasColorTexture, 0 );
+	glUniform1i(self->shader->uniforms.hasDiffuseTexture, 0 );
 	glUniform1i(self->shader->uniforms.dashCount, 0 );
 	glUniform1i(self->shader->uniforms.gradientType, 2 );
 	glUniform1i(self->shader->uniforms.gradientStops, 2 );

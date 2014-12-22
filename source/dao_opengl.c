@@ -57,7 +57,8 @@ static const char *const daox_fragment_shader_header =
 
 
 static const char *const daox_vector_graphics_shader_body =
-"uniform int   hasColorTexture; \n\
+"uniform int   hasDiffuseTexture; \n\
+uniform int   hasEmissionTexture; \n\
 uniform int   hasBumpTexture; \n\
 uniform float alphaBlending; \n\
 uniform vec4  brushColor; \n\
@@ -71,7 +72,8 @@ uniform vec2  gradientPoint2;    // end for linear; focal for radial; \n\
 uniform float gradientRadius;    // radius of radial gradient; \n\
 uniform sampler2D dashSampler;   // dash,gap,dash,gap,... \n\
 uniform sampler2D gradientSampler; // (s,0,0,0),(s,0,0,0),(r,g,b,a),(r,g,b,a); \n\
-uniform sampler2D colorTexture; \n\
+uniform sampler2D diffuseTexture; \n\
+uniform sampler2D emissionTexture; \n\
 uniform sampler2D bumpTexture; \n\
 \n\
 \n\
@@ -258,7 +260,7 @@ vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, vec2 texUV, floa
 	//} \n\
 	if( dashCount > 0 ) alphaBlending2 *= HandleDash( pathOffset * graphScale ); \n\
 	if( gradientType > 0 ) fragColor = ComputeGradient( vertexPosition, pathOffset ); \n\
-	if( hasColorTexture > 0 ) fragColor = texture( colorTexture, texUV ); \n\
+	if( hasDiffuseTexture > 0 ) fragColor = texture( diffuseTexture, texUV ); \n\
 	float klm = abs( bezierKLM[0] ) + abs( bezierKLM[1] ) + abs( bezierKLM[2] ); \n\
 	if( klm > 1E-16 ) fragColor = ComputeCubicBezier( bezierKLM, fragColor ); \n\
 	//fragColor = ComputeQuadraticBezier( vec2( bezierKLM ), fragColor ); \n\
@@ -375,6 +377,8 @@ uniform vec4 ambientColor;\n\
 uniform vec4 diffuseColor;\n\
 uniform vec4 specularColor;\n\
 uniform vec4 emissionColor;\n\
+uniform float shininess;\n\
+\n\
 uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
 uniform vec3 cameraPosition;\n\
@@ -401,7 +405,7 @@ out vec4 fragColor;\n\
 vec3 worldPosition;\n\
 vec4 tileTextureInfo = vec4(0.0,0.0,0.0,0.0);\n\
 float tileBlendingWidth = 0.1;\n\
-int hasColorTexture2 = hasColorTexture;\n\
+int hasDiffuseTexture2 = hasDiffuseTexture;\n\
 \n\
 \n\
 // texture coordinate offset from the center in unit space:\n\
@@ -522,7 +526,7 @@ vec3 InterpolateNormal( vec3 v1, vec3 v2, float t )\n\
 }\n\
 \n\
 \n\
-vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
+vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 diffColor )\n\
 {\n\
 	vec3 camDir = normalize( cameraPosition - worldPosition );\n\
 	vec3 normal = normalize( varNormal );\n\
@@ -546,22 +550,26 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 texColor )\n\
 	float cosAngIncidence = dot( normal, lightDir );\n\
 	cosAngIncidence = clamp(cosAngIncidence, 0.0, 1.0);\n\
 	vec3 reflection = 0.5*(1.0 + cosAngIncidence) * normal;\n\
-	vec4 vertexColor = lightIntensity * texColor * cosAngIncidence;\n\
+	vec4 vertexColor = lightIntensity * diffColor * cosAngIncidence;\n\
 	float dotvalue = dot(reflection, camDir);\n\
 	dotvalue = clamp(dotvalue, 0.0, 1.0);\n\
-	vertexColor += lightIntensity * texColor;\n\
-	vertexColor += lightIntensity * specularColor * dotvalue;\n\
-	vertexColor += lightIntensity * ambientColor + emissionColor;\n\
+	vertexColor += lightIntensity * specularColor * pow( dotvalue, shininess );\n\
+	vertexColor += lightIntensity * ambientColor;\n\
 	return vertexColor;\n\
 }\n\
-vec4 ComputeAllLights( vec4 texColor )\n\
+vec4 ComputeAllLights( vec4 diffColor, vec4 emiColor )\n\
 {\n\
 	vec4 vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
-	//texColor = vec4( 0.5, 0.5, 0.5, 1.0 ); // for convenient checking;\n\
+	//diffColor = vec4( 0.5, 0.5, 0.5, 1.0 ); // for convenient checking;\n\
 	for(int i=0; i<lightCount; ++i){\n\
 		vec3 lightDir = normalize( lightSource[i] - worldPosition );\n\
-		vertexColor += ComputeLight( lightDir, lightIntensity[i], texColor );\n\
+		vertexColor += ComputeLight( lightDir, lightIntensity[i], diffColor );\n\
 	}\n\
+	float alpha2 = vertexColor[3];\n\
+	float alpha = emiColor[3];\n\
+	vec4 vertexColor2 = vertexColor + emiColor;\n\
+	vertexColor = (1.0 - alpha)*vertexColor + alpha * vertexColor2;\n\
+	vertexColor[3] = alpha2;\n\
 	return vertexColor;\n\
 }\n\
 \n\
@@ -570,25 +578,29 @@ vec4 ComputeAllLights( vec4 texColor )\n\
 \n\
 void main(void)\n\
 {\n\
-	vec4 texColor = diffuseColor;\n\
+	vec4 diffColor = diffuseColor;\n\
+	vec4 emiColor = emissionColor;\n\
 	worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
 	if( terrainTileType == 1 ) tileTextureInfo = RectLocateTex( varTexCoord );\n\
 	if( terrainTileType == 2 ) tileTextureInfo = HexLocateTex( varTexCoord );\n\
-	if( tileTextureCount > 0 ) hasColorTexture2 = 1;\n\
-	if( hasColorTexture2 > 0 ){\n\
-		texColor = texture( colorTexture, varTexCoord );\n\
+	if( tileTextureCount > 0 ) hasDiffuseTexture2 = 1;\n\
+	if( hasDiffuseTexture2 > 0 ){\n\
+		diffColor = texture( diffuseTexture, varTexCoord );\n\
 		if( terrainTileType != 0 ){ \n\
-			texColor = BlendTerrainTextures( texColor, varTexCoord );\n\
+			diffColor = BlendTerrainTextures( diffColor, varTexCoord );\n\
 		}\n\
 	}\n\
-	//texColor = vec4(bezierKLM, 1.0);\n\
-	fragColor = ComputeAllLights( texColor );\n\
-	if( hasColorTexture2 > 0 ){\n\
-		if( texColor[3] < 0.9 ) discard;\n\
-		fragColor[3] = texColor[3];\n\
+	if( hasEmissionTexture > 0 ){\n\
+		emiColor = texture( emissionTexture, varTexCoord );\n\
 	}\n\
-	if( lightCount == 0 ) fragColor = texColor;\n\
-	//fragColor = texColor;\n\
+	//diffColor = vec4(bezierKLM, 1.0);\n\
+	fragColor = ComputeAllLights( diffColor, emiColor );\n\
+	if( hasDiffuseTexture2 > 0 ){\n\
+		if( diffColor[3] < 0.9 ) discard;\n\
+		fragColor[3] = diffColor[3];\n\
+	}\n\
+	if( lightCount == 0 ) fragColor = emiColor;\n\
+	//fragColor = diffColor;\n\
 	if( vectorGraphics > 0 ){ \n\
 		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
 		fragColor = fragColor * color; \n\
@@ -762,9 +774,11 @@ void DaoxShader_Finalize2D( DaoxShader *self )
 	self->uniforms.modelMatrix = glGetUniformLocation(self->program, "modelMatrix");
 	self->uniforms.viewMatrix = glGetUniformLocation(self->program, "viewMatrix");
 	self->uniforms.projMatrix = glGetUniformLocation(self->program, "projMatrix");
-	self->uniforms.hasColorTexture = glGetUniformLocation(self->program, "hasColorTexture");
+	self->uniforms.hasDiffuseTexture = glGetUniformLocation(self->program, "hasDiffuseTexture");
+	self->uniforms.hasEmissionTexture = glGetUniformLocation(self->program, "hasEmissionTexture");
 	self->uniforms.hasBumpTexture = glGetUniformLocation(self->program, "hasBumpTexture");
-	self->uniforms.colorTexture = glGetUniformLocation(self->program, "colorTexture");
+	self->uniforms.diffuseTexture = glGetUniformLocation(self->program, "diffuseTexture");
+	self->uniforms.emissionTexture = glGetUniformLocation(self->program, "emissionTexture");
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.texKLMO = glGetAttribLocation(self->program, "texKLMO");
@@ -788,9 +802,12 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.diffuseColor = glGetUniformLocation(self->program, "diffuseColor");
 	self->uniforms.specularColor = glGetUniformLocation(self->program, "specularColor");
 	self->uniforms.emissionColor = glGetUniformLocation(self->program, "emissionColor");
-	self->uniforms.hasColorTexture = glGetUniformLocation(self->program, "hasColorTexture");
+	self->uniforms.shininess = glGetUniformLocation(self->program, "shininess");
+	self->uniforms.hasDiffuseTexture = glGetUniformLocation(self->program, "hasDiffuseTexture");
+	self->uniforms.hasEmissionTexture = glGetUniformLocation(self->program, "hasEmissionTexture");
 	self->uniforms.hasBumpTexture = glGetUniformLocation(self->program, "hasBumpTexture");
-	self->uniforms.colorTexture = glGetUniformLocation(self->program, "colorTexture");
+	self->uniforms.diffuseTexture = glGetUniformLocation(self->program, "diffuseTexture");
+	self->uniforms.emissionTexture = glGetUniformLocation(self->program, "emissionTexture");
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
 	self->uniforms.terrainTileType = glGetUniformLocation(self->program, "terrainTileType");
 	self->uniforms.tileTextureCount = glGetUniformLocation(self->program, "tileTextureCount");

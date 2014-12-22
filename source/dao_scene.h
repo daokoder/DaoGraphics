@@ -114,8 +114,9 @@ struct DaoxMaterial
 	uint_t     transFalloff;
 	uint_t     reflectBlur;
 
-	DaoxTexture  *texture1;
-	DaoxTexture  *texture2;
+	DaoxTexture  *diffuseTexture;
+	DaoxTexture  *emissionTexture;
+	DaoxTexture  *bumpTexture;
 	DString      *name;
 };
 extern DaoType *daox_type_material;

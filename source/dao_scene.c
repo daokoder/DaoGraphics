@@ -87,8 +87,9 @@ DaoxMaterial* DaoxMaterial_New()
 void DaoxMaterial_Delete( DaoxMaterial *self )
 {
 	DString_Delete( self->name );
-	DaoGC_DecRC( (DaoValue*) self->texture1 );
-	DaoGC_DecRC( (DaoValue*) self->texture2 );
+	DaoGC_DecRC( (DaoValue*) self->diffuseTexture );
+	DaoGC_DecRC( (DaoValue*) self->emissionTexture );
+	DaoGC_DecRC( (DaoValue*) self->bumpTexture );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	dao_free( self );
 }
@@ -97,14 +98,16 @@ void DaoxMaterial_CopyFrom( DaoxMaterial *self, DaoxMaterial *other )
 	/* Do not copy name! */
 	memcpy( & self->ambient, & other->ambient, 4*sizeof(DaoxColor) );
 	memcpy( & self->lighting, & other->lighting, 6*sizeof(uint_t) );
-	GC_Assign( & self->texture1, other->texture1 );
-	GC_Assign( & self->texture2, other->texture2 );
+	GC_Assign( & self->diffuseTexture, other->diffuseTexture );
+	GC_Assign( & self->emissionTexture, other->emissionTexture );
+	GC_Assign( & self->bumpTexture, other->bumpTexture );
 }
 void DaoxMaterial_SetTexture( DaoxMaterial *self, DaoxTexture *texture, int which )
 {
 	switch( which ){
-	case 1 : GC_Assign( & self->texture1, texture ); break;
-	case 2 : GC_Assign( & self->texture2, texture ); break;
+	case DAOX_DIFFUSE_TEXTURE : GC_Assign( & self->diffuseTexture, texture ); break;
+	case DAOX_EMISSION_TEXTURE : GC_Assign( & self->emissionTexture, texture ); break;
+	case DAOX_BUMP_TEXTURE : GC_Assign( & self->bumpTexture, texture ); break;
 	}
 }
 
