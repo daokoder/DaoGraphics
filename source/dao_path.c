@@ -33,60 +33,16 @@
 #include "daoStdtype.h"
 
 
-typedef struct DaoxVectorD2    DaoxVectorD2;    /* 2D double vector type; */
-typedef struct DaoxVectorD3    DaoxVectorD3;    /* 3D double vector type; */
-typedef struct DaoxVectorD4    DaoxVectorD4;    /* 4D double vector type; */
-typedef union  DaoxMatrixD3X3  DaoxMatrixD3X3;  /* 3x3 double matrix type; */
-typedef union  DaoxMatrixD4X4  DaoxMatrixD4X4;  /* 4x4 double matrix type; */
 
-
-struct DaoxVectorD2
+DaoxVectorD4 DaoxVectorD4_XYZW( double x, double y, double z, double w )
 {
-	double  x, y;
-};
-
-
-struct DaoxVectorD3
-{
-	double  x, y, z;
-};
-
-
-struct DaoxVectorD4
-{
-	double  x, y, z, w;
-};
-
-
-union DaoxMatrixD3X3
-{
-	double  M[3][3];
-	struct  {  DaoxVectorD3  V[3];  } V;
-	struct  {
-		double  A11, A12, A13;
-		double  A21, A22, A23;
-		double  A31, A32, A33;
-	} A;
-};
-
-DaoxMatrixD3X3 DaoxMatrixD3X3_InitRows( DaoxVectorD3 V1, DaoxVectorD3 V2, DaoxVectorD3 V3 );
-DaoxMatrixD3X3 DaoxMatrixD3X3_InitColumns( DaoxVectorD3 V1, DaoxVectorD3 V2, DaoxVectorD3 V3 );
-double DaoxMatrixD3X3_Determinant( DaoxMatrixD3X3 *self );
-
-
-union DaoxMatrixD4X4
-{
-	double  M[4][4];
-	struct  {  DaoxVectorD4  V[4];  } V;
-	struct  {
-		double  A11, A12, A13, A14;
-		double  A21, A22, A23, A24;
-		double  A31, A32, A33, A34;
-		double  A41, A42, A43, A44;
-	} A;
-};
-
-DaoxMatrixD4X4 DaoxMatrixD4X4_MulMatrix( DaoxMatrixD4X4 *self, DaoxMatrixD4X4 *other );
+	DaoxVectorD4 res;
+	res.x = x;
+	res.y = y;
+	res.z = z;
+	res.w = w;
+	return res;
+}
 
 DaoxMatrixD3X3 DaoxMatrixD3X3_InitRows( DaoxVectorD3 V1, DaoxVectorD3 V2, DaoxVectorD3 V3 )
 {
@@ -114,6 +70,24 @@ double DaoxMatrixD3X3_Determinant( DaoxMatrixD3X3 *self )
 
 
 
+DaoxMatrixD4X4 DaoxMatrixD4X4_InitRows( DaoxVectorD4 V1, DaoxVectorD4 V2, DaoxVectorD4 V3, DaoxVectorD4 V4 )
+{
+	DaoxMatrixD4X4 res;
+	res.V.V[0] = V1;
+	res.V.V[1] = V2;
+	res.V.V[2] = V3;
+	res.V.V[3] = V4;
+	return res;
+}
+DaoxMatrixD4X4 DaoxMatrixD4X4_InitColumns( DaoxVectorD4 V1, DaoxVectorD4 V2, DaoxVectorD4 V3, DaoxVectorD4 V4 )
+{
+	DaoxMatrixD4X4 res;
+	res.A.A11 = V1.x;  res.A.A12 = V2.x;  res.A.A13 = V3.x;  res.A.A14 = V4.x;
+	res.A.A21 = V1.y;  res.A.A22 = V2.y;  res.A.A23 = V3.y;  res.A.A24 = V4.y;
+	res.A.A31 = V1.z;  res.A.A32 = V2.z;  res.A.A33 = V3.z;  res.A.A34 = V4.z;
+	res.A.A41 = V1.w;  res.A.A42 = V2.w;  res.A.A43 = V3.w;  res.A.A44 = V4.w;
+	return res;
+}
 DaoxMatrixD4X4 DaoxMatrixD4X4_MulMatrix( DaoxMatrixD4X4 *self, DaoxMatrixD4X4 *other )
 {
 	DaoxMatrixD4X4 res;
@@ -127,6 +101,20 @@ DaoxMatrixD4X4 DaoxMatrixD4X4_MulMatrix( DaoxMatrixD4X4 *self, DaoxMatrixD4X4 *o
 			for(k=0; k<4; ++k) sum += A[i][k] * B[k][j];
 			C[i][j] = sum;
 		}
+	}
+	return res;
+}
+DaoxVectorD4 DaoxMatrixD4X4_MulVector( DaoxMatrixD4X4 *self, DaoxVectorD4 *vector )
+{
+	DaoxVectorD4 res;
+	double (*A)[4] = self->M;
+	double *B = & vector->x;
+	double *C = & res.x;
+	int i, k;
+	for(i=0; i<4; ++i){
+		double sum = 0.0;
+		for(k=0; k<4; ++k) sum += A[i][k] * B[k];
+		C[i] = sum;
 	}
 	return res;
 }

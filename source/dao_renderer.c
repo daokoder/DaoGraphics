@@ -603,6 +603,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	DaoxVector3D lightSource[32];
 	DaoxColor lightIntensity[32];
 	DaoxVector3D zaxis = {0.0,0.0,1.0};
+	DaoxColor bgcolor = scene->background;
 	GLfloat matrix[16] = {0};
 	GLfloat matrix2[16] = {0};
 	GLfloat matrix3[9] = {0};
@@ -710,8 +711,10 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	}
 #endif
 
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if( bgcolor.alpha >= 1.0/255.0 ){
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClearColor( bgcolor.red, bgcolor.green, bgcolor.blue, bgcolor.alpha );
+	}
 
 	glUseProgram( self->shader->program );
 

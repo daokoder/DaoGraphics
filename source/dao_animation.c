@@ -27,6 +27,7 @@
 
 
 #include "dao_animation.h"
+#include "dao_path.h"
 
 
 DaoxAnimation* DaoxAnimation_New()
@@ -50,89 +51,94 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 	DaoxVector3D vector;
 	DaoxVector3D P0, P1, C0, C1;
 	DaoxVector3D scale, rotate, translate;
-	DaoxKeyFrame *firstFrame, *secondFrame;
-	int imin, first, last, frameCount = self->keyFrames->size;
-	float min, endtime, factor = 0.5;
+	DaoxVectorD4 Svec, vec1, vec2, vec3 ,vec4;
+	DaoxMatrixD4X4 Cmat, Mmat = { {{-1,3,-3,1}, {3,-6,3,0}, {-3,3,0,0}, {1,0,0,0}} };
+	DaoxKeyFrame *keyFrames = self->keyFrames->data.keyframes;
+	DaoxKeyFrame *prevFrame, *nextFrame;
+	int frameCount = self->keyFrames->size;
+	float endtime, factor = 0.5;
 
 	self->time += dtime;
 	self->dtime += dtime;
+
 	if( self->dtime < 1E-3 ) return;
 	if( frameCount == 0 ) return;
 
-	endtime = self->keyFrames->data.keyframes[frameCount-1].time;
-	if( endtime < EPSILON ) return; // TODO
+	endtime = keyFrames[frameCount-1].time;
+	if( endtime < 1E-3 ) return;
 
-	while( self->time > endtime ) self->time -= endtime;
-	self->dtime = 0;
+	self->time  = self->time - endtime * (int)(self->time / endtime);
+	self->dtime = 0.0;
 
-	imin = -1;
-	min = endtime + 1.0;
-
-	first = 0;
-	last = frameCount - 1;
-	/* Locate the closest frame: */
-	while( first <= last ){
-		int mid = (first + last) / 2;
-		double time = self->keyFrames->data.keyframes[mid].time;
-		double diff = fabs( self->time - time );
-		if( diff < min ){
-			min = diff;
-			imin = mid;
-		}
-		if( self->time > time ){
-			first = mid + 1;
-		}else{
-			last = mid - 1;
-		}
+	/* Sequential searching is more efficient if the animation has been played: */
+	if( self->keyFrame2 >= (frameCount - 1) ) self->keyFrame2 = 0;
+	while( self->keyFrame2 < frameCount && keyFrames[self->keyFrame2].time < self->time ){
+		self->keyFrame2 += 1;
 	}
-	firstFrame = secondFrame = self->keyFrames->data.keyframes + imin;
-	if( self->time > secondFrame->time ){
-		secondFrame = self->keyFrames->data.keyframes + (imin + 1) % frameCount;
-	}else{
-		firstFrame = self->keyFrames->data.keyframes + (imin + frameCount - 1) % frameCount;
+	self->keyFrame1 = (self->keyFrame2 + frameCount - 1) % frameCount;
+
+	prevFrame = keyFrames + self->keyFrame1;
+	nextFrame = keyFrames + self->keyFrame2;
+
+	factor = (self->time - prevFrame->time) / (nextFrame->time - prevFrame->time);
+	if( prevFrame->time > nextFrame->time ){
+		factor = self->time / nextFrame->time;
 	}
 
-	P0 = firstFrame->vector;
-	P1 = secondFrame->vector;
-	C0 = firstFrame->tangent2;
-	C1 = secondFrame->tangent1;
+	if( self->channel == DAOX_ANIMATE_TF ){
+		self->transform = DaoxMatrix4D_Interpolate( & prevFrame->matrix, & nextFrame->matrix, factor );
+		return;
+	}
+
+	P0 = prevFrame->vector;
+	C0 = prevFrame->tangent2;
+	C1 = nextFrame->tangent1;
+	P1 = nextFrame->vector;
 	switch( self->channel ){
 	case DAOX_ANIMATE_SX : case DAOX_ANIMATE_SY : case DAOX_ANIMATE_SZ :
 	case DAOX_ANIMATE_RX : case DAOX_ANIMATE_RY : case DAOX_ANIMATE_RZ :
 	case DAOX_ANIMATE_TX : case DAOX_ANIMATE_TY : case DAOX_ANIMATE_TZ :
-		P0.x = firstFrame->time;
-		P0.y = firstFrame->scalar;
-		P1.x = secondFrame->time;
-		P1.y = secondFrame->scalar;
+		P0.x = prevFrame->time;
+		P0.y = prevFrame->scalar;
+		P1.x = nextFrame->time;
+		P1.y = nextFrame->scalar;
 		break;
 	case DAOX_ANIMATE_TL :
-		P0 = firstFrame->vector;
-		P1 = secondFrame->vector;
+		P0 = prevFrame->vector;
+		P1 = nextFrame->vector;
 		break;
 	}
-	factor = (self->time - firstFrame->time) / (secondFrame->time - firstFrame->time);
-	if( firstFrame->time > secondFrame->time ){
-		factor = self->time / secondFrame->time;
+	if( prevFrame->curve == DAOX_ANIMATE_HERMITE ){
+		DaoxVector3D T0D3 = DaoxVector3D_Scale( & C0, 1.0/3.0 );
+		DaoxVector3D T1D3 = DaoxVector3D_Scale( & C1, 1.0/3.0 );
+		C0 = DaoxVector3D_Add( & P0, & T0D3 );
+		C1 = DaoxVector3D_Sub( & P1, & T1D3 );
 	}
-	vector = DaoxVector3D_Interpolate( P0, P1, factor );
-	if( self->channel == DAOX_ANIMATE_TF ){
-		switch( firstFrame->curve ){
-		case DAOX_ANIMATE_LINEAR :
-		case DAOX_ANIMATE_BEZIER :
-		case DAOX_ANIMATE_HERMITE : 
-		case DAOX_ANIMATE_BSPLINE :
-			break;
-		}
-		self->transform = DaoxMatrix4D_Interpolate( & firstFrame->matrix, & secondFrame->matrix, factor );
-		return;
-	}else{
-		switch( firstFrame->curve ){
-		case DAOX_ANIMATE_LINEAR :
-		case DAOX_ANIMATE_BEZIER :
-		case DAOX_ANIMATE_HERMITE : 
-		case DAOX_ANIMATE_BSPLINE :
-			break;
-		}
+	switch( prevFrame->curve ){
+	case DAOX_ANIMATE_LINEAR :
+		vector = DaoxVector3D_Interpolate( P0, P1, factor );
+		break;
+	case DAOX_ANIMATE_BEZIER :
+	case DAOX_ANIMATE_HERMITE : 
+		Svec.w = 1.0;
+		Svec.z = factor;
+		Svec.y = factor * factor;
+		Svec.x = Svec.y * factor;
+		vec1 = DaoxVectorD4_XYZW( P0.x, P0.y, P0.z, 1.0 );
+		vec2 = DaoxVectorD4_XYZW( C0.x, C0.y, C0.z, 1.0 );
+		vec3 = DaoxVectorD4_XYZW( C1.x, C1.y, C1.z, 1.0 );
+		vec4 = DaoxVectorD4_XYZW( P1.x, P1.y, P1.z, 1.0 );
+		Cmat = DaoxMatrixD4X4_InitColumns( vec1, vec2, vec3, vec4 );
+		Svec = DaoxMatrixD4X4_MulVector( & Mmat, & Svec );
+		Svec = DaoxMatrixD4X4_MulVector( & Cmat, & Svec );
+		vector.x = Svec.x;
+		vector.y = Svec.y;
+		vector.z = Svec.z;
+		break;
+	case DAOX_ANIMATE_BSPLINE : // TODO:
+	default:
+		vector = DaoxVector3D_Interpolate( P0, P1, factor );
+		break;
 	}
 
 	scale = DaoxVector3D_XYZ( 1.0, 1.0, 1.0 );

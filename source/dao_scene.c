@@ -803,6 +803,7 @@ DaoxScene* DaoxScene_New()
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
 	self->nodes = DList_New( DAO_DATA_VALUE );
 	self->lights = DList_New(0);
+	self->background.alpha = 1.0;
 	return self;
 }
 void DaoxScene_Delete( DaoxScene *self )

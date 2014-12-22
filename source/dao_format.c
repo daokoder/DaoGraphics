@@ -1650,6 +1650,15 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 		node2 = DaoXmlNode_GetChildMBS( intanNode, "float_array" );
 		DString_ParseFloats( node2->content, self->floats, 0 );
 		stride = self->floats->size / animation->keyFrames->size;
+		if( stride == 6 ){
+			// time, x, time, y, time, z;
+			// TODO: interpolate separately?
+			self->floats->size = self->floats->size / 2;
+			for(i=0; i<self->floats->size; ++i){
+				self->floats->data.floats[i] = self->floats->data.floats[2*i+1];
+			}
+			stride = 3;
+		}
 		for(i=0; i<animation->keyFrames->size; ++i){
 			DaoxKeyFrame *frame = animation->keyFrames->data.keyframes + i;
 			float *floats = self->floats->data.floats + i*stride;
@@ -1658,10 +1667,22 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 			case 2: frame->tangent1.y = floats[1];
 			case 1: frame->tangent1.x = floats[0];
 			}
+			if( channel >= DAOX_ANIMATE_RX && channel <= DAOX_ANIMATE_RZ ){
+				frame->tangent1.y *= M_PI / 180.0;
+			}
 		}
 		node2 = DaoXmlNode_GetChildMBS( outtanNode, "float_array" );
 		DString_ParseFloats( node2->content, self->floats, 0 );
 		stride = self->floats->size / animation->keyFrames->size;
+		if( stride == 6 ){
+			// time, x, time, y, time, z;
+			// TODO: interpolate separately?
+			self->floats->size = self->floats->size / 2;
+			for(i=0; i<self->floats->size; ++i){
+				self->floats->data.floats[i] = self->floats->data.floats[2*i+1];
+			}
+			stride = 3;
+		}
 		for(i=0; i<animation->keyFrames->size; ++i){
 			DaoxKeyFrame *frame = animation->keyFrames->data.keyframes + i;
 			float *floats = self->floats->data.floats + i*stride;
@@ -1669,6 +1690,9 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 			case 3: frame->tangent2.z = floats[2];
 			case 2: frame->tangent2.y = floats[1];
 			case 1: frame->tangent2.x = floats[0];
+			}
+			if( channel >= DAOX_ANIMATE_RX && channel <= DAOX_ANIMATE_RZ ){
+				frame->tangent2.y *= M_PI / 180.0;
 			}
 		}
 	}

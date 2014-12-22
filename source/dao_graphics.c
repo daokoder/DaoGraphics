@@ -1414,6 +1414,16 @@ static void SCENE_New( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxScene *self = DaoxScene_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void SCENE_SetBackground( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoxColor color;
+	color.red   = p[1]->xFloat.value;
+	color.green = p[2]->xFloat.value;
+	color.blue  = p[3]->xFloat.value;
+	color.alpha = p[4]->xFloat.value;
+	self->background = color;
+}
 static void SCENE_AddNode( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxScene *self = (DaoxScene*) p[0];
@@ -1481,6 +1491,7 @@ static void SCENE_AddHexTerrain( DaoProcess *proc, DaoValue *p[], int N )
 static DaoFuncItem DaoxSceneMeths[] =
 {
 	{ SCENE_New,         "Scene()" },
+	{ SCENE_SetBackground,  "SetBackground( self: Scene, red: float, green: float, blue: float, alpha = 1.0 )" },
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
 	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1.0, ylen = 1.0, zlen = 1.0 ) => Model" },
 	{ SCENE_AddRectTerrain,

@@ -326,6 +326,8 @@ struct DaoxScene
 {
 	DAO_CSTRUCT_COMMON;
 
+	DaoxColor  background;
+
 	DaoxCamera *camera;
 
 	DList  *nodes;
