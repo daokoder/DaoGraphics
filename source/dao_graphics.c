@@ -1434,16 +1434,31 @@ static void SCENE_AddNode( DaoProcess *proc, DaoValue *p[], int N )
 }
 static void SCENE_AddBox( DaoProcess *proc, DaoValue *p[], int N )
 {
-	DaoxMatrix4D transform = DaoxMatrix4D_Identity();
 	DaoxScene *self = (DaoxScene*) p[0];
 	DaoxModel *model = DaoxModel_New();
 	DaoxMesh *mesh = DaoxMesh_New();
-	DaoxMesh_MakeBoxObject( mesh );
+	float wx = p[1]->xFloat.value;
+	float wy = p[2]->xFloat.value;
+	float wz = p[3]->xFloat.value;
+
+	DaoxMesh_MakeBox( mesh, wx, wy, wz );
 	DaoxMesh_UpdateTree( mesh, 0 );
 	DaoxModel_SetMesh( model, mesh );
-	model->base.scale.x = p[1]->xFloat.value;
-	model->base.scale.y = p[2]->xFloat.value;
-	model->base.scale.z = p[3]->xFloat.value;
+	DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) model, 0, 0, 0 );
+	DaoxScene_AddNode( self, (DaoxSceneNode*) model );
+	DaoProcess_PutValue( proc, (DaoValue*) model );
+}
+static void SCENE_AddSphere( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxScene *self = (DaoxScene*) p[0];
+	DaoxModel *model = DaoxModel_New();
+	DaoxMesh *mesh = DaoxMesh_New();
+	float radius = p[1]->xFloat.value;
+	int res = p[2]->xInteger.value;
+
+	DaoxMesh_MakeSphere( mesh, radius, res );
+	DaoxMesh_UpdateTree( mesh, 0 );
+	DaoxModel_SetMesh( model, mesh );
 	DaoxSceneNode_MoveXYZ( (DaoxSceneNode*) model, 0, 0, 0 );
 	DaoxScene_AddNode( self, (DaoxSceneNode*) model );
 	DaoProcess_PutValue( proc, (DaoValue*) model );
@@ -1496,6 +1511,7 @@ static DaoFuncItem DaoxSceneMeths[] =
 	{ SCENE_SetBackground,  "SetBackground( self: Scene, red: float, green: float, blue: float, alpha = 1.0 )" },
 	{ SCENE_AddNode,     "AddNode( self: Scene, node: SceneNode )" },
 	{ SCENE_AddBox,      "AddBox( self: Scene, xlen = 1.0, ylen = 1.0, zlen = 1.0 ) => Model" },
+	{ SCENE_AddSphere,      "AddSphere( self: Scene, radius = 1.0, resolution = 3 ) => Model" },
 	{ SCENE_AddRectTerrain,
 		"AddRectTerrain( self: Scene, heightmap: array<float>, width = 1.0, length = 1.0 )"
 			"=> Terrain"

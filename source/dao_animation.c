@@ -55,8 +55,8 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 	DaoxMatrixD4X4 Cmat, Mmat = { {{-1,3,-3,1}, {3,-6,3,0}, {-3,3,0,0}, {1,0,0,0}} };
 	DaoxKeyFrame *keyFrames = self->keyFrames->data.keyframes;
 	DaoxKeyFrame *prevFrame, *nextFrame;
-	int frameCount = self->keyFrames->size;
-	float endtime, factor = 0.5;
+	int imin, first, last, frameCount = self->keyFrames->size;
+	float min, endtime, factor = 0.5;
 
 	self->time += dtime;
 	self->dtime += dtime;
@@ -70,15 +70,31 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 	self->time  = self->time - endtime * (int)(self->time / endtime);
 	self->dtime = 0.0;
 
-	/* Sequential searching is more efficient if the animation has been played: */
-	if( self->keyFrame2 >= (frameCount - 1) ) self->keyFrame2 = 0;
-	while( self->keyFrame2 < frameCount && keyFrames[self->keyFrame2].time < self->time ){
-		self->keyFrame2 += 1;
+	first = 0;
+	last = frameCount - 1;
+	min = endtime + 1.0;
+	imin = 0;
+	/* Locate the closest frame: */
+	while( first <= last ){
+		int mid = (first + last) / 2;
+		double time = self->keyFrames->data.keyframes[mid].time;
+		double diff = fabs( self->time - time );
+		if( diff < min ){
+			min = diff;
+			imin = mid;
+		}
+		if( self->time > time ){
+			first = mid + 1;
+		}else{
+			last = mid - 1;
+		}
 	}
-	self->keyFrame1 = (self->keyFrame2 + frameCount - 1) % frameCount;
-
-	prevFrame = keyFrames + self->keyFrame1;
-	nextFrame = keyFrames + self->keyFrame2;
+	prevFrame = nextFrame = self->keyFrames->data.keyframes + imin;
+	if( self->time > nextFrame->time ){
+		nextFrame = self->keyFrames->data.keyframes + (imin + 1) % frameCount;
+	}else{
+		prevFrame = self->keyFrames->data.keyframes + (imin + frameCount - 1) % frameCount;
+	}
 
 	factor = (self->time - prevFrame->time) / (nextFrame->time - prevFrame->time);
 	if( prevFrame->time > nextFrame->time ){

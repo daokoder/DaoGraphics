@@ -119,6 +119,8 @@ void DaoxTerrain_Delete( DaoxTerrain *self )
 	for(i=0; i<self->points->size; ++i) dao_free( self->points->items.pVoid[i] );
 	for(i=0; i<self->borders->size; ++i) dao_free( self->borders->items.pVoid[i] );
 	if( self->heightmap ) GC_DecRC( self->heightmap );
+	DList_Delete( self->points );
+	DList_Delete( self->borders );
 	DList_Delete( self->blocks );
 	DList_Delete( self->buffer );
 	GC_DecRC( self->mesh );

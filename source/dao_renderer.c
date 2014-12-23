@@ -88,10 +88,14 @@ DaoxRenderer* DaoxRenderer_New( DaoxContext *ctx )
 	GC_IncRC( self->worldAxis );
 	GC_IncRC( self->localAxis );
 
-	origin = DaoxMesh_MakeBoxObject( self->axisMesh );
-	xaxis = DaoxMesh_MakeBoxObject( self->axisMesh );
-	yaxis = DaoxMesh_MakeBoxObject( self->axisMesh );
-	zaxis = DaoxMesh_MakeBoxObject( self->axisMesh );
+	origin = DaoxMesh_MakeBox( self->axisMesh, 2*width, 2*width, 2*width );
+	xaxis = DaoxMesh_MakeBox( self->axisMesh, length, width, width );
+	yaxis = DaoxMesh_MakeBox( self->axisMesh, width, length, width );
+	zaxis = DaoxMesh_MakeBox( self->axisMesh, width, width, length );
+
+	DaoxMeshUnit_MoveBy( xaxis, 0.5*length, 0.0, 0.0 );
+	DaoxMeshUnit_MoveBy( yaxis, 0.0, 0.5*length, 0.0 );
+	DaoxMeshUnit_MoveBy( zaxis, 0.0, 0.0, 0.5*length );
 
 	omat = DaoxMaterial_New();
 	xmat = DaoxMaterial_New();
@@ -106,14 +110,6 @@ DaoxRenderer* DaoxRenderer_New( DaoxContext *ctx )
 	DaoxMeshUnit_SetMaterial( xaxis, xmat );
 	DaoxMeshUnit_SetMaterial( yaxis, ymat );
 	DaoxMeshUnit_SetMaterial( zaxis, zmat );
-
-	DaoxMeshUnit_ScaleBy( origin, 2*width, 2*width, 2*width );
-	DaoxMeshUnit_ScaleBy( xaxis, length, width, width );
-	DaoxMeshUnit_ScaleBy( yaxis, width, length, width );
-	DaoxMeshUnit_ScaleBy( zaxis, width, width, length );
-	DaoxMeshUnit_MoveBy( xaxis, 0.5*length, 0.0, 0.0 );
-	DaoxMeshUnit_MoveBy( yaxis, 0.0, 0.5*length, 0.0 );
-	DaoxMeshUnit_MoveBy( zaxis, 0.0, 0.0, 0.5*length );
 
 	DaoxMesh_UpdateTree( self->axisMesh, 0 );
 	DaoxModel_SetMesh( self->worldAxis, self->axisMesh );

@@ -32,6 +32,9 @@
 
 #define DAO_LIST_ITEM_TYPES \
 	struct DaoxMaterial      **pMaterial; \
+	struct DaoxMeshNode      **pMeshNode; \
+	struct DaoxMeshEdge	     **pMeshEdge; \
+	struct DaoxMeshFace      **pMeshFace; \
 	struct DaoxMeshChunk     **pMeshChunk; \
 	struct DaoxMeshUnit      **pMeshUnit; \
 	struct DaoxModel         **pModel; \

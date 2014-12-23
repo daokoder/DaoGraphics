@@ -78,8 +78,6 @@ struct DaoxAnimation
 	float         time;
 	float         dtime;
 	short         channel;
-	int           keyFrame1;
-	int           keyFrame2;
 	DArray       *keyFrames;
 	DaoxMatrix4D  transform;
 };

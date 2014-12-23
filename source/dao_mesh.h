@@ -37,6 +37,11 @@ typedef struct DaoxMeshChunk  DaoxMeshChunk;
 typedef struct DaoxMeshUnit   DaoxMeshUnit;
 typedef struct DaoxMesh       DaoxMesh;
 
+typedef struct DaoxMeshNode   DaoxMeshNode;
+typedef struct DaoxMeshEdge   DaoxMeshEdge;
+typedef struct DaoxMeshFace   DaoxMeshFace;
+typedef struct DaoxMeshFrame  DaoxMeshFrame;
+
 
 
 struct DaoxSkinParam
@@ -109,7 +114,42 @@ void DaoxMesh_UpdateNormTangents( DaoxMesh *self, int norm, int tan );
 void DaoxMesh_UpdateTree( DaoxMesh *self, int maxtriangles );
 void DaoxMesh_MakeViewFrustumCorners( DaoxMesh *self, float fov, float ratio, float near );
 
-DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self );
+DaoxMeshUnit* DaoxMesh_MakeBox( DaoxMesh *self, float wx, float wy, float wz );
+DaoxMeshUnit* DaoxMesh_MakeCube( DaoxMesh *self );
+DaoxMeshUnit* DaoxMesh_MakeSphere( DaoxMesh *self, float radius, int resolution );
 
+struct DaoxMeshNode
+{
+	DaoxVector3D  pos;
+	DaoxVector3D  norm;
+	int           id;
+};
+struct DaoxMeshEdge
+{
+	DaoxMeshNode  *start;
+	DaoxMeshNode  *end;
+
+	DaoxMeshEdge  *left;
+	DaoxMeshEdge  *right;
+};
+/* Just trangle face: */
+struct DaoxMeshFace
+{
+	DaoxMeshNode  *nodes[3];
+	DaoxMeshEdge  *edges[3];
+	DaoxMeshFace  *splits[4];
+};
+struct DaoxMeshFrame
+{
+	DList  *nodes;
+	DList  *edges;
+	DList  *faces;
+	int     usedNodes;
+	int     usedEdges;
+	int     usedFaces;
+};
+
+DaoxMeshFrame* DaoxMeshFrame_New();
+void DaoxMeshFrame_Delete( DaoxMeshFrame *self );
 
 #endif

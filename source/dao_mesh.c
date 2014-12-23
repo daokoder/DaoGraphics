@@ -385,16 +385,197 @@ void DaoxMesh_MakeViewFrustumCorners( DaoxMesh *self, float fov, float ratio, fl
 
 
 
+DaoxMeshNode* DaoxMeshNode_New( float x, float y, float z )
+{
+	DaoxMeshNode *self = (DaoxMeshNode*) dao_calloc( 1, sizeof(DaoxMeshNode) );
+	self->pos.x = x;
+	self->pos.y = y;
+	self->pos.z = z;
+	return self;
+}
+DaoxMeshEdge* DaoxMeshEdge_New( DaoxMeshNode *start, DaoxMeshNode *end )
+{
+	DaoxMeshEdge *self = (DaoxMeshEdge*) dao_calloc( 1, sizeof(DaoxMeshEdge) );
+	self->start = start;
+	self->end = end;
+	return self;
+}
+DaoxMeshFace* DaoxMeshFace_New()
+{
+	DaoxMeshFace *self = (DaoxMeshFace*) dao_calloc( 1, sizeof(DaoxMeshFace) );
+	return self;
+}
+DaoxMeshFrame* DaoxMeshFrame_New()
+{
+	DaoxMeshFrame *self = (DaoxMeshFrame*) dao_calloc( 1, sizeof(DaoxMeshFrame) );
+	self->nodes = DList_New(0);
+	self->edges = DList_New(0);
+	self->faces = DList_New(0);
+	return self;
+}
+void DaoxMeshFrame_Delete( DaoxMeshFrame *self )
+{
+	int i;
+	for(i=0; i<self->nodes->size; ++i) dao_free( self->nodes->items.pVoid[i] );
+	for(i=0; i<self->edges->size; ++i) dao_free( self->edges->items.pVoid[i] );
+	for(i=0; i<self->faces->size; ++i) dao_free( self->faces->items.pVoid[i] );
+	DList_Delete( self->nodes );
+	DList_Delete( self->edges );
+	DList_Delete( self->faces );
+	dao_free( self );
+}
+DaoxMeshNode* DaoxMeshFrame_MakeNode( DaoxMeshFrame *self, float x, float y, float z )
+{
+	DaoxMeshNode *node;
+	if( self->usedNodes < self->nodes->size ){
+		node = self->nodes->items.pVoid[ self->usedNodes ];
+		self->usedNodes += 1;
+		return node;
+	}
+	node = DaoxMeshNode_New( x, y, z );
+	DList_Append( self->nodes, node );
+	self->usedNodes += 1;
+	return node;
+}
+DaoxMeshEdge* DaoxMeshFrame_MakeEdge( DaoxMeshFrame *self, DaoxMeshNode *start, DaoxMeshNode *end )
+{
+	DaoxMeshEdge *edge;
+	if( self->usedEdges < self->edges->size ){
+		edge = self->edges->items.pVoid[ self->usedEdges ];
+		edge->start = start;
+		edge->end = end;
+		self->usedEdges += 1;
+		return edge;
+	}
+	edge = DaoxMeshEdge_New( start, end );
+	DList_Append( self->edges, edge );
+	self->usedEdges += 1;
+	return edge;
+}
+DaoxMeshFace* DaoxMeshFrame_MakeFace( DaoxMeshFrame *self )
+{
+	DaoxMeshFace *face;
+	if( self->usedFaces < self->faces->size ){
+		face = self->faces->items.pVoid[ self->usedFaces ];
+		face->splits[0] = face->splits[1] = face->splits[2] = NULL;
+		self->usedFaces += 1;
+		return face;
+	}
+	face = DaoxMeshFace_New();
+	DList_Append( self->faces, face );
+	self->usedFaces += 1;
+	return face;
+}
+void DaoxMeshFrame_Split( DaoxMeshFrame *self, DaoxMeshFace *face )
+{
+	DaoxMeshNode *node, *nodes[3];
+	DaoxMeshEdge *common, *edges[3];
+	DaoxMeshFace *center, *side;
+	float minlen = DaoxVector3D_Dist( & face->nodes[0]->pos, & face->nodes[1]->pos );
+	float maxlen = 0.0;
+	int i, maxside = 0;
+
+	for(i=0; i<4; ++i){
+		if( face->splits[i] == NULL ) face->splits[i] = DaoxMeshFrame_MakeFace( self );
+	}
+	for(i=0; i<3; ++i){
+		DaoxMeshNode *mid = NULL;
+		DaoxMeshEdge *edge = face->edges[i];
+		int dir = face->nodes[i] == edge->start;
+
+		if( edge->left ){
+			DaoxMeshEdge *left = edge->left;
+			mid = left->start == edge->start ? left->end : left->start;
+		}else{
+			mid = DaoxMeshFrame_MakeNode( self, 0.0, 0.0, 0.0 );
+			mid->pos = DaoxVector3D_Interpolate( edge->start->pos, edge->end->pos, 0.5 );
+			edge->left = DaoxMeshFrame_MakeEdge( self, edge->start, mid );
+			edge->right = DaoxMeshFrame_MakeEdge( self, mid, edge->end );
+		}
+		face->splits[0]->nodes[i] = mid;
+		face->splits[i+1]->nodes[0] = face->nodes[i];
+		face->splits[i+1]->nodes[1] = mid;
+		face->splits[i+1]->edges[0] = dir ? edge->left : edge->right;
+		face->splits[i==2?1:i+2]->nodes[0] = face->nodes[(i+1)%3];
+		face->splits[i==2?1:i+2]->nodes[2] = mid;
+		face->splits[i==2?1:i+2]->edges[2] = dir ? edge->right : edge->left;
+	}
+	for(i=0; i<3; ++i){
+		DaoxMeshFace *mid = face->splits[0];
+		DaoxMeshEdge *edge = DaoxMeshFrame_MakeEdge( self, mid->nodes[i], mid->nodes[(i+1)%3] );
+		mid->edges[i] = edge;
+		face->splits[i==2?1:i+2]->edges[1] = edge;
+	}
+
+	for(i=0; i<3; ++i){
+		DaoxVector3D node1 = face->nodes[i]->pos;
+		DaoxVector3D node2 = face->nodes[(i+1)%3]->pos;
+		float len = DaoxVector3D_Dist( & node1, & node2 );
+		if( minlen > len ) minlen = len;
+		if( maxlen < len ){
+			maxlen = len;
+			maxside = i;
+		}
+	}
+	if( maxlen < 1.5*minlen ) return;
+
+	center = face->splits[0];
+	memcpy( nodes, center->nodes, 3*sizeof(DaoxMeshNode*) );
+	memcpy( edges, center->edges, 3*sizeof(DaoxMeshEdge*) );
+	if( maxside != 0 ){
+		for(i=0; i<3; ++i){
+			center->nodes[i] = nodes[(i+maxside)%3];
+			center->edges[i] = edges[(i+maxside)%3];
+		}
+		memcpy( nodes, center->nodes, 3*sizeof(DaoxMeshNode*) );
+		memcpy( edges, center->edges, 3*sizeof(DaoxMeshEdge*) );
+	}
+
+	side = face->splits[1+(maxside+2)%3];
+	common = side->edges[1];
+	common->start = side->nodes[0];
+	common->end = center->nodes[0];
+	center->nodes[2] = side->nodes[0];
+	center->edges[1] = side->edges[2];
+	center->edges[2] = common;
+	side->nodes[2] = center->nodes[0];
+	side->edges[1] = edges[2];
+	side->edges[2] = common;
+}
+void DaoxMeshFrame_Export( DaoxMeshFrame *self, DaoxMeshUnit *unit )
+{
+	int i;
+	for(i=0; i<self->usedNodes; ++i){
+		DaoxMeshNode *node = self->nodes->items.pMeshNode[i];
+		DaoxVertex *vertex = DArray_PushVertex( unit->vertices, NULL );
+		vertex->pos = node->pos;
+		vertex->norm = node->norm;
+		node->id = i;
+	}
+	for(i=0; i<self->usedFaces; ++i){
+		DaoxMeshFace *face = self->faces->items.pMeshFace[i];
+		DaoxTriangle *triangle;
+		if( face->splits[0] != NULL ) continue;
+		triangle = DArray_PushTriangle( unit->triangles, NULL );
+		triangle->index[0] = face->nodes[0]->id;
+		triangle->index[1] = face->nodes[1]->id;
+		triangle->index[2] = face->nodes[2]->id;
+	}
+}
+
+
+
+
 static float box_vertices[][3] =
 {
-	{ 0.5F,  0.5, -0.5},
-	{ 0.5F, -0.5, -0.5},
-	{-0.5F, -0.5, -0.5},
-	{-0.5F,  0.5, -0.5},
-	{-0.5F,  0.5,  0.5},
-	{ 0.5F,  0.5,  0.5},
-	{ 0.5F, -0.5,  0.5},
-	{-0.5F, -0.5,  0.5}
+	{ 0.5,  0.5, -0.5},
+	{ 0.5, -0.5, -0.5},
+	{-0.5, -0.5, -0.5},
+	{-0.5,  0.5, -0.5},
+	{-0.5,  0.5,  0.5},
+	{ 0.5,  0.5,  0.5},
+	{ 0.5, -0.5,  0.5},
+	{-0.5, -0.5,  0.5}
 };
 static int box_faces[][4] =
 {
@@ -406,18 +587,15 @@ static int box_faces[][4] =
 	{ 6, 1, 2, 7 }
 };
 
-DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self )
+DaoxMeshUnit* DaoxMesh_MakeBox( DaoxMesh *self, float wx, float wy, float wz )
 {
 	int i, j;
 	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
 	for(i=0; i<8; ++i){
 		DaoxVertex *vertex = DArray_PushVertex( unit->vertices, NULL );
-		vertex->pos.x = box_vertices[i][0];
-		vertex->pos.y = box_vertices[i][1];
-		vertex->pos.z = box_vertices[i][2];
-		vertex->norm.x = 1.0;
-		vertex->norm.y = 0.0;
-		vertex->norm.z = 0.0;
+		vertex->pos.x = wx * box_vertices[i][0];
+		vertex->pos.y = wy * box_vertices[i][1];
+		vertex->pos.z = wz * box_vertices[i][2];
 	}
 	for(i=0; i<6; ++i){
 		int *face = box_faces[i];
@@ -433,5 +611,112 @@ DaoxMeshUnit* DaoxMesh_MakeBoxObject( DaoxMesh *self )
 	return unit;
 }
 
+DaoxMeshUnit* DaoxMesh_MakeCube( DaoxMesh *self )
+{
+	return DaoxMesh_MakeBox( self, 1.0, 1.0, 1.0 );
+}
 
+const float XX = 0.525731112119133606f;
+const float YY = 0.850650808352039932f;
 
+static float icosahedron_vertices[][3] =
+{
+	{-XX, 0.0,  YY},
+	{ XX, 0.0,  YY},
+	{-XX, 0.0, -YY},
+	{ XX, 0.0, -YY},
+	{0.0,  YY,  XX},
+	{0.0,  YY, -XX},
+	{0.0, -YY,  XX},
+	{0.0, -YY, -XX},
+	{ YY,  XX, 0.0},
+	{-YY,  XX, 0.0},
+	{ YY, -XX, 0.0},
+	{-YY, -XX, 0.0} 
+};
+static int icosahedron_faces[][3] =
+{
+	{ 0,  4,  1 },
+	{ 0,  9,  4 },
+	{ 9,  5,  4 },
+	{ 4,  5,  8 },
+	{ 4,  8,  1 },
+	{ 8, 10,  1 },
+	{ 8,  3, 10 },
+	{ 5,  3,  8 },
+	{ 5,  2,  3 },
+	{ 2,  7,  3 },
+	{ 7, 10,  3 },
+	{ 7,  6, 10 },
+	{ 7, 11,  6 },
+	{11,  0,  6 },
+	{ 0,  1,  6 },
+	{ 6,  1, 10 },
+	{ 9,  0, 11 },
+	{ 9, 11,  2 },
+	{ 9,  2,  5 },
+	{ 7,  2, 11 } 
+};
+void DaoxMeshFrame_MakeIcosahedron( DaoxMeshFrame *self, float rx, float ry, float rz )
+{
+	DaoxMeshNode *nodes[12] = { NULL };
+	DaoxMeshEdge *edges[256] = { NULL };
+	int i, j;
+	for(i=0; i<12; ++i){
+		DaoxMeshNode *node = DaoxMeshFrame_MakeNode( self, 0.0, 0.0, 0.0 );
+		node->pos.x = rx * icosahedron_vertices[i][0];
+		node->pos.y = ry * icosahedron_vertices[i][1];
+		node->pos.z = rz * icosahedron_vertices[i][2];
+		nodes[i] = node;
+	}
+	for(i=0; i<20; ++i){
+		DaoxMeshFace *face = DaoxMeshFrame_MakeFace( self );
+		int *ids = icosahedron_faces[i];
+		for(j=0; j<3; ++j){
+			int id1 = ids[j];
+			int id2 = ids[(j+1)%3];
+			DaoxMeshNode *node1 = nodes[ id1 ];
+			DaoxMeshNode *node2 = nodes[ id2 ];
+			DaoxMeshEdge *edge = edges[ (id1<<4)|id2 ];
+			if( edge == NULL ){
+				edge = DaoxMeshFrame_MakeEdge( self, node1, node2 );
+				edges[ (id1<<4)|id2 ] = edge;
+				edges[ (id2<<4)|id1 ] = edge;
+			}
+			face->nodes[j] = node1;
+			face->edges[j] = edge;
+		}
+	}
+}
+DaoxMeshUnit* DaoxMesh_MakeSphere( DaoxMesh *self, float radius, int resolution )
+{
+	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
+	DaoxMeshFrame *meshFrame = DaoxMeshFrame_New();
+	int i, j;
+
+	DaoxMeshFrame_MakeIcosahedron( meshFrame, radius, radius, radius );
+	for(i=0; i<resolution; ++i){
+		int usedNodes = meshFrame->usedNodes;
+		int usedFaces = meshFrame->usedFaces;
+		for(j=0; j<usedFaces; ++j){
+			DaoxMeshFace *face = meshFrame->faces->items.pMeshFace[j];
+			DaoxMeshFrame_Split( meshFrame, face );
+		}
+		for(j=usedNodes; j<meshFrame->usedNodes; ++j){
+			DaoxMeshNode *node = meshFrame->nodes->items.pMeshNode[j];
+			double scale = radius / sqrt( DaoxVector3D_Norm2( & node->pos ) );
+			node->pos.x *= scale;
+			node->pos.y *= scale;
+			node->pos.z *= scale;
+		}
+	}
+	for(i=0; i<meshFrame->usedNodes; ++i){
+		DaoxMeshNode *node = meshFrame->nodes->items.pMeshNode[i];
+		node->norm = DaoxVector3D_Normalize( & node->pos );
+	}
+
+	DaoxMeshFrame_Export( meshFrame, unit );
+	DaoxMeshFrame_Delete( meshFrame );
+	DaoxMesh_ResetBoundingBox( self );
+	return unit;
+}

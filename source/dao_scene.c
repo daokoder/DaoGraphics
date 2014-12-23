@@ -719,7 +719,7 @@ DaoxJoint* DaoxJoint_New()
 #if 0
 	DaoxModel *model = DaoxModel_New();
 	DaoxMesh *mesh = DaoxMesh_New();
-	DaoxMesh_MakeBoxObject( mesh );
+	DaoxMesh_MakeCube( mesh );
 	DaoxMesh_UpdateTree( mesh, 0 );
 	DaoxModel_SetMesh( model, mesh );
 	model->base.scale.x = 0.5;
