@@ -29,6 +29,7 @@
 
 #include <math.h>
 #include "dao_terrain.h"
+#include "dao_particle.h"
 #include "dao_renderer.h"
 #include "dao_painter.h"
 
@@ -318,9 +319,8 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 	DaoxOBBox3D obbox;
 	daoint i;
 
-	if( ctype != daox_type_model && ctype != daox_type_terrain && ctype != daox_type_canvas ) goto PrepareChildren;
+	if( node->renderable == 0 ) goto PrepareChildren;
 
-	// 1. Transform view frustum to object coordinates;
 	objectToWorld = DaoxSceneNode_GetWorldTransform( node );
 	obbox = DaoxOBBox3D_Transform( & node->obbox, & objectToWorld );
 
@@ -328,7 +328,7 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 		obbox = DaoxOBBox3D_Scale( & obbox, 8.0 );
 	}
 
-	// 2. Check if the obbox box of the object intersect with the frustum;
+	// Check if the obbox box of the object intersect with the frustum;
 	if( DaoxViewFrustum_Visible( & self->frustum, & obbox ) < 0 ) return;
 
 	if( ctype == daox_type_canvas ){
@@ -339,6 +339,14 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 		if( dot < 0.0 ) return;
 		DaoxRenderer_PrepareCanvas( self, (DaoxCanvas*) node );
 		return;
+	}
+
+	if( DaoType_ChildOf( node->ctype, daox_type_emitter ) ){
+		DaoxEmitter *emitter = (DaoxEmitter*) node;
+		DaoxMatrix4D worldToObj = DaoxMatrix4D_Inverse( & objectToWorld );
+		DaoxVector3D campos;
+		campos = DaoxMatrix4D_Transform( & worldToObj, & self->frustum.cameraPosition);
+		DaoxEmitter_UpdateView( emitter, campos );
 	}
 
 	if( ctype == daox_type_terrain ){

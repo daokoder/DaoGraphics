@@ -195,7 +195,7 @@ extern DaoType *daox_type_scene_node;
 DaoxSceneNode* DaoxSceneNode_New();
 void DaoxSceneNode_Delete( DaoxSceneNode *self );
 
-void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type );
+void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type, int renderable );
 void DaoxSceneNode_Free( DaoxSceneNode *self );
 
 void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child );
@@ -307,6 +307,7 @@ void DaoxSkeleton_UpdateSkinningMatrices( DaoxSkeleton *self );
 
 
 
+
 struct DaoxModel
 {
 	DaoxSceneNode  base;
@@ -316,9 +317,10 @@ struct DaoxModel
 extern DaoType *daox_type_model;
 
 DaoxModel* DaoxModel_New();
+void DaoxModel_Init( DaoxModel *self, DaoType *type, DaoxMesh *mesh );
+void DaoxModel_Free( DaoxModel *self );
 void DaoxModel_Delete( DaoxModel *self );
 void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh );
-
 
 
 

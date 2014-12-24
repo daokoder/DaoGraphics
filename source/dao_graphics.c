@@ -32,6 +32,7 @@
 #include "dao_resource.h"
 #include "dao_format.h"
 #include "dao_terrain.h"
+#include "dao_particle.h"
 
 
 DaoVmSpace *dao_vmspace_graphics = NULL;
@@ -1271,6 +1272,7 @@ DaoTypeBase DaoxLight_Typer =
 
 
 
+
 DaoTypeBase DaoxJoint_Typer =
 {
 	"Joint", NULL, NULL, NULL,
@@ -1289,7 +1291,7 @@ DaoTypeBase DaoxSkeleton_Typer =
 
 
 
-static void MOD_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
+static void MODEL_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxModel *self = (DaoxModel*) p[0];
 	DaoxMaterial *mat = (DaoxMaterial*) p[1];
@@ -1297,7 +1299,7 @@ static void MOD_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
 }
 static DaoFuncItem DaoxModelMeths[]=
 {
-	{ MOD_SetMaterial,
+	{ MODEL_SetMaterial,
 		"SetMaterial( self: Model, material: Material )"
 	},
 	{ NULL, NULL }
@@ -1318,6 +1320,28 @@ DaoTypeBase DaoxModel_Typer =
 	(FuncPtrDel)DaoxModel_Delete, DaoxModel_GetGCFields
 };
 
+
+
+
+static void EMITTER_New( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxEmitter *self = DaoxEmitter_New();
+	DaoProcess_PutValue( proc, (DaoValue*) self );
+}
+static DaoFuncItem DaoxEmitterMeths[]=
+{
+	{ EMITTER_New,
+		"Emitter()"
+	},
+	{ NULL, NULL }
+};
+
+DaoTypeBase DaoxEmitter_Typer =
+{
+	"Emitter", NULL, NULL, (DaoFuncItem*) DaoxEmitterMeths,
+	{ & DaoxModel_Typer, NULL }, {NULL},
+	(FuncPtrDel)DaoxEmitter_Delete, DaoxModel_GetGCFields
+};
 
 
 
@@ -1998,6 +2022,7 @@ DaoType *daox_type_material = NULL;
 DaoType *daox_type_scene_node = NULL;
 DaoType *daox_type_camera = NULL;
 DaoType *daox_type_light = NULL;
+DaoType *daox_type_emitter = NULL;
 DaoType *daox_type_joint = NULL;
 DaoType *daox_type_skeleton = NULL;
 DaoType *daox_type_model = NULL;
@@ -2100,6 +2125,7 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 	daox_type_joint = DaoNamespace_WrapType( ns, & DaoxJoint_Typer, 0 );
 	daox_type_skeleton = DaoNamespace_WrapType( ns, & DaoxSkeleton_Typer, 0 );
 	daox_type_model = DaoNamespace_WrapType( ns, & DaoxModel_Typer, 0 );
+	daox_type_emitter = DaoNamespace_WrapType( ns, & DaoxEmitter_Typer, 0 );
 	daox_type_terrain = DaoNamespace_WrapType( ns, & DaoxTerrain_Typer, 0 );
 
 	daox_type_canvas = DaoNamespace_WrapType( ns, & DaoxCanvas_Typer, 0 );

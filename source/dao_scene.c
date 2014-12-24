@@ -30,8 +30,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "dao_scene.h"
 #include "dao_opengl.h"
+#include "dao_particle.h"
+#include "dao_scene.h"
 
 
 
@@ -77,6 +78,7 @@ DaoxMaterial* DaoxMaterial_New()
 {
 	DaoxMaterial *self = (DaoxMaterial*) dao_calloc( 1, sizeof(DaoxMaterial) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_material );
+	self->shininess = 2.0;
 	self->ambient = daox_black_color;
 	self->diffuse = daox_black_color;
 	self->specular = daox_black_color;
@@ -367,10 +369,10 @@ DaoxMatrix4D DaoxController_GetTransform( DaoxController *self )
 
 
 
-void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type )
+void DaoxSceneNode_Init( DaoxSceneNode *self, DaoType *type, int renderable )
 {
 	DaoCstruct_Init( (DaoCstruct*) self, type );
-	self->renderable = 0;
+	self->renderable = renderable;
 	self->parent = NULL;
 	self->controller = NULL;
 	self->children = DList_New( DAO_DATA_VALUE );
@@ -386,7 +388,7 @@ void DaoxSceneNode_Free( DaoxSceneNode *self )
 DaoxSceneNode* DaoxSceneNode_New()
 {
 	DaoxSceneNode *self = (DaoxSceneNode*) dao_calloc( 1, sizeof(DaoxSceneNode) );
-	DaoxSceneNode_Init( self, daox_type_scene_node );
+	DaoxSceneNode_Init( self, daox_type_scene_node, 0 );
 	return self;
 }
 void DaoxSceneNode_Delete( DaoxSceneNode *self )
@@ -471,6 +473,9 @@ void DaoxSceneNode_Update( DaoxSceneNode *self, float dtime )
 		DaoxSceneNode_Update( node, dtime );
 	}
 	if( self->controller ) DaoxController_Update( self->controller, dtime );
+	if( DaoType_ChildOf( self->ctype, daox_type_emitter ) ){
+		DaoxEmitter_Update( (DaoxEmitter*) self, dtime );
+	}
 }
 
 
@@ -560,7 +565,7 @@ void DaoxPointable_MoveByXYZ( DaoxPointable *self, float dx, float dy, float dz 
 DaoxCamera* DaoxCamera_New()
 {
 	DaoxCamera *self = (DaoxCamera*) dao_calloc( 1, sizeof(DaoxCamera) );
-	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_camera );
+	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_camera, 0 );
 	self->viewTarget.x =  0;
 	self->viewTarget.y =  0;
 	self->viewTarget.z = -1;
@@ -672,7 +677,7 @@ void DaoxCamera_LookAtXYZ( DaoxCamera *self, float x, float y, float z )
 DaoxLight* DaoxLight_New()
 {
 	DaoxLight *self = (DaoxLight*) dao_calloc( 1, sizeof(DaoxLight) );
-	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_light );
+	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_light, 0 );
 	self->targetPosition.x = 0;
 	self->targetPosition.y = -1E16;
 	self->targetPosition.z = 0;
@@ -714,7 +719,7 @@ void DaoxLight_PointAtXYZ( DaoxLight *self, float x, float y, float z )
 DaoxJoint* DaoxJoint_New()
 {
 	DaoxJoint *self = (DaoxJoint*) dao_calloc( 1, sizeof(DaoxJoint) );
-	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_joint );
+	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_joint, 0 );
 
 #if 0
 	DaoxModel *model = DaoxModel_New();
@@ -776,14 +781,19 @@ void DaoxSkeleton_UpdateSkinningMatrices( DaoxSkeleton *self )
 DaoxModel* DaoxModel_New()
 {
 	DaoxModel *self = (DaoxModel*) dao_calloc( 1, sizeof(DaoxModel) );
-	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_model );
+	DaoxModel_Init( self, daox_type_model, NULL );
 	return self;
 }
-static void DList_DeleteVector3DLists( DList *self )
+void DaoxModel_Init( DaoxModel *self, DaoType *type, DaoxMesh *mesh )
 {
-	daoint i;
-	for(i=0; i<self->size; ++i) DArray_Delete( self->items.pArray[i] );
-	DList_Delete( self );
+	DaoxSceneNode_Init( (DaoxSceneNode*) self, type, 1 );
+	DaoxModel_SetMesh( self, mesh );
+	self->skeleton = NULL;
+}
+void DaoxModel_Free( DaoxModel *self )
+{
+	GC_DecRC( self->mesh );
+	GC_DecRC( self->skeleton );
 }
 void DaoxModel_Delete( DaoxModel *self )
 {
@@ -793,7 +803,7 @@ void DaoxModel_Delete( DaoxModel *self )
 void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh )
 {
 	GC_Assign( & self->mesh, mesh );
-	self->base.obbox = mesh->obbox;
+	if( mesh ) self->base.obbox = mesh->obbox;
 }
 
 

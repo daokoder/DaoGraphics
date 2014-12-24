@@ -118,12 +118,16 @@ DaoxMeshUnit* DaoxMesh_MakeBox( DaoxMesh *self, float wx, float wy, float wz );
 DaoxMeshUnit* DaoxMesh_MakeCube( DaoxMesh *self );
 DaoxMeshUnit* DaoxMesh_MakeSphere( DaoxMesh *self, float radius, int resolution );
 
+
+
+
 struct DaoxMeshNode
 {
 	DaoxVector3D  pos;
 	DaoxVector3D  norm;
 	int           id;
 };
+
 struct DaoxMeshEdge
 {
 	DaoxMeshNode  *start;
@@ -132,6 +136,7 @@ struct DaoxMeshEdge
 	DaoxMeshEdge  *left;
 	DaoxMeshEdge  *right;
 };
+
 /* Just trangle face: */
 struct DaoxMeshFace
 {
@@ -139,6 +144,7 @@ struct DaoxMeshFace
 	DaoxMeshEdge  *edges[3];
 	DaoxMeshFace  *splits[4];
 };
+
 struct DaoxMeshFrame
 {
 	DList  *nodes;
@@ -151,5 +157,10 @@ struct DaoxMeshFrame
 
 DaoxMeshFrame* DaoxMeshFrame_New();
 void DaoxMeshFrame_Delete( DaoxMeshFrame *self );
+
+void DaoxMeshFrame_Split( DaoxMeshFrame *self, DaoxMeshFace *face );
+void DaoxMeshFrame_Export( DaoxMeshFrame *self, DaoxMeshUnit *unit );
+
+void DaoxMeshFrame_MakeSphere( DaoxMeshFrame *self, float radius, int resolution );
 
 #endif

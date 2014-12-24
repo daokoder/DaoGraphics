@@ -124,10 +124,10 @@ void DaoxTerrainBlock_Delete( DaoxTerrainBlock *self );
 
 struct DaoxTerrain
 {
-	DaoxSceneNode  base;
-	DaoxMesh      *mesh;
+	DaoxModel  base;
+	DaoxMesh  *mesh;
 
-	DaoArray     *heightmap;
+	DaoArray  *heightmap;
 
 	DaoxTerrainBlock  *first;
 	DaoxTerrainBlock  *last;

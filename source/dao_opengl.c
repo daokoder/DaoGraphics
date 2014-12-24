@@ -526,7 +526,7 @@ vec3 InterpolateNormal( vec3 v1, vec3 v2, float t )\n\
 }\n\
 \n\
 \n\
-vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 diffColor )\n\
+vec3 ComputeLight( vec3 lightDir, vec3 lightIntensity, vec3 diffColor )\n\
 {\n\
 	vec3 camDir = normalize( cameraPosition - worldPosition );\n\
 	vec3 normal = normalize( varNormal );\n\
@@ -550,24 +550,24 @@ vec4 ComputeLight( vec3 lightDir, vec4 lightIntensity, vec4 diffColor )\n\
 	float cosAngIncidence = dot( normal, lightDir );\n\
 	cosAngIncidence = clamp(cosAngIncidence, 0.0, 1.0);\n\
 	vec3 reflection = 0.5*(1.0 + cosAngIncidence) * normal;\n\
-	vec4 vertexColor = lightIntensity * diffColor * cosAngIncidence;\n\
+	vec3 vertexColor = lightIntensity * diffColor * cosAngIncidence;\n\
 	float dotvalue = dot(reflection, camDir);\n\
 	dotvalue = clamp(dotvalue, 0.0, 1.0);\n\
-	vertexColor += lightIntensity * specularColor * pow( dotvalue, shininess );\n\
-	vertexColor += lightIntensity * ambientColor;\n\
+	vertexColor += lightIntensity * vec3(specularColor) * pow( dotvalue, shininess );\n\
 	return vertexColor;\n\
 }\n\
 vec4 ComputeAllLights( vec4 diffColor, vec4 emiColor )\n\
 {\n\
-	vec4 vertexColor = vec4( 0.0, 0.0, 0.0, 0.0 );\n\
+	vec3 litColor = vec3( 0.0, 0.0, 0.0 );\n\
 	//diffColor = vec4( 0.5, 0.5, 0.5, 1.0 ); // for convenient checking;\n\
 	for(int i=0; i<lightCount; ++i){\n\
 		vec3 lightDir = normalize( lightSource[i] - worldPosition );\n\
-		vertexColor += ComputeLight( lightDir, lightIntensity[i], diffColor );\n\
+		litColor += ComputeLight( lightDir, vec3(lightIntensity[i]), vec3(diffColor) );\n\
 	}\n\
-	float alpha2 = vertexColor[3];\n\
+	float alpha2 = diffColor[3];\n\
 	float alpha = emiColor[3];\n\
-	vec4 vertexColor2 = vertexColor + emiColor;\n\
+	vec4 vertexColor = vec4( litColor, alpha2 );\n\
+	vec4 vertexColor2 = vertexColor + emiColor + 0.1*normalize(ambientColor); // TODO: ambient light;\n\
 	vertexColor = (1.0 - alpha)*vertexColor + alpha * vertexColor2;\n\
 	vertexColor[3] = alpha2;\n\
 	return vertexColor;\n\

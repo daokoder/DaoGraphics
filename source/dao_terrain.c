@@ -99,12 +99,11 @@ void DaoxTerrainBlock_Delete( DaoxTerrainBlock *self )
 DaoxTerrain* DaoxTerrain_New()
 {
 	DaoxTerrain *self = (DaoxTerrain*) dao_calloc( 1, sizeof(DaoxTerrain) );
-	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_terrain );
+	DaoxModel_Init( (DaoxModel*) self, daox_type_terrain, DaoxMesh_New() );
+	self->mesh = self->base.mesh;
 	self->blocks = DList_New(DAO_DATA_VALUE);
 	self->borders = DList_New(0);
 	self->points = DList_New(0);
-	self->mesh = DaoxMesh_New();
-	GC_IncRC( self->mesh );
 	self->circles = 2;
 	self->radius = 5.0;
 	self->height = 1.0;
@@ -123,7 +122,7 @@ void DaoxTerrain_Delete( DaoxTerrain *self )
 	DList_Delete( self->borders );
 	DList_Delete( self->blocks );
 	DList_Delete( self->buffer );
-	GC_DecRC( self->mesh );
+	DaoxModel_Free( (DaoxModel*) self );
 	dao_free( self );
 }
 
@@ -1001,7 +1000,7 @@ void DaoxTerrain_FinalizeMesh( DaoxTerrain *self )
 	}
 	DaoxMesh_UpdateTree( self->mesh, 128 );
 	DaoxMesh_ResetBoundingBox( self->mesh );
-	self->base.obbox = self->mesh->obbox;
+	self->base.base.obbox = self->mesh->obbox;
 }
 void DaoxTerrain_Rebuild( DaoxTerrain *self )
 {

@@ -688,33 +688,37 @@ void DaoxMeshFrame_MakeIcosahedron( DaoxMeshFrame *self, float rx, float ry, flo
 		}
 	}
 }
-DaoxMeshUnit* DaoxMesh_MakeSphere( DaoxMesh *self, float radius, int resolution )
+void DaoxMeshFrame_MakeSphere( DaoxMeshFrame *self, float radius, int resolution )
 {
-	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
-	DaoxMeshFrame *meshFrame = DaoxMeshFrame_New();
 	int i, j;
 
-	DaoxMeshFrame_MakeIcosahedron( meshFrame, radius, radius, radius );
+	DaoxMeshFrame_MakeIcosahedron( self, radius, radius, radius );
 	for(i=0; i<resolution; ++i){
-		int usedNodes = meshFrame->usedNodes;
-		int usedFaces = meshFrame->usedFaces;
+		int usedNodes = self->usedNodes;
+		int usedFaces = self->usedFaces;
 		for(j=0; j<usedFaces; ++j){
-			DaoxMeshFace *face = meshFrame->faces->items.pMeshFace[j];
-			DaoxMeshFrame_Split( meshFrame, face );
+			DaoxMeshFace *face = self->faces->items.pMeshFace[j];
+			DaoxMeshFrame_Split( self, face );
 		}
-		for(j=usedNodes; j<meshFrame->usedNodes; ++j){
-			DaoxMeshNode *node = meshFrame->nodes->items.pMeshNode[j];
+		for(j=usedNodes; j<self->usedNodes; ++j){
+			DaoxMeshNode *node = self->nodes->items.pMeshNode[j];
 			double scale = radius / sqrt( DaoxVector3D_Norm2( & node->pos ) );
 			node->pos.x *= scale;
 			node->pos.y *= scale;
 			node->pos.z *= scale;
 		}
 	}
-	for(i=0; i<meshFrame->usedNodes; ++i){
-		DaoxMeshNode *node = meshFrame->nodes->items.pMeshNode[i];
+	for(i=0; i<self->usedNodes; ++i){
+		DaoxMeshNode *node = self->nodes->items.pMeshNode[i];
 		node->norm = DaoxVector3D_Normalize( & node->pos );
 	}
+}
+DaoxMeshUnit* DaoxMesh_MakeSphere( DaoxMesh *self, float radius, int resolution )
+{
+	DaoxMeshUnit *unit = DaoxMesh_AddUnit( self );
+	DaoxMeshFrame *meshFrame = DaoxMeshFrame_New();
 
+	DaoxMeshFrame_MakeSphere( meshFrame, radius, resolution );
 	DaoxMeshFrame_Export( meshFrame, unit );
 	DaoxMeshFrame_Delete( meshFrame );
 	DaoxMesh_ResetBoundingBox( self );

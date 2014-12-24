@@ -410,7 +410,7 @@ void DaoxCanvasPath_Close( DaoxCanvasPath *self )
 DaoxCanvas* DaoxCanvas_New( DaoxPathCache *pathCache )
 {
 	DaoxCanvas *self = (DaoxCanvas*) dao_calloc( 1, sizeof(DaoxCanvas) );
-	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_canvas );
+	DaoxSceneNode_Init( (DaoxSceneNode*) self, daox_type_canvas, 1 );
 	self->transform = DaoxMatrix3D_Identity();
 	self->brushes = DList_New( DAO_DATA_VALUE );
 	self->nodes = DList_New( DAO_DATA_VALUE );

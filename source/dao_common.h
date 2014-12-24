@@ -58,6 +58,7 @@
 	struct DaoxSkinParam    *skinparams; \
 	struct DaoxIndexFloat   *indexfloats; \
 	struct DaoxColor        *colors;    \
+	struct DaoxParticle     *particles; \
 	struct DaoxPathSegment  *segments;  \
 	struct DaoxKeyFrame     *keyframes; \
 	struct DaoxDrawTask     *drawtasks;
