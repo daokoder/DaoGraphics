@@ -1328,10 +1328,37 @@ static void EMITTER_New( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxEmitter *self = DaoxEmitter_New();
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void EMITTER_SetMaterial( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxEmitter *self = (DaoxEmitter*) p[0];
+	DaoxMaterial *mat = (DaoxMaterial*) p[1];
+	DaoxMesh_SetMaterial( self->base.mesh, mat );
+	GC_Assign( & self->material, mat );
+}
+static void EMITTER_Configure( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxEmitter *self = (DaoxEmitter*) p[0];
+	int i;
+	for(i=1; i<N; ++i){
+		DaoTuple *param = (DaoTuple*) p[i];
+		float value = param->values[1]->xFloat.value;
+		switch( param->values[0]->xEnum.value ){
+		case 0 : self->emissionRate = value; break;
+		case 1 : self->lifeSpan = value; break;
+		case 2 : self->radialVelocity = value; break;
+		}
+	}
+}
 static DaoFuncItem DaoxEmitterMeths[]=
 {
 	{ EMITTER_New,
 		"Emitter()"
+	},
+	{ EMITTER_SetMaterial,
+		"SetMaterial( self: Emitter, material: Material )"
+	},
+	{ EMITTER_Configure,
+		"Configure( self: Emitter, ... : tuple<enum<EmissionRate,LifeSpan,Velocity>,float> )"
 	},
 	{ NULL, NULL }
 };

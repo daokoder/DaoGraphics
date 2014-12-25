@@ -45,6 +45,7 @@ struct DaoxDrawTask
 	uint_t         vcount;
 	uint_t         tcount;
 	uint_t         terrainTileType;
+	uint_t         particleType;
 	DList          units;
 	DList          chunks;
 	DaoxMatrix4D   matrix;   /* Object to world matrix; */

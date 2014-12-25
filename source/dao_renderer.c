@@ -204,6 +204,7 @@ DaoxDrawTask* DaoxRenderer_MakeDrawTask( DaoxRenderer *self )
 	task->tcount = 0;
 	task->vcount = 0;
 	task->terrainTileType = 0;
+	task->particleType = 0;
 	task->units.size = 0;
 	task->chunks.size = 0;
 	task->material = NULL;
@@ -263,8 +264,12 @@ void DaoxRenderer_PrepareModel( DaoxRenderer *self, DaoxModel *model, DaoxMatrix
 			task->matrix = *objectToWorld;
 			task->material = unit->material;
 			task->skeleton = model->skeleton;
+			task->particleType = 0;
 			DList_Append( model->skeleton ? self->tasks2 : self->tasks, task );
 			DMap_Insert( self->map, task->material, task );
+			if( DaoType_ChildOf( model->base.ctype, daox_type_emitter ) ){
+				task->particleType = 1;
+			}
 		}
 		DaoxRenderer_PrepareMeshChunk( self, unit->tree, task );
 		if( task->tcount > currentCount ){
@@ -577,6 +582,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 			glUniform1i(self->shader->uniforms.tileTextures[i], DAOX_TILE_TEXTURE1 + i );
 		}
 	}
+	glUniform1i( self->shader->uniforms.particleType, drawtask->particleType );
 	glUniform1i( self->shader->uniforms.terrainTileType, terrainTileType );
 	glUniform1i( self->shader->uniforms.tileTextureCount, tileTextureCount );
 	glUniform1f( self->shader->uniforms.tileTextureScale, tileTextureScale );
@@ -734,6 +740,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 
 	glUseProgram( self->shader->program );
 
+	glUniform1f(self->shader->uniforms.time, Dao_GetCurrentTime() );
 	glUniform1i(self->shader->uniforms.vectorGraphics, 0 );
 	glUniform1i(self->shader->uniforms.hasDiffuseTexture, 0 );
 	glUniform1i(self->shader->uniforms.hasBumpTexture, 0 );

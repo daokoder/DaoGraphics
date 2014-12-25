@@ -210,8 +210,6 @@ DaoxMatrix4D DaoxSceneNode_GetWorldTransform( DaoxSceneNode *self );
 
 DaoxVector3D DaoxSceneNode_GetWorldPosition( DaoxSceneNode *self );
 
-void DaoxSceneNode_Update( DaoxSceneNode *self, float dtime );
-
 
 
 /*
@@ -337,6 +335,7 @@ struct DaoxScene
 	DList  *lights;
 
 	DaoxPathCache *pathCache;
+	DaoRandGenerator  *randGenerator;
 };
 extern DaoType *daox_type_scene;
 
@@ -346,6 +345,7 @@ void DaoxScene_Delete( DaoxScene *self );
 void DaoxScene_AddNode( DaoxScene *self, DaoxSceneNode *node );
 void DaoxScene_AddMaterial( DaoxScene *self, DString *name, DaoxMaterial *material );
 
+void DaoxScene_UpdateNode( DaoxScene *self, DaoxSceneNode *node, float dtime );
 void DaoxScene_Update( DaoxScene *self, float dtime );
 
 

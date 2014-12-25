@@ -372,12 +372,14 @@ void main(void)\n\
 static const char *const daox_fragment_shader3d_body =
 "uniform int  vectorGraphics;\n\
 uniform int  terrainTileType; // 0: none; 1: square; 2: hexagon; \n\
+uniform int  particleType; \n\
 uniform int  lightCount;\n\
 uniform vec4 ambientColor;\n\
 uniform vec4 diffuseColor;\n\
 uniform vec4 specularColor;\n\
 uniform vec4 emissionColor;\n\
 uniform float shininess;\n\
+uniform float time;\n\
 \n\
 uniform vec3 lightSource[32];\n\
 uniform vec4 lightIntensity[32];\n\
@@ -575,7 +577,6 @@ vec4 ComputeAllLights( vec4 diffColor, vec4 emiColor )\n\
 \n\
 \n\
 \n\
-\n\
 void main(void)\n\
 {\n\
 	vec4 diffColor = diffuseColor;\n\
@@ -601,6 +602,12 @@ void main(void)\n\
 	}\n\
 	if( lightCount == 0 ) fragColor = emiColor;\n\
 	//fragColor = diffColor;\n\
+	if( particleType > 0 ){\n\
+		float ds = varTexCoord.x - 0.5;\n\
+		float dt = varTexCoord.y - 0.5;\n\
+		fragColor[3] = sqrt(1.0 - 2.0 * sqrt( ds*ds + dt*dt )) * varTangent.z;\n\
+		if( fragColor[3] < 0.2 ) discard;\n\
+	}\n\
 	if( vectorGraphics > 0 ){ \n\
 		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
 		fragColor = fragColor * color; \n\
@@ -780,6 +787,7 @@ void DaoxShader_Finalize2D( DaoxShader *self )
 	self->uniforms.diffuseTexture = glGetUniformLocation(self->program, "diffuseTexture");
 	self->uniforms.emissionTexture = glGetUniformLocation(self->program, "emissionTexture");
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
+	self->uniforms.particleType = glGetUniformLocation(self->program, "particleType");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.texKLMO = glGetAttribLocation(self->program, "texKLMO");
 }
@@ -788,6 +796,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	DaoxShader_Finalize( self );
 	if( self->program == 0 ) return;
 	DaoxShader_GetVectorGraphicsUniforms( self );
+	self->uniforms.time = glGetUniformLocation(self->program, "time");
 	self->uniforms.vectorGraphics = glGetUniformLocation(self->program, "vectorGraphics");
 	self->uniforms.projMatrix = glGetUniformLocation(self->program, "projMatrix");
 	self->uniforms.viewMatrix = glGetUniformLocation(self->program, "viewMatrix");
@@ -809,6 +818,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.diffuseTexture = glGetUniformLocation(self->program, "diffuseTexture");
 	self->uniforms.emissionTexture = glGetUniformLocation(self->program, "emissionTexture");
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
+	self->uniforms.particleType = glGetUniformLocation(self->program, "particleType");
 	self->uniforms.terrainTileType = glGetUniformLocation(self->program, "terrainTileType");
 	self->uniforms.tileTextureCount = glGetUniformLocation(self->program, "tileTextureCount");
 	self->uniforms.tileTextureScale = glGetUniformLocation(self->program, "tileTextureScale");

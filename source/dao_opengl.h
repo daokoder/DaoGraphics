@@ -146,6 +146,7 @@ struct DaoxShader
 	uint_t  program;
 
 	struct {
+		uint_t  time;
 		uint_t  vectorGraphics;
 		uint_t  projMatrix;
 		uint_t  viewMatrix;
@@ -168,6 +169,7 @@ struct DaoxShader
 		uint_t  diffuseTexture;
 		uint_t  emissionTexture;
 		uint_t  bumpTexture;
+		uint_t  particleType;
 		uint_t  alphaBlending;
 		uint_t  graphScale;
 		uint_t  pathLength;

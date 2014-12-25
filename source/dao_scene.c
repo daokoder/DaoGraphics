@@ -465,18 +465,6 @@ void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child )
 	GC_Assign( & child->parent, self );
 	DList_Append( self->children, child );
 }
-void DaoxSceneNode_Update( DaoxSceneNode *self, float dtime )
-{
-	int i;
-	for(i=0; i<self->children->size; ++i){
-		DaoxSceneNode *node = self->children->items.pSceneNode[i];
-		DaoxSceneNode_Update( node, dtime );
-	}
-	if( self->controller ) DaoxController_Update( self->controller, dtime );
-	if( DaoType_ChildOf( self->ctype, daox_type_emitter ) ){
-		DaoxEmitter_Update( (DaoxEmitter*) self, dtime );
-	}
-}
 
 
 
@@ -814,6 +802,7 @@ DaoxScene* DaoxScene_New()
 {
 	DaoxScene *self = (DaoxScene*) dao_calloc( 1, sizeof(DaoxScene) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
+	self->randGenerator = DaoRandGenerator_New( rand() );
 	self->nodes = DList_New( DAO_DATA_VALUE );
 	self->lights = DList_New(0);
 	self->background.alpha = 1.0;
@@ -822,6 +811,7 @@ DaoxScene* DaoxScene_New()
 void DaoxScene_Delete( DaoxScene *self )
 {
 	if( self->pathCache ) GC_DecRC( self->pathCache );
+	DaoRandGenerator_Delete( self->randGenerator );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DList_Delete( self->nodes );
 	DList_Delete( self->lights );
@@ -835,12 +825,27 @@ void DaoxScene_AddNode( DaoxScene *self, DaoxSceneNode *node )
 	if( node->ctype == daox_type_camera ) self->camera = (DaoxCamera*) node;
 }
 
+void DaoxScene_UpdateNode( DaoxScene *self, DaoxSceneNode *node, float dtime )
+{
+	int i;
+	for(i=0; i<node->children->size; ++i){
+		DaoxSceneNode *node = node->children->items.pSceneNode[i];
+		DaoxScene_UpdateNode( self, node, dtime );
+	}
+	if( node->controller ) DaoxController_Update( node->controller, dtime );
+	if( DaoType_ChildOf( node->ctype, daox_type_emitter ) ){
+		DaoxEmitter *emitter = (DaoxEmitter*) node;
+		emitter->randGenerator = self->randGenerator;
+		DaoxEmitter_Update( emitter, dtime );
+		emitter->randGenerator = NULL;
+	}
+}
 void DaoxScene_Update( DaoxScene *self, float dtime )
 {
 	int i;
 	for(i=0; i<self->nodes->size; ++i){
 		DaoxSceneNode *node = self->nodes->items.pSceneNode[i];
-		DaoxSceneNode_Update( node, dtime );
+		DaoxScene_UpdateNode( self, node, dtime );
 	}
 }
 

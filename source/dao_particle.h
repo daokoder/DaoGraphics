@@ -41,9 +41,9 @@ struct DaoxParticle
 	float         life;
 	float         lifeSpan;
 	float         mass;
+	float         scale;
 	DaoxVector3D  position;
 	DaoxVector3D  velocity;
-	DaoxVector3D  scale;
 };
 
 struct DaoxParticles
@@ -69,13 +69,18 @@ struct DaoxEmitter
 	DList  *clusters;
 	int     active;
 
+	float  life;
 	float  dtime;
-	float  spawnRate;
 	float  lifeSpan;
+	float  emissionRate;
 	float  radialVelocity;
 	float  tangentVelocity;
 
 	DaoxVector3D  gravity;
+
+	DaoxMaterial  *material;
+
+	DaoRandGenerator  *randGenerator;
 };
 extern DaoType *daox_type_emitter;
 
