@@ -4,23 +4,26 @@ load graphics;
 resource = Graphics::Resource()
 
 scene = Graphics::Scene(); #resource.LoadDaeFile( "box.dae" )
-scene.SetBackground( 1.0, 1.0, 1.0, 1.0 )
 scene.SetBackground( 0.0, 0.0, 0.0, 1.0 )
+scene.SetBackground( 1.0, 1.0, 1.0, 1.0 )
 
-emitter = Graphics::Emitter()
-emitter2 = Graphics::Emitter()
-scene.AddNode( emitter )
-#scene.AddNode( emitter2 )
+fire = Graphics::Emitter()
+smoke = Graphics::Emitter()
+scene.AddNode( fire )
+scene.AddNode( smoke )
 
-emitter.Configure( EmissionRate=200, LifeSpan=0.5, Velocity=5, Gravity=5 )
-emitter2.Configure( EmissionRate=500, LifeSpan=1, Velocity=2 )
+fire.MoveBy( -10, 0, -10 )
+smoke.MoveBy( 10, 0, 10 )
+
+fire.Configure( EmissionRate=200, LifeSpan=1, Velocity=4, Gravity=10 )
+smoke.Configure( EmissionRate=100, LifeSpan=3, Velocity=1, Gravity=1 )
 
 mat = Graphics::Material()
 mat2 = Graphics::Material()
-mat.SetColor( emission = (1.0, 0.3, 0.2), diffuse=(0.8,0.6,0.1) )
-mat2.SetColor( emission = (0.7, 0.5, 0.0) )
-emitter.SetMaterial( mat );
-emitter2.SetMaterial( mat2 );
+mat.SetColor( emission = (1.0, 0.9, 0.6), diffuse=(0.8,0.0,0.0), ambient=(0.0,0.2,0.2) )
+mat2.SetColor( emission = (0.75, 0.7, 0.7), diffuse=(0.0,0.0,0.0), ambient=(0.9,0.9,0.9) )
+fire.SetMaterial( mat );
+smoke.SetMaterial( mat2 );
 
 
 camera = Graphics::Camera()

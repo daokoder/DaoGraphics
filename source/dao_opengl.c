@@ -596,6 +596,34 @@ float Noise2( vec2 uv, int KK )\n\
 	return mix( n1, n2, (uv.y - y) * KK );\n\
 }\n\
 \n\
+float ParticleFactor( float x, float y )\n\
+{\n\
+	float var = 10*Noise( vec2(varTangent) );\n\
+	vec2 seed = vec2( x + var, y - var );\n\
+	float n1 = clamp( Noise2( seed, 10), 0.0, 1.0 );\n\
+	float n2 = clamp( Noise2( seed, 20), 0.0, 1.0 );\n\
+	float n = 0.5*(n1 + n2);\n\
+	float ds = x - 0.5;\n\
+	float dt = y - 0.5;\n\
+	float r = sqrt( ds*ds + dt*dt );\n\
+	if( r >= 0.5 ) return 0;\n\
+	float loc = sqrt(1.0 - 2.0 * r);\n\
+	return n * loc * varTangent.z;\n\
+}\n\
+vec4 ParticleColor( float factor )\n\
+{\n\
+	// More emission color with less details in the beginning: \n\
+	factor = mix( factor, 1.0, pow(varTangent.z, 1.0) );\n\
+	vec4 diffColor2 = diffuseColor;\n\
+	if( varTangent.z < 0.5 ){\n\
+		float blendDiffuse = 2.0 * varTangent.z;\n\
+		diffColor2 = mix( ambientColor, diffuseColor, blendDiffuse );\n\
+	}\n\
+	return mix( diffColor2, emissionColor, factor );\n\
+}\n\
+\n\
+\n\
+\n\
 \n\
 void main(void)\n\
 {\n\
@@ -623,24 +651,19 @@ void main(void)\n\
 	if( lightCount == 0 ) fragColor = diffColor + emiColor;\n\
 	//fragColor = diffColor;\n\
 	if( particleType > 0 ){\n\
-		float var = Noise( vec2(varTangent) );\n\
-		vec2 seed = vec2( varTexCoord.x + var, varTexCoord.y - var );\n\
-		float n1 = clamp( Noise2( seed, 10), 0.0, 1.0 );\n\
-		float n2 = clamp( Noise2( seed, 20), 0.0, 1.0 );\n\
-		float n = 0.5*(n1 + n2);\n\
-		float ds = varTexCoord.x - 0.5;\n\
-		float dt = varTexCoord.y - 0.5;\n\
-		float loc = sqrt(1.0 - 2.0 * sqrt( ds*ds + dt*dt ));\n\
-		float alpha = (n + 0.1) * loc * varTangent.z;\n\
-		if(alpha<0.1) discard;\n\
-		float min = 0.1;\n\
-		alpha = (alpha - 0.1) / 0.9;\n\
-		if( alpha < min ){\n\
-			alpha = (1.0 - min) * alpha / min;\n\
-		}else{\n\
-			alpha = (1.0 - min) + (alpha - min) / (1.0 - min);\n\
-		}\n\
-		fragColor = mix( diffColor, emiColor, (alpha) );\n\
+		float alpha = ParticleFactor( varTexCoord.x, varTexCoord.y ); \n\
+		float alpha1 = ParticleFactor( varTexCoord.x-0.02, varTexCoord.y-0.02 ); \n\
+		float alpha2 = ParticleFactor( varTexCoord.x+0.02, varTexCoord.y-0.02 ); \n\
+		float alpha3 = ParticleFactor( varTexCoord.x+0.02, varTexCoord.y+0.02 ); \n\
+		float alpha4 = ParticleFactor( varTexCoord.x-0.02, varTexCoord.y+0.02 ); \n\
+		if( alpha<0.1 && alpha1<0.1 && alpha2<0.1 && alpha3<0.1 && alpha4<0.1 ) discard;\n\
+		vec4 color = ParticleColor( alpha );\n\
+		vec4 color1 = ParticleColor( alpha1 );\n\
+		vec4 color2 = ParticleColor( alpha2 );\n\
+		vec4 color3 = ParticleColor( alpha3 );\n\
+		vec4 color4 = ParticleColor( alpha4 );\n\
+		fragColor = 0.2*(color + color1 + color2 + color3 + color4);\n\
+		fragColor[3] = 0.96;\n\
 	}\n\
 	if( vectorGraphics > 0 ){ \n\
 		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\

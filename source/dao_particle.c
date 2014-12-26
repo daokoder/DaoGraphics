@@ -135,7 +135,7 @@ void DaoxEmitter_Update( DaoxEmitter *self, float dtime )
 	DaoxVector3D dv = DaoxVector3D_Scale( & gravity, dtime * self->gravityStrength );
 	DaoRandGenerator *randgen = self->randGenerator;
 	DaoxParticles *cluster = NULL;
-	float fvelocity = self->radialVelocity * dtime;
+	float fvelocity = dtime;
 	int i, j, k;
 
 	if( randgen == NULL ) return;
@@ -164,7 +164,7 @@ void DaoxEmitter_Update( DaoxEmitter *self, float dtime )
 			particle->life += self->dtime;
 			factor = (particle->lifeSpan - particle->life) / particle->lifeSpan;
 			factor *= particle->life / particle->lifeSpan;
-			factor = sqrt( factor ) + 0.1;
+			factor = sqrt( factor );
 
 			dx = DaoxVector3D_Scale( & particle->velocity, fvelocity );
 
@@ -208,7 +208,7 @@ void DaoxEmitter_Update( DaoxEmitter *self, float dtime )
 		int source = self->emitter->vertices->size * DaoRandGenerator_GetUniform( randgen );
 		DaoxVertex *vertex = self->emitter->vertices->data.vertices + source;
 		DaoxParticle *particle = DaoxEmitter_AddParticle( self, cluster, vertex->pos );
-		particle->velocity = vertex->norm;
+		particle->velocity = DaoxVector3D_Scale( & vertex->norm, self->radialVelocity );
 		k -= 1;
 	}
 	DaoxMesh_UpdateTree( self->base.mesh, 1024 );
