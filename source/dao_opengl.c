@@ -551,9 +551,9 @@ vec3 ComputeLight( vec3 lightDir, vec3 lightIntensity, vec3 diffColor )\n\
 	}\n\
 	float cosAngIncidence = dot( normal, lightDir );\n\
 	cosAngIncidence = clamp(cosAngIncidence, 0.0, 1.0);\n\
-	vec3 reflection = 0.5*(1.0 + cosAngIncidence) * normal;\n\
+	vec3 halfVec = normalize(camDir + lightDir);\n\
 	vec3 vertexColor = lightIntensity * diffColor * cosAngIncidence;\n\
-	float dotvalue = dot(reflection, camDir);\n\
+	float dotvalue = dot(halfVec, normal);\n\
 	dotvalue = clamp(dotvalue, 0.0, 1.0);\n\
 	vertexColor += lightIntensity * vec3(specularColor) * pow( dotvalue, shininess );\n\
 	return vertexColor;\n\
@@ -575,6 +575,26 @@ vec4 ComputeAllLights( vec4 diffColor, vec4 emiColor )\n\
 	return vertexColor;\n\
 }\n\
 \n\
+\n\
+float Noise( vec2 uv )\n\
+{\n\
+	return fract(sin(dot(uv.xy ,vec2(12.9898,78.233))) * 43758.5453);\n\
+}\n\
+\n\
+\n\
+float Noise2( vec2 uv, int KK )\n\
+{\n\
+	float x = int(uv.x * KK) / float(KK);\n\
+	float y = int(uv.y * KK) / float(KK);\n\
+	float d = 1.0 / float(KK);\n\
+	float f1 = Noise( vec2( x, y ) );\n\
+	float f2 = Noise( vec2( x+d, y ) );\n\
+	float f3 = Noise( vec2( x+d, y+d ) );\n\
+	float f4 = Noise( vec2( x, y+d ) );\n\
+	float n1 = mix( f1, f2, (uv.x - x) * KK );\n\
+	float n2 = mix( f4, f3, (uv.x - x) * KK );\n\
+	return mix( n1, n2, (uv.y - y) * KK );\n\
+}\n\
 \n\
 \n\
 void main(void)\n\
@@ -600,17 +620,31 @@ void main(void)\n\
 		if( diffColor[3] < 0.9 ) discard;\n\
 		fragColor[3] = diffColor[3];\n\
 	}\n\
-	if( lightCount == 0 ) fragColor = emiColor;\n\
+	if( lightCount == 0 ) fragColor = diffColor + emiColor;\n\
 	//fragColor = diffColor;\n\
 	if( particleType > 0 ){\n\
+		float var = Noise( vec2(varTangent) );\n\
+		vec2 seed = vec2( varTexCoord.x + var, varTexCoord.y - var );\n\
+		float n1 = clamp( Noise2( seed, 10), 0.0, 1.0 );\n\
+		float n2 = clamp( Noise2( seed, 20), 0.0, 1.0 );\n\
+		float n = 0.5*(n1 + n2);\n\
 		float ds = varTexCoord.x - 0.5;\n\
 		float dt = varTexCoord.y - 0.5;\n\
-		fragColor[3] = sqrt(1.0 - 2.0 * sqrt( ds*ds + dt*dt )) * varTangent.z;\n\
-		if( fragColor[3] < 0.2 ) discard;\n\
+		float loc = sqrt(1.0 - 2.0 * sqrt( ds*ds + dt*dt ));\n\
+		float alpha = (n + 0.1) * loc * varTangent.z;\n\
+		if(alpha<0.1) discard;\n\
+		float min = 0.1;\n\
+		alpha = (alpha - 0.1) / 0.9;\n\
+		if( alpha < min ){\n\
+			alpha = (1.0 - min) * alpha / min;\n\
+		}else{\n\
+			alpha = (1.0 - min) + (alpha - min) / (1.0 - min);\n\
+		}\n\
+		fragColor = mix( diffColor, emiColor, (alpha) );\n\
 	}\n\
 	if( vectorGraphics > 0 ){ \n\
 		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
-		fragColor = fragColor * color; \n\
+			fragColor = fragColor * color; \n\
 	}\n\
 }\n";
 

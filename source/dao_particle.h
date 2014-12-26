@@ -56,7 +56,7 @@ struct DaoxParticles
 
 /*
 // Spherical emitter:
-//
+// TODO?
 // -- Randomized normal vector as initial velocity direction;
 // -- Randomized tangent vector as gradient vector for perlin-like noise;
 */
@@ -75,6 +75,7 @@ struct DaoxEmitter
 	float  emissionRate;
 	float  radialVelocity;
 	float  tangentVelocity;
+	float  gravityStrength;
 
 	DaoxVector3D  gravity;
 

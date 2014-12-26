@@ -351,7 +351,9 @@ void DaoxRenderer_PrepareNode( DaoxRenderer *self, DaoxSceneNode *node )
 		DaoxMatrix4D worldToObj = DaoxMatrix4D_Inverse( & objectToWorld );
 		DaoxVector3D campos;
 		campos = DaoxMatrix4D_Transform( & worldToObj, & self->frustum.cameraPosition);
+		emitter->randGenerator = self->scene->randGenerator;
 		DaoxEmitter_UpdateView( emitter, campos );
+		emitter->randGenerator = NULL;
 	}
 
 	if( ctype == daox_type_terrain ){
@@ -703,16 +705,6 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		lightSource[i] = DaoxSceneNode_GetWorldPosition( (DaoxSceneNode*) light );
 		lightIntensity[i] = light->intensity;
 	}
-	if( lightCount == 0 ){
-		lightCount = 1;
-		lightSource[0].x = 0;
-		lightSource[0].y = 100;
-		lightSource[0].z = 1000;
-		lightIntensity[0].red = lightIntensity[0].green = lightIntensity[0].blue = 1.0;
-		lightIntensity[0].alpha = 1.0;
-	}
-#if 0
-#endif
 
 
 	glDepthMask(GL_TRUE);

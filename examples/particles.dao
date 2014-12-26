@@ -1,0 +1,37 @@
+
+load graphics;
+
+resource = Graphics::Resource()
+
+scene = Graphics::Scene(); #resource.LoadDaeFile( "box.dae" )
+scene.SetBackground( 1.0, 1.0, 1.0, 1.0 )
+scene.SetBackground( 0.0, 0.0, 0.0, 1.0 )
+
+emitter = Graphics::Emitter()
+emitter2 = Graphics::Emitter()
+scene.AddNode( emitter )
+#scene.AddNode( emitter2 )
+
+emitter.Configure( EmissionRate=200, LifeSpan=0.5, Velocity=5, Gravity=5 )
+emitter2.Configure( EmissionRate=500, LifeSpan=1, Velocity=2 )
+
+mat = Graphics::Material()
+mat2 = Graphics::Material()
+mat.SetColor( emission = (1.0, 0.3, 0.2), diffuse=(0.8,0.6,0.1) )
+mat2.SetColor( emission = (0.7, 0.5, 0.0) )
+emitter.SetMaterial( mat );
+emitter2.SetMaterial( mat2 );
+
+
+camera = Graphics::Camera()
+#camera.Move( 10, 10, 10 ) # bug with moving forward
+camera.Move( -15, 15, 15 )
+camera.LookAt( 0, 0, 0 );
+camera.SetFarPlane( 10000 );
+camera.SetFOV( 120 );
+camera.Orient( $Z );
+scene.AddNode( camera );
+
+window = Graphics::Window( 960, 800, '' )
+window.Show( scene, 300, 1 )
+window.Quit()

@@ -1346,6 +1346,7 @@ static void EMITTER_Configure( DaoProcess *proc, DaoValue *p[], int N )
 		case 0 : self->emissionRate = value; break;
 		case 1 : self->lifeSpan = value; break;
 		case 2 : self->radialVelocity = value; break;
+		case 3 : self->gravityStrength = value; break;
 		}
 	}
 }
@@ -1358,7 +1359,7 @@ static DaoFuncItem DaoxEmitterMeths[]=
 		"SetMaterial( self: Emitter, material: Material )"
 	},
 	{ EMITTER_Configure,
-		"Configure( self: Emitter, ... : tuple<enum<EmissionRate,LifeSpan,Velocity>,float> )"
+		"Configure( self: Emitter, ... : tuple<enum<EmissionRate,LifeSpan,Velocity,Gravity>,float> )"
 	},
 	{ NULL, NULL }
 };

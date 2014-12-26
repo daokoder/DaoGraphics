@@ -780,12 +780,13 @@ void DaoxModel_Init( DaoxModel *self, DaoType *type, DaoxMesh *mesh )
 }
 void DaoxModel_Free( DaoxModel *self )
 {
+	DaoxSceneNode_Free( (DaoxSceneNode*) self );
 	GC_DecRC( self->mesh );
 	GC_DecRC( self->skeleton );
 }
 void DaoxModel_Delete( DaoxModel *self )
 {
-	DaoxSceneNode_Free( (DaoxSceneNode*) self );
+	DaoxModel_Free( self );
 	dao_free( self );
 }
 void DaoxModel_SetMesh( DaoxModel *self, DaoxMesh *mesh )
@@ -829,8 +830,8 @@ void DaoxScene_UpdateNode( DaoxScene *self, DaoxSceneNode *node, float dtime )
 {
 	int i;
 	for(i=0; i<node->children->size; ++i){
-		DaoxSceneNode *node = node->children->items.pSceneNode[i];
-		DaoxScene_UpdateNode( self, node, dtime );
+		DaoxSceneNode *node2 = node->children->items.pSceneNode[i];
+		DaoxScene_UpdateNode( self, node2, dtime );
 	}
 	if( node->controller ) DaoxController_Update( node->controller, dtime );
 	if( DaoType_ChildOf( node->ctype, daox_type_emitter ) ){
