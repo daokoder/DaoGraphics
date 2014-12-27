@@ -115,9 +115,11 @@ DaoxRenderer* DaoxRenderer_New( DaoxContext *ctx )
 	DaoxMesh_UpdateTree( self->axisMesh, 0 );
 	DaoxModel_SetMesh( self->worldAxis, self->axisMesh );
 	DaoxModel_SetMesh( self->localAxis, self->axisMesh );
+	DaoxContext_InitOffscreenBuffer( ctx );
 
 	return self;
 }
+
 void DaoxRenderer_ClearDrawTasks( DaoxRenderer *self, DList *tasks )
 {
 	int i;
@@ -617,6 +619,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 	glUniform1i(self->shader->uniforms.hasBumpTexture, 0 );
 	/* TODO: better hint for glDrawRangeElements(); */
 }
+extern DaoxTexture *test_texture;
 void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam )
 {
 	DaoxViewFrustum fm;
@@ -633,6 +636,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	GLfloat matrix3[9] = {0};
 	daoint i, j, lightCount = scene->lights->size;
 	float cosine, sine;
+	int particles = 0;
 
 	if( scene->nodes->size == 0 ) return;
 
@@ -692,6 +696,12 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	if( self->showAxis ) DaoxRenderer_PrepareNode( self, (DaoxSceneNode*) self->worldAxis );
 	if( self->tasks->size ) DaoxRenderer_UpdateBuffer( self, self->tasks, self->buffer );
 	if( self->tasks2->size ) DaoxRenderer_UpdateBuffer( self, self->tasks2, self->bufferSK );
+	for(i=0; i<self->tasks->size; ++i){
+		if( self->tasks->items.pDrawTask[i]->particleType ){
+			particles = 1;
+			break;
+		}
+	}
 
 	cameraPosition = DaoxSceneNode_GetWorldPosition( (DaoxSceneNode*) cam );
 	//viewMatrix = DaoxMatrix4D_Identity();
@@ -705,7 +715,6 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 		lightSource[i] = DaoxSceneNode_GetWorldPosition( (DaoxSceneNode*) light );
 		lightIntensity[i] = light->intensity;
 	}
-
 
 	glDepthMask(GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
@@ -758,27 +767,73 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform3fv( self->shader->uniforms.lightSource, lightCount, & lightSource[0].x );
 	glUniform4fv( self->shader->uniforms.lightIntensity, lightCount, & lightIntensity[0].red );
 
+	if( self->context->offscreen == 0 || particles == 0 ){
+		glUniform1i(self->shader->uniforms.hasDepthTexture, 0 );
 
-	glBindVertexArray( self->buffer->vertexVAO );
-	glBindBuffer( GL_ARRAY_BUFFER, self->buffer->vertexVBO );
-	//glEnableClientState(GL_VERTEX_ARRAY);
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->buffer->triangleVBO );
+		glBindVertexArray( self->bufferSK->vertexVAO );
+		glBindBuffer( GL_ARRAY_BUFFER, self->bufferSK->vertexVBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->bufferSK->triangleVBO );
+		for(i=0; i<self->tasks2->size; ++i){
+			DaoxRenderer_DrawTask( self, self->tasks2->items.pDrawTask[i] );
+		}
+		glBindVertexArray(0);
 
-	for(i=0; i<self->tasks->size; ++i){
-		DaoxRenderer_DrawTask( self, self->tasks->items.pDrawTask[i] );
+		glBindVertexArray( self->buffer->vertexVAO );
+		glBindBuffer( GL_ARRAY_BUFFER, self->buffer->vertexVBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->buffer->triangleVBO );
+		for(i=0; i<self->tasks->size; ++i){
+			DaoxRenderer_DrawTask( self, self->tasks->items.pDrawTask[i] );
+		}
+		glBindVertexArray(0);
+	}else{
+		glBindFramebuffer(GL_FRAMEBUFFER, self->context->frameBuffer);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUniform1i(self->shader->uniforms.hasDepthTexture, 1 );
+
+		glBindVertexArray( self->bufferSK->vertexVAO );
+		glBindBuffer( GL_ARRAY_BUFFER, self->bufferSK->vertexVBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->bufferSK->triangleVBO );
+		for(i=0; i<self->tasks2->size; ++i){
+			DaoxRenderer_DrawTask( self, self->tasks2->items.pDrawTask[i] );
+		}
+		glBindVertexArray(0);
+
+		glBindVertexArray( self->buffer->vertexVAO );
+		glBindBuffer( GL_ARRAY_BUFFER, self->buffer->vertexVBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->buffer->triangleVBO );
+		for(i=0; i<self->tasks->size; ++i){
+			if( self->tasks->items.pDrawTask[i]->particleType ) continue;
+			DaoxRenderer_DrawTask( self, self->tasks->items.pDrawTask[i] );
+		}
+		glBindVertexArray(0);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glDisable(GL_DEPTH_TEST);
+		//glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+		//glBlendFuncSeparate(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, self->context->frameBuffer);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(0, 0, self->context->deviceWidth, self->context->deviceHeight, 0, 0, self->context->deviceWidth, self->context->deviceHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+		glBlitFramebuffer(0, 0, self->context->deviceWidth, self->context->deviceHeight, 0, 0, self->context->deviceWidth, self->context->deviceHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+		glActiveTexture( GL_TEXTURE0 + DAOX_DEPTH_TEXTURE );
+		glBindTexture( GL_TEXTURE_2D, self->context->depthTexture );
+		glUniform1i( self->shader->uniforms.depthTexture, DAOX_DEPTH_TEXTURE );
+
+		glBindVertexArray( self->buffer->vertexVAO );
+		glBindBuffer( GL_ARRAY_BUFFER, self->buffer->vertexVBO );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->buffer->triangleVBO );
+		for(i=0; i<self->tasks->size; ++i){
+			if( self->tasks->items.pDrawTask[i]->particleType == 0 ) continue;
+			DaoxRenderer_DrawTask( self, self->tasks->items.pDrawTask[i] );
+		}
+		glBindVertexArray(0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
-	glBindVertexArray(0);
-
-
-	glBindVertexArray( self->bufferSK->vertexVAO );
-	glBindBuffer( GL_ARRAY_BUFFER, self->bufferSK->vertexVBO );
-	//glEnableClientState(GL_VERTEX_ARRAY);
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, self->bufferSK->triangleVBO );
-
-	for(i=0; i<self->tasks2->size; ++i){
-		DaoxRenderer_DrawTask( self, self->tasks2->items.pDrawTask[i] );
-	}
-	glBindVertexArray(0);
 
 
 	glDepthMask(GL_FALSE);

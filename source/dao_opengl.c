@@ -60,6 +60,7 @@ static const char *const daox_vector_graphics_shader_body =
 "uniform int   hasDiffuseTexture; \n\
 uniform int   hasEmissionTexture; \n\
 uniform int   hasBumpTexture; \n\
+uniform int   hasDepthTexture; \n\
 uniform float alphaBlending; \n\
 uniform vec4  brushColor; \n\
 uniform float graphScale; \n\
@@ -336,6 +337,7 @@ out vec3 varPosition; \n\
 out vec3 varNormal;  \n\
 out vec3 varTangent; \n\
 out vec2 varTexCoord;\n\
+out vec2 varDeviceCoord;\n\
 \n\
 void main(void)\n\
 {\n\
@@ -366,6 +368,7 @@ void main(void)\n\
 //	bezierKLM.y = weights[1];\n\
 //	bezierKLM.z = weights[2];\n\
 	gl_Position = projMatrix * viewMatrix * worldPosition;\n\
+	varDeviceCoord = vec2( gl_Position );\n\
 }\n";
 
 
@@ -394,12 +397,14 @@ uniform sampler2D tileTexture3;\n\
 uniform sampler2D tileTexture4;\n\
 uniform sampler2D tileTexture5;\n\
 uniform sampler2D tileTexture6;\n\
+uniform sampler2D depthTexture;\n\
 \n\
 in  vec3 varPosition;\n\
 in  vec3 varNormal;\n\
 in  vec3 varTangent;\n\
 in  vec2 varTexCoord;\n\
 in  vec2 vertexPosition; \n\
+in  vec2 varDeviceCoord;\n\
 in  vec3 bezierKLM; \n\
 in  float pathOffset; \n\
 out vec4 fragColor;\n\
@@ -578,9 +583,13 @@ vec4 ComputeAllLights( vec4 diffColor, vec4 emiColor )\n\
 \n\
 float Noise( vec2 uv )\n\
 {\n\
-	return fract(sin(dot(uv.xy ,vec2(12.9898,78.233))) * 43758.5453);\n\
+	return fract(sin(dot(uv.xy, vec2(12.9898,78.233))) * 43758.5453);\n\
 }\n\
 \n\
+float Noise3( vec3 uv )\n\
+{\n\
+	return fract(sin(dot(uv, vec3(12.9898,78.233,37.96))) * 43758.5453);\n\
+}\n\
 \n\
 float Noise2( vec2 uv, int KK )\n\
 {\n\
@@ -595,14 +604,38 @@ float Noise2( vec2 uv, int KK )\n\
 	float n2 = mix( f4, f3, (uv.x - x) * KK );\n\
 	return mix( n1, n2, (uv.y - y) * KK );\n\
 }\n\
+float Noise4( vec3 pos, int KK )\n\
+{\n\
+	pos = pos + vec3( 10000, 10000, 10000 );\n\
+	float x = int(pos.x * KK) / float(KK);\n\
+	float y = int(pos.y * KK) / float(KK);\n\
+	float z = int(pos.z * KK) / float(KK);\n\
+	float d = 1.0 / float(KK);\n\
+	float f1 = Noise3( vec3( x, y, z ) );\n\
+	float f2 = Noise3( vec3( x+d, y, z ) );\n\
+	float f3 = Noise3( vec3( x+d, y+d, z ) );\n\
+	float f4 = Noise3( vec3( x, y+d, z ) );\n\
+	float f5 = Noise3( vec3( x, y, z+d ) );\n\
+	float f6 = Noise3( vec3( x+d, y, z+d ) );\n\
+	float f7 = Noise3( vec3( x+d, y+d, z+d ) );\n\
+	float f8 = Noise3( vec3( x, y+d, z+d ) );\n\
+	float m1 = mix( f1, f2, (pos.x - x) * KK );\n\
+	float m2 = mix( f4, f3, (pos.x - x) * KK );\n\
+	float m3 = mix( f5, f6, (pos.x - x) * KK );\n\
+	float m4 = mix( f8, f7, (pos.x - x) * KK );\n\
+	float n1 = mix( m1, m2, (pos.y - y) * KK );\n\
+	float n2 = mix( m3, m4, (pos.y - y) * KK );\n\
+	return mix( n1, n2, (pos.z - z) * KK );\n\
+}\n\
 \n\
 float ParticleFactor( float x, float y )\n\
 {\n\
-	float var = 10*Noise( vec2(varTangent) );\n\
-	vec2 seed = vec2( x + var, y - var );\n\
-	float n1 = clamp( Noise2( seed, 10), 0.0, 1.0 );\n\
-	float n2 = clamp( Noise2( seed, 20), 0.0, 1.0 );\n\
-	float n = 0.5*(n1 + n2);\n\
+	float tm = time * 0.01;\n\
+	float var = tm - int(tm);\n\
+	vec2 seed = vec2( x+var, y-var );\n\
+	float n1 = clamp( Noise4( 0.5*varPosition + vec3(var, var, var), 1), 0.0, 1.0 );\n\
+	float n2 = clamp( Noise2( 0.5*seed, 20), 0.0, 1.0 );\n\
+	float n = mix( n1, mix( n2, n1, varTangent.z), 0.5 );\n\
 	float ds = x - 0.5;\n\
 	float dt = y - 0.5;\n\
 	float r = sqrt( ds*ds + dt*dt );\n\
@@ -612,14 +645,9 @@ float ParticleFactor( float x, float y )\n\
 }\n\
 vec4 ParticleColor( float factor )\n\
 {\n\
-	// More emission color with less details in the beginning: \n\
-	factor = mix( factor, 1.0, pow(varTangent.z, 1.0) );\n\
-	vec4 diffColor2 = diffuseColor;\n\
-	if( varTangent.z < 0.5 ){\n\
-		float blendDiffuse = 2.0 * varTangent.z;\n\
-		diffColor2 = mix( ambientColor, diffuseColor, blendDiffuse );\n\
-	}\n\
-	return mix( diffColor2, emissionColor, factor );\n\
+	vec4 diffColor1 = mix( diffuseColor, emissionColor, sqrt(factor) );\n\
+	vec4 diffColor2 = mix( ambientColor, diffuseColor, factor*factor );\n\
+	return mix( diffColor2, diffColor1, varTangent.z );\n\
 }\n\
 \n\
 \n\
@@ -651,19 +679,19 @@ void main(void)\n\
 	if( lightCount == 0 ) fragColor = diffColor + emiColor;\n\
 	//fragColor = diffColor;\n\
 	if( particleType > 0 ){\n\
+		if( hasDepthTexture > 0 ){\n\
+			vec2 sv = vec2( gl_FragCoord.x/960.0, gl_FragCoord.y/800.0 );\n\
+			float depth = texture( depthTexture, sv).r;\n\
+			if( gl_FragCoord.z > depth ) discard;\n\
+		}\n\
 		float alpha = ParticleFactor( varTexCoord.x, varTexCoord.y ); \n\
-		float alpha1 = ParticleFactor( varTexCoord.x-0.02, varTexCoord.y-0.02 ); \n\
-		float alpha2 = ParticleFactor( varTexCoord.x+0.02, varTexCoord.y-0.02 ); \n\
-		float alpha3 = ParticleFactor( varTexCoord.x+0.02, varTexCoord.y+0.02 ); \n\
-		float alpha4 = ParticleFactor( varTexCoord.x-0.02, varTexCoord.y+0.02 ); \n\
-		if( alpha<0.1 && alpha1<0.1 && alpha2<0.1 && alpha3<0.1 && alpha4<0.1 ) discard;\n\
-		vec4 color = ParticleColor( alpha );\n\
-		vec4 color1 = ParticleColor( alpha1 );\n\
-		vec4 color2 = ParticleColor( alpha2 );\n\
-		vec4 color3 = ParticleColor( alpha3 );\n\
-		vec4 color4 = ParticleColor( alpha4 );\n\
-		fragColor = 0.2*(color + color1 + color2 + color3 + color4);\n\
-		fragColor[3] = 0.96;\n\
+		float cutoff = 0.1;\n\
+		if( alpha < cutoff ) discard;\n\
+		alpha = (alpha - cutoff) / (1.0 - cutoff);\n\
+		fragColor = ParticleColor( alpha );\n\
+		if( hasDepthTexture > 0 ){\n\
+			fragColor[3] = 1.0 - exp( -25*alpha*alpha );\n\
+		}\n\
 	}\n\
 	if( vectorGraphics > 0 ){ \n\
 		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
@@ -841,9 +869,10 @@ void DaoxShader_Finalize2D( DaoxShader *self )
 	self->uniforms.hasDiffuseTexture = glGetUniformLocation(self->program, "hasDiffuseTexture");
 	self->uniforms.hasEmissionTexture = glGetUniformLocation(self->program, "hasEmissionTexture");
 	self->uniforms.hasBumpTexture = glGetUniformLocation(self->program, "hasBumpTexture");
-	self->uniforms.diffuseTexture = glGetUniformLocation(self->program, "diffuseTexture");
+	self->uniforms.hasDepthTexture = glGetUniformLocation(self->program, "hasDepthTexture");
 	self->uniforms.emissionTexture = glGetUniformLocation(self->program, "emissionTexture");
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
+	self->uniforms.depthTexture = glGetUniformLocation(self->program, "depthTexture");
 	self->uniforms.particleType = glGetUniformLocation(self->program, "particleType");
 	self->attributes.position = glGetAttribLocation(self->program, "position");
 	self->attributes.texKLMO = glGetAttribLocation(self->program, "texKLMO");
@@ -872,9 +901,11 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.hasDiffuseTexture = glGetUniformLocation(self->program, "hasDiffuseTexture");
 	self->uniforms.hasEmissionTexture = glGetUniformLocation(self->program, "hasEmissionTexture");
 	self->uniforms.hasBumpTexture = glGetUniformLocation(self->program, "hasBumpTexture");
+	self->uniforms.hasDepthTexture = glGetUniformLocation(self->program, "hasDepthTexture");
 	self->uniforms.diffuseTexture = glGetUniformLocation(self->program, "diffuseTexture");
 	self->uniforms.emissionTexture = glGetUniformLocation(self->program, "emissionTexture");
 	self->uniforms.bumpTexture = glGetUniformLocation(self->program, "bumpTexture");
+	self->uniforms.depthTexture = glGetUniformLocation(self->program, "depthTexture");
 	self->uniforms.particleType = glGetUniformLocation(self->program, "particleType");
 	self->uniforms.terrainTileType = glGetUniformLocation(self->program, "terrainTileType");
 	self->uniforms.tileTextureCount = glGetUniformLocation(self->program, "tileTextureCount");
@@ -1234,6 +1265,9 @@ void DaoxContext_Clear( DaoxContext *self )
 	DList_Clear( self->shaders );
 	DList_Clear( self->buffers );
 	DList_Clear( self->textures );
+	if( self->colorTexture ) glDeleteTextures( 1, & self->colorTexture );
+	if( self->depthTexture ) glDeleteTextures( 1, & self->depthTexture );
+	if( self->frameBuffer ) glDeleteFramebuffers( 1, & self->frameBuffer );
 }
 
 int DaoxContext_BindShader( DaoxContext *self, DaoxShader *shader )
@@ -1295,6 +1329,60 @@ int DaoxContext_BindTexture( DaoxContext *self, DaoxTexture *texture )
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return 1;
+}
+void DaoxContext_InitOffscreenBuffer( DaoxContext *self )
+{
+	int ret;
+
+	if( self->colorTexture ) return;
+
+	glGenTextures(1, & self->colorTexture);
+	glBindTexture(GL_TEXTURE_2D, self->colorTexture);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, self->deviceWidth, self->deviceHeight, 0,
+			GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenTextures(1, & self->depthTexture);
+	glBindTexture(GL_TEXTURE_2D, self->depthTexture);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, self->deviceWidth, self->deviceHeight,
+			0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenFramebuffers(1, & self->frameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, self->frameBuffer);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, self->colorTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, self->depthTexture, 0);
+
+	switch( (ret = glCheckFramebufferStatus(GL_FRAMEBUFFER)) ){
+	case GL_FRAMEBUFFER_COMPLETE:
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+		printf("Framebuffer Object Error (%d): Attachment Point Unconnected", ret);
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+		printf("Framebuffer Object Error (%d): Missing Attachment", ret);
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+		printf("Framebuffer Object Error (%d): Draw Buffer", ret);
+		break;
+	case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+		printf("Framebuffer Object Error (%d): Read Buffer", ret);
+		break;
+	case GL_FRAMEBUFFER_UNSUPPORTED:
+		printf("Framebuffer Object Error (%d): Unsupported Framebuffer Configuration", ret);
+		break;
+	default:
+		printf("Framebuffer Object Error (%d): Unkown Framebuffer Object Failure", ret);
+		break;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	self->offscreen = ret == GL_FRAMEBUFFER_COMPLETE;
+	printf( "offscreen = %i\n", self->offscreen );
 }
 
 

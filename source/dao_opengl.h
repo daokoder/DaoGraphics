@@ -79,6 +79,7 @@ enum DaoxSamplerID
 	DAOX_DIFFUSE_TEXTURE = 0,
 	DAOX_EMISSION_TEXTURE ,
 	DAOX_BUMP_TEXTURE ,
+	DAOX_DEPTH_TEXTURE ,
 	DAOX_DASH_SAMPLER ,
 	DAOX_GRADIENT_SAMPLER ,
 	DAOX_TILE_TEXTURE1 ,
@@ -169,6 +170,8 @@ struct DaoxShader
 		uint_t  diffuseTexture;
 		uint_t  emissionTexture;
 		uint_t  bumpTexture;
+		uint_t  hasDepthTexture;
+		uint_t  depthTexture;
 		uint_t  particleType;
 		uint_t  alphaBlending;
 		uint_t  graphScale;
@@ -284,6 +287,11 @@ struct DaoxContext
 
 	int  deviceWidth;
 	int  deviceHeight;
+
+	int     offscreen;
+	GLuint  colorTexture;
+	GLuint  depthTexture;
+	GLuint  frameBuffer;
 };
 extern DaoType *daox_type_context;
 
@@ -294,6 +302,7 @@ void DaoxContext_Clear( DaoxContext *self );
 int DaoxContext_BindShader( DaoxContext *self, DaoxShader *shader );
 int DaoxContext_BindBuffer( DaoxContext *self, DaoxBuffer *buffer );
 int DaoxContext_BindTexture( DaoxContext *self, DaoxTexture *texture );
+void DaoxContext_InitOffscreenBuffer( DaoxContext *self );
 
 
 void DaoxMatrix4D_Export( DaoxMatrix4D *self, GLfloat matrix[16] );

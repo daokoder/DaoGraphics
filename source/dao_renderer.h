@@ -84,6 +84,7 @@ struct DaoxRenderer
 	DList   *canvases;
 	DList   *taskCache;
 	DMap    *map;
+
 };
 extern DaoType *daox_type_renderer;
 

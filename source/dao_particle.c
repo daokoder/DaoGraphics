@@ -64,7 +64,7 @@ DaoxEmitter* DaoxEmitter_New()
 	self->clusters = DList_New(0);
 	self->emitter = DaoxMeshUnit_New();
 	GC_IncRC( self->emitter );
-	DaoxMeshFrame_MakeSphere( frame, 0.1, 3 );
+	DaoxMeshFrame_MakeSphere( frame, 0.1, 5 );
 	DaoxMeshFrame_Export( frame, self->emitter );
 	DaoxMeshFrame_Delete( frame );
 	return self;
@@ -122,6 +122,7 @@ DaoxParticle* DaoxEmitter_AddParticle( DaoxEmitter *self, DaoxParticles *cluster
 	lifeSpan = self->lifeSpan * (0.8 + 0.2*DaoRandGenerator_GetNormal( randgen ));
 	if( lifeSpan < 0.5*self->lifeSpan ) lifeSpan = 0.5*self->lifeSpan;
 	if( lifeSpan < 2.0*self->lifeSpan ) lifeSpan = 2.0*self->lifeSpan;
+	if( self->life < lifeSpan ) lifeSpan = self->life;
 	if( lifeSpan > cluster->timeout ) cluster->timeout = lifeSpan;
 	particle->lifeSpan = lifeSpan;
 	particle->life = 0;
@@ -216,6 +217,7 @@ void DaoxEmitter_Update( DaoxEmitter *self, float dtime )
 }
 void DaoxEmitter_UpdateView( DaoxEmitter *self, DaoxVector3D campos )
 {
+	DaoRandGenerator *randgen = self->randGenerator;
 	int i, j, k;
 	for(i=0; i<self->active; ++i){
 		DaoxParticles *cluster = (DaoxParticles*) self->clusters->items.pVoid[i];
@@ -235,6 +237,12 @@ void DaoxEmitter_UpdateView( DaoxEmitter *self, DaoxVector3D campos )
 			}
 			camdir = DaoxVector3D_Sub( & particle->position, & campos );
 			camdir = DaoxVector3D_Normalize( & camdir );
+			if( randgen ){
+				camdir.x += 0.1*(DaoRandGenerator_GetUniform( randgen ) - 0.5);
+				camdir.y += 0.1*(DaoRandGenerator_GetUniform( randgen ) - 0.5);
+				camdir.z += 0.1*(DaoRandGenerator_GetUniform( randgen ) - 0.5);
+				camdir = DaoxVector3D_Normalize( & camdir );
+			}
 			dx = DaoxVector3D_XYZ( camdir.y, camdir.z, camdir.x );
 			dx = DaoxVector3D_Cross( & camdir, & dx );
 			dx = DaoxVector3D_Normalize( & dx );
@@ -261,6 +269,7 @@ void DaoxEmitter_UpdateView( DaoxEmitter *self, DaoxVector3D campos )
 			N = DaoxTriangle_Normal( & vertices[0].pos, & vertices[1].pos, & vertices[2].pos );
 			for(k=0; k<4; ++k){
 				vertices[k].norm = N;
+				vertices[k].tan = particle->position;
 				vertices[k].tan.z = (particle->lifeSpan - particle->life) / particle->lifeSpan;
 			}
 		}
