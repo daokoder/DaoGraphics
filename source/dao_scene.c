@@ -437,9 +437,9 @@ DaoxMatrix4D DaoxSceneNode_GetParentTransform( DaoxSceneNode *self )
 		DaoxMatrix4D orientation = DaoxMatrix4D_EulerRotationVector( joint->orientation );
 		trans = DaoxMatrix4D_Product( & orientation, & trans );
 	}
-	trans.B1 = self->translation.x;
-	trans.B2 = self->translation.y;
-	trans.B3 = self->translation.z;
+	trans.B1 += self->translation.x;
+	trans.B2 += self->translation.y;
+	trans.B3 += self->translation.z;
 
 	return trans;
 }

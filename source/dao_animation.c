@@ -102,7 +102,19 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 	}
 
 	if( self->channel == DAOX_ANIMATE_TF ){
+		// XXX: assuming only rotation and translation:
+		DaoxQuaternion Q1 = DaoxQuaternion_FromRotationMatrix( & prevFrame->matrix );
+		DaoxQuaternion Q2 = DaoxQuaternion_FromRotationMatrix( & nextFrame->matrix );
+		DaoxQuaternion Q = DaoxQuaternion_Slerp( & Q1, & Q2, factor );
+
+		self->transform = DaoxMatrix4D_FromQuaternion( & Q );
+		self->transform.B1 = (1.0 - factor)*prevFrame->matrix.B1 + factor*nextFrame->matrix.B1;
+		self->transform.B2 = (1.0 - factor)*prevFrame->matrix.B2 + factor*nextFrame->matrix.B2;
+		self->transform.B3 = (1.0 - factor)*prevFrame->matrix.B3 + factor*nextFrame->matrix.B3;
+
+#if 0
 		self->transform = DaoxMatrix4D_Interpolate( & prevFrame->matrix, & nextFrame->matrix, factor );
+#endif
 		return;
 	}
 

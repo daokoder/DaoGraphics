@@ -1046,7 +1046,7 @@ int DaoxColladaParser_HandleController( DaoxColladaParser *self, DaoXmlNode *nod
 
 	skeleton = DaoxSkeleton_New();
 
-	child = DaoXmlNode_GetChildMBS( node, "bind_shape_matrix" );
+	child = DaoXmlNode_GetChildMBS( skinNode, "bind_shape_matrix" );
 	if( child ){
 		DString_ParseFloats( child->content, floats, 0 );
 		skeleton->bindMat = DaoxMatrix4D_InitRowMajor( floats->data.floats );
@@ -1324,7 +1324,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 	case DAE_NODE :
 		sceneNode = NULL;
 		att = DaoXmlNode_GetAttributeMBS( node, "type" );
-		if( strcmp( att->chars, "JOINT" ) == 0 ){
+		if( att != NULL && strcmp( att->chars, "JOINT" ) == 0 ){
 			node->data = sceneNode = (DaoxSceneNode*) DaoxJoint_New();
 			sceneNode2 = (DaoxSceneNode*) DaoXmlNode_GetAncestorDataMBS( node, "node", 1 );
 			if( sceneNode2 ){

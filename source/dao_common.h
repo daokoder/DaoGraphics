@@ -203,13 +203,16 @@ struct DaoxQuaternion
 	float  z;
 };
 
+DaoxQuaternion DaoxQuaternion_Reciprocal( DaoxQuaternion *self );
 DaoxQuaternion DaoxQuaternion_FromAxisAngle( DaoxVector3D *axis, float angle );
 DaoxQuaternion DaoxQuaternion_FromRotation( DaoxVector3D *rotation );
+DaoxQuaternion DaoxQuaternion_FromRotationMatrix( DaoxMatrix4D *rotation );
 
 DaoxQuaternion DaoxQuaternion_FromEulerAngles( float alpha, float beta, float gamma );
 DaoxQuaternion DaoxQuaternion_FromEulerAngleVector( DaoxVector3D angles );
 
 DaoxQuaternion DaoxQuaternion_Product( DaoxQuaternion *self, DaoxQuaternion *other );
+DaoxQuaternion DaoxQuaternion_Slerp( DaoxQuaternion *self, DaoxQuaternion *other, float t );
 
 DaoxVector3D DaoxQuaternion_Rotate( DaoxQuaternion *self, DaoxVector3D *vector );
 DaoxVector3D DaoxQuaternion_ToRotation( DaoxQuaternion *self );
@@ -398,6 +401,8 @@ DaoxTriangle* DArray_PushTriangleIJK( DArray *self, int i, int j, int k );
 DaoxIndexFloat* DArray_PushIndexFloat( DArray *self, int index, float value );
 
 void DArray_SortIndexFloats( DArray *self );
+
+double DaoxMath_Clamp( double value, double min, double max );
 
 
 extern DaoVmSpace *dao_vmspace_graphics;
