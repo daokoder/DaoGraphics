@@ -107,7 +107,7 @@
     <image id="body_png" name="body_png">
       <init_from>body.png</init_from>
     </image>
-    <image id="quiver_png" name="quiver_png">
+    <image id="hair_png" name="hair_png">
       <init_from>quiver.png</init_from>
     </image>
     <image id="metal_jpg" name="metal_jpg">
@@ -197,14 +197,14 @@
     </effect>
     <effect id="material5-effect">
       <profile_COMMON>
-        <newparam sid="quiver_png-surface">
+        <newparam sid="hair_png-surface">
           <surface type="2D">
-            <init_from>quiver_png</init_from>
+            <init_from>hair_png</init_from>
           </surface>
         </newparam>
-        <newparam sid="quiver_png-sampler">
+        <newparam sid="hair_png-sampler">
           <sampler2D>
-            <source>quiver_png-surface</source>
+            <source>hair_png-surface</source>
           </sampler2D>
         </newparam>
         <technique sid="common">
@@ -216,7 +216,7 @@
               <color sid="ambient">0 0 0 1</color>
             </ambient>
             <diffuse>
-              <texture texture="quiver_png-sampler" texcoord="mesh18-geometry-uv"/>
+              <texture texture="hair_png-sampler" texcoord="mesh18-geometry-uv"/>
             </diffuse>
             <specular>
               <color sid="specular">0.2 0.2 0.2 1</color>
