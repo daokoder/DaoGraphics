@@ -228,6 +228,7 @@ struct DaoxCamera
 	DaoxVector3D   viewTarget;
 	float          fovAngle;
 	float          aspectRatio;   // Width to height ratio of the view field;
+	float          focusPlane;
 	float          nearPlane;
 	float          farPlane;
 };

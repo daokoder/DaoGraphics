@@ -13,5 +13,5 @@ scene.AddNode( light );
 
 
 window = Graphics::Window( 960, 800, '' )
-window.Show( scene )
+window.Show( scene, 500, 1 )
 window.Quit()

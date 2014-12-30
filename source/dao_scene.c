@@ -574,6 +574,7 @@ DaoxCamera* DaoxCamera_New()
 	self->aspectRatio = 1.2;
 	self->nearPlane = 0.5;
 	self->farPlane = 100.0;
+	self->focusPlane = 20.0;
 	return self;
 }
 void DaoxCamera_Delete( DaoxCamera *self )

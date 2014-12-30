@@ -1280,6 +1280,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		case DAE_ZNEAR :        camera->nearPlane = dvalue; break;
 		case DAE_ZFAR :         camera->farPlane = dvalue; break;
 		}
+		camera->focusPlane = 0.8 * camera->nearPlane + 0.2 * camera->farPlane;
 		break;
 	case DAE_INIT_FROM :
 		if( (texture = (DaoxTexture*) DaoXmlNode_GetAncestorDataMBS( node, "image", 1 )) ){

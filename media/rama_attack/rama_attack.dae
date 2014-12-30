@@ -108,7 +108,7 @@
       <init_from>body.png</init_from>
     </image>
     <image id="hair_png" name="hair_png">
-      <init_from>quiver.png</init_from>
+      <init_from>hair.png</init_from>
     </image>
     <image id="metal_jpg" name="metal_jpg">
       <init_from>metal.jpg</init_from>

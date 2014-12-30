@@ -519,19 +519,24 @@ DaoxQuaternion DaoxQuaternion_Interpolate( DaoxQuaternion *Q0, DaoxQuaternion *Q
 }
 DaoxQuaternion DaoxQuaternion_Slerp( DaoxQuaternion *Q0, DaoxQuaternion *Q1, float T )
 {
-	DaoxQuaternion res;
+	DaoxQuaternion res, Q2 = *Q1;
 	double cosine = Q0->w * Q1->w + Q0->x * Q1->x + Q0->y * Q1->y + Q0->z * Q1->z;
-	double angle = acos( DaoxMath_Clamp( cosine, -1, 1 ) );
-	double sine, sine1, sine2;
+	double angle, sine, sine1, sine2;
 
-	if( angle > 0.8*M_PI ){
-		DaoxMatrix4D M0 = DaoxMatrix4D_FromQuaternion( Q0 );
-		DaoxMatrix4D M1 = DaoxMatrix4D_FromQuaternion( Q1 );
-		DaoxMatrix4D M = DaoxMatrix4D_Interpolate( & M0, & M1, T );
-		return DaoxQuaternion_FromRotationMatrix( & M );
-	}else if( angle < 1E-3 ){
+	if( cosine < 0.0 ){
+		cosine = - cosine;
+		Q2.w = - Q1->w;
+		Q2.x = - Q1->x;
+		Q2.y = - Q1->y;
+		Q2.z = - Q1->z;
+		Q1 = & Q2;
+	}
+	angle = acos( DaoxMath_Clamp( cosine, -1, 1 ) );
+
+	if( angle < 1E-3 ){
 		return DaoxQuaternion_Interpolate( Q0, Q1, T );
 	}
+
 	sine = sin( angle ) + EPSILON;
 	sine1 = sin( (1.0 - T) * angle );
 	sine2 = sin( T * angle );
