@@ -400,6 +400,10 @@ DaoxVector3D* DArray_PushVectorXYZ( DArray *self, float x, float y, float z );
 DaoxTriangle* DArray_PushTriangleIJK( DArray *self, int i, int j, int k );
 DaoxIndexFloat* DArray_PushIndexFloat( DArray *self, int index, float value );
 
+typedef int (*DList_CompareItem)( void *first, void *second );
+
+void DList_Sort( DList *self, DList_CompareItem cmpfunc );
+
 void DArray_SortIndexFloats( DArray *self );
 
 double DaoxMath_Clamp( double value, double min, double max );

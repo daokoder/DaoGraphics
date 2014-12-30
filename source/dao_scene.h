@@ -205,6 +205,8 @@ void DaoxSceneNode_MoveXYZ( DaoxSceneNode *self, float x, float y, float z );
 void DaoxSceneNode_MoveBy( DaoxSceneNode *self, DaoxVector3D delta );
 void DaoxSceneNode_Move( DaoxSceneNode *self, DaoxVector3D pos );
 
+void DaoxSceneNode_SortAnimations( DaoxSceneNode *self );
+
 DaoxMatrix4D DaoxSceneNode_GetParentTransform( DaoxSceneNode *self );
 DaoxMatrix4D DaoxSceneNode_GetWorldTransform( DaoxSceneNode *self );
 

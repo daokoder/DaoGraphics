@@ -432,14 +432,10 @@ static double DaoxMatrix4D_RotationDeterminant( DaoxMatrix4D *self )
 	double det3 = self->A22 * self->A33 - self->A32 * self->A23;
 	return self->A11 * det3 - self->A12 * det2 + self->A13 * det1;
 }
-#define MAX(x,y) (x > y ? x : y)
 // http://en.wikipedia.org/wiki/Rotation_matrix#Quaternion
 DaoxQuaternion DaoxQuaternion_FromRotationMatrix( DaoxMatrix4D *rotation )
 {
 	DaoxQuaternion res;
-	double detroot = pow( DaoxMatrix4D_RotationDeterminant( rotation ), 1.0/3.0 );
-	double w = 0.5 * sqrt( MAX(0, 1.0 + rotation->A11 + rotation->A22 + rotation->A33) );
-	double w4 = 4.0 * w + EPSILON;
 
 	double trace = rotation->A11 + rotation->A22 + rotation->A33;
 	if( trace > 0.0 ) {
@@ -471,20 +467,6 @@ DaoxQuaternion DaoxQuaternion_FromRotationMatrix( DaoxMatrix4D *rotation )
 		res.y = (rotation->A23 + rotation->A32 ) * s;
 		res.z = 0.5 * r;
 	}
-	return res;
-
-	res.w = w;
-	res.x = (rotation->A32 - rotation->A23) / w4;
-	res.y = (rotation->A13 - rotation->A31) / w4;
-	res.z = (rotation->A21 - rotation->A12) / w4;
-	return res;
-	res.w = 0.5 * sqrt( MAX( 0.0, detroot + rotation->A11 + rotation->A22 + rotation->A33 ) );
-	res.x = 0.5 * sqrt( MAX( 0.0, detroot + rotation->A11 - rotation->A22 - rotation->A33 ) );
-	res.y = 0.5 * sqrt( MAX( 0.0, detroot - rotation->A11 + rotation->A22 - rotation->A33 ) );
-	res.z = 0.5 * sqrt( MAX( 0.0, detroot - rotation->A11 - rotation->A22 + rotation->A33 ) );
-	res.x = copysign( res.x, rotation->A32 - rotation->A23 );
-	res.y = copysign( res.y, rotation->A13 - rotation->A31 );
-	res.z = copysign( res.z, rotation->A21 - rotation->A12 );
 	return res;
 }
 DaoxQuaternion DaoxQuaternion_FromEulerAngles( float alpha, float beta, float gamma )
@@ -535,66 +517,8 @@ DaoxQuaternion DaoxQuaternion_Interpolate( DaoxQuaternion *Q0, DaoxQuaternion *Q
 	res.z = (1.0 - T) * Q0->z + T * Q1->z;
 	return res;
 }
-#define SLERP_METH 3
 DaoxQuaternion DaoxQuaternion_Slerp( DaoxQuaternion *Q0, DaoxQuaternion *Q1, float T )
 {
-#if SLERP_METH == 1
-	double qnorm1 = sqrt( Q0->w*Q0->w + Q0->x*Q0->x + Q0->y*Q0->y + Q0->z*Q0->z ) + EPSILON;
-	double qnorm2 = sqrt( Q1->w*Q1->w + Q1->x*Q1->x + Q1->y*Q1->y + Q1->z*Q1->z ) + EPSILON;
-	double qnorm = (1.0 - T) * qnorm1 + T * qnorm2;
-	double angle1 = acos( DaoxMath_Clamp( Q0->w / qnorm1, -1, 1 ) );
-	double angle2 = acos( DaoxMath_Clamp( Q1->w / qnorm2, -1, 1 ) );
-	double angle = (1.0 - T) * angle1 + T * angle2;
-	double normsine1 = qnorm1 * sin( angle1 ) + EPSILON;
-	double normsine2 = qnorm2 * sin( angle2 ) + EPSILON;
-	DaoxVector3D axis1 = DaoxVector3D_XYZ( Q0->x/normsine1, Q0->y/normsine1, Q0->z/normsine1 );
-	DaoxVector3D axis2 = DaoxVector3D_XYZ( Q1->x/normsine2, Q1->y/normsine2, Q1->z/normsine2 );
-	DaoxVector3D axis = DaoxVector3D_Interpolate( axis1, axis2, T );
-	DaoxQuaternion res;
-	double sine = sin( angle );
-	double cosine = cos( angle );
-
-	double cosine3 = Q0->w * Q1->w + Q0->x * Q1->x + Q0->y * Q1->y + Q0->z * Q1->z;
-	double cosine4 = axis1.x * axis2.x + axis1.y * axis2.y + axis1.z * axis2.z;
-	double angle3 = acos( DaoxMath_Clamp( cosine3, -1, 1 ) );
-	if( angle3 > 0.5*M_PI ) printf( "%f, %f %f %f: %f %f\n", qnorm, angle1, angle2, angle, sine, cosine4 );
-
-	axis = DaoxVector3D_Normalize( & axis );
-	res.w = qnorm * cosine;
-	res.x = axis.x * qnorm * sine;
-	res.y = axis.y * qnorm * sine;
-	res.z = axis.z * qnorm * sine;
-	return res;
-#endif
-
-#if SLERP_METH == 2
-	DaoxQuaternion Q0R = DaoxQuaternion_Reciprocal( Q0 );
-	DaoxQuaternion Q1Q0R = DaoxQuaternion_Product( Q1, & Q0R );
-	DaoxQuaternion Q1Q0RT;
-	DaoxVector3D uvec;
-	double qnorm = 1E-9 + sqrt(Q1Q0R.w*Q1Q0R.w + Q1Q0R.x*Q1Q0R.x + Q1Q0R.y*Q1Q0R.y + Q1Q0R.z*Q1Q0R.z);
-	double angle = acos( DaoxMath_Clamp( Q1Q0R.w / qnorm, -1, 1 ) );
-	//if( angle > 0.5*M_PI ) angle= 0.8*angle;
-	double sine = sin( angle );
-	uvec.x = Q1Q0R.x / (qnorm * sine + 1E-9);
-	uvec.y = Q1Q0R.y / (qnorm * sine + 1E-9);
-	uvec.z = Q1Q0R.z / (qnorm * sine + 1E-9);
-
-	double cosine2 = Q0->w * Q1->w + Q0->x * Q1->x + Q0->y * Q1->y + Q0->z * Q1->z;
-	double angle2 = acos( cosine2 );
-	printf( "angle = %f, %f %f\n", angle, angle2, cosine2 );
-
-	double qnormt = pow( qnorm, T );
-
-	sine = sin( T * angle );
-	Q1Q0RT.w = cos( T * angle ) * qnormt;
-	Q1Q0RT.x = uvec.x * sine * qnormt;
-	Q1Q0RT.y = uvec.y * sine * qnormt;
-	Q1Q0RT.z = uvec.z * sine * qnormt;
-	return DaoxQuaternion_Product( & Q1Q0RT, Q0 );
-#endif
-
-#if SLERP_METH == 3
 	DaoxQuaternion res;
 	double cosine = Q0->w * Q1->w + Q0->x * Q1->x + Q0->y * Q1->y + Q0->z * Q1->z;
 	double angle = acos( DaoxMath_Clamp( cosine, -1, 1 ) );
@@ -616,7 +540,6 @@ DaoxQuaternion DaoxQuaternion_Slerp( DaoxQuaternion *Q0, DaoxQuaternion *Q1, flo
 	res.y = (Q0->y * sine1 + Q1->y * sine2) / sine;
 	res.z = (Q0->z * sine1 + Q1->z * sine2) / sine;
 	return res;
-#endif
 }
 
 double DaoxQuaternion_Norm( DaoxQuaternion *self )
@@ -1675,6 +1598,41 @@ void DArray_SortIndexFloats( DArray *self )
 {
 	if( self->size <= 1 ) return;
 	DaoxIndexFloats_PartialQuickSort( self->data.indexfloats, 0, self->size-1, self->size );
+}
+
+void DList_PartialQuickSort( void *data[], int first, int last, int part, DList_CompareItem cmpfunc )
+{
+	int lower=first+1, upper=last;
+	void *pivot;
+	void *val;
+
+	if( first >= last ) return;
+	val = data[first];
+	data[first] = data[ (first+last)/2 ];
+	data[ (first+last)/2 ] = val;
+	pivot = data[ first ];
+
+	while( lower <= upper ){
+		while( lower <= last && (*cmpfunc)( data[lower], pivot ) < 0 ) lower ++;
+		while( (*cmpfunc)( pivot, data[upper] ) < 0 ) upper --;
+		if( lower < upper ){
+			val = data[lower];
+			data[lower] = data[upper];
+			data[upper] = val;
+			upper --;
+		}
+		lower ++;
+	}
+	val = data[first];
+	data[first] = data[upper];
+	data[upper] = val;
+	if( first < upper-1 ) DList_PartialQuickSort( data, first, upper-1, part, cmpfunc );
+	if( upper >= part ) return;
+	if( upper+1 < last ) DList_PartialQuickSort( data, upper+1, last, part, cmpfunc );
+}
+void DList_Sort( DList *self, DList_CompareItem cmpfunc )
+{
+	DList_PartialQuickSort( self->items.pVoid, 0, self->size-1, self->size, cmpfunc );
 }
 
 

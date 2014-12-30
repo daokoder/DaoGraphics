@@ -329,11 +329,11 @@ in vec2 texMO;\n\
 in vec4 joints;\n\
 in vec4 weights;\n\
 \n\
-out vec2  vertexPosition; \n\
 out vec3  bezierKLM; \n\
 out float pathOffset; \n\
 \n\
-out vec3 varPosition; \n\
+out vec3 localPosition; \n\
+out vec3 worldPosition; \n\
 out vec3 varNormal;  \n\
 out vec3 varTangent; \n\
 out vec2 varTexCoord;\n\
@@ -341,24 +341,24 @@ out vec2 varDeviceCoord;\n\
 \n\
 void main(void)\n\
 {\n\
-	varPosition = position;\n\
+	localPosition = position;\n\
 	if( vectorGraphics > 0 )\{\
-		varPosition.x = position.x * graphScale;\n\
-		varPosition.y = position.y * graphScale;\n\
+		localPosition.x = position.x * graphScale;\n\
+		localPosition.y = position.y * graphScale;\n\
 	}\n\
-	vec4 worldPosition = vec4( varPosition, 1.0 );\n\
-	worldPosition = modelMatrix * worldPosition;\n\
+	vec4 worldPosition4 = vec4( localPosition, 1.0 );\n\
+	worldPosition4 = modelMatrix * worldPosition4;\n\
 	if( skinning != 0 ){ \n\
-		worldPosition = \n\
-			skinMatRows[int(joints[0])] * worldPosition * weights[0] + \n\
-			skinMatRows[int(joints[1])] * worldPosition * weights[1] + \n\
-			skinMatRows[int(joints[2])] * worldPosition * weights[2] + \n\
-			skinMatRows[int(joints[3])] * worldPosition * weights[3]; \n\
+		worldPosition4 = \n\
+			skinMatRows[int(joints[0])] * worldPosition4 * weights[0] + \n\
+			skinMatRows[int(joints[1])] * worldPosition4 * weights[1] + \n\
+			skinMatRows[int(joints[2])] * worldPosition4 * weights[2] + \n\
+			skinMatRows[int(joints[3])] * worldPosition4 * weights[3]; \n\
 	}\n\
 	varNormal = normal;\n\
 	varTangent = tangent;\n\
 	varTexCoord = texCoord;\n\
-	vertexPosition = vec2( varPosition ); \n\
+	worldPosition = vec3( worldPosition4 ); \n\
 	bezierKLM = vec3( texCoord, texMO[0] ); \n\
 	pathOffset = texMO[1]; \n\
 //	bezierKLM.x = joints[0]/50.0;\n\
@@ -367,7 +367,7 @@ void main(void)\n\
 //	bezierKLM.x = weights[0];\n\
 //	bezierKLM.y = weights[1];\n\
 //	bezierKLM.z = weights[2];\n\
-	gl_Position = projMatrix * viewMatrix * worldPosition;\n\
+	gl_Position = projMatrix * viewMatrix * worldPosition4;\n\
 	varDeviceCoord = vec2( gl_Position );\n\
 }\n";
 
@@ -399,17 +399,16 @@ uniform sampler2D tileTexture5;\n\
 uniform sampler2D tileTexture6;\n\
 uniform sampler2D depthTexture;\n\
 \n\
-in  vec3 varPosition;\n\
+in  vec3 worldPosition;\n\
+in  vec3 localPosition;\n\
 in  vec3 varNormal;\n\
 in  vec3 varTangent;\n\
 in  vec2 varTexCoord;\n\
-in  vec2 vertexPosition; \n\
 in  vec2 varDeviceCoord;\n\
 in  vec3 bezierKLM; \n\
 in  float pathOffset; \n\
 out vec4 fragColor;\n\
 \n\
-vec3 worldPosition;\n\
 vec4 tileTextureInfo = vec4(0.0,0.0,0.0,0.0);\n\
 float tileBlendingWidth = 0.1;\n\
 int hasDiffuseTexture2 = hasDiffuseTexture;\n\
@@ -633,7 +632,7 @@ float ParticleFactor( float x, float y )\n\
 	float tm = time * 0.01;\n\
 	float var = tm - int(tm);\n\
 	vec2 seed = vec2( x+var, y-var );\n\
-	float n1 = clamp( Noise4( 0.5*varPosition + vec3(var, var, var), 1), 0.0, 1.0 );\n\
+	float n1 = clamp( Noise4( 0.5*localPosition + vec3(var, var, var), 1), 0.0, 1.0 );\n\
 	float n2 = clamp( Noise2( 0.5*seed, 20), 0.0, 1.0 );\n\
 	float n = mix( n1, mix( n2, n1, varTangent.z), 0.5 );\n\
 	float ds = x - 0.5;\n\
@@ -657,7 +656,6 @@ void main(void)\n\
 {\n\
 	vec4 diffColor = diffuseColor;\n\
 	vec4 emiColor = emissionColor;\n\
-	worldPosition = vec3( modelMatrix * vec4( varPosition, 1.0 ) );\n\
 	if( terrainTileType == 1 ) tileTextureInfo = RectLocateTex( varTexCoord );\n\
 	if( terrainTileType == 2 ) tileTextureInfo = HexLocateTex( varTexCoord );\n\
 	if( tileTextureCount > 0 ) hasDiffuseTexture2 = 1;\n\
@@ -694,7 +692,8 @@ void main(void)\n\
 		}\n\
 	}\n\
 	if( vectorGraphics > 0 ){ \n\
-		vec4 color = RenderVectorGraphics( vertexPosition, bezierKLM, varTexCoord, pathOffset ); \n\
+		vec2 canvasCoord = vec2( localPosition ); \n\
+		vec4 color = RenderVectorGraphics( canvasCoord, bezierKLM, varTexCoord, pathOffset ); \n\
 			fragColor = fragColor * color; \n\
 	}\n\
 }\n";

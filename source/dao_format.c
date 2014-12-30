@@ -601,19 +601,31 @@ static const char* const collada_tags[] =
 	"extra"
 };
 
-static const char* const collada_channel_tags[] =
+typedef struct DaoxChannelTag DaoxChannelTag;
+
+struct DaoxChannelTag
 {
-	"scale.X" ,
-	"scale.Y" ,
-	"scale.Z" ,
-	"rotateX.ANGLE" ,
-	"rotateY.ANGLE" ,
-	"rotateZ.ANGLE" ,
-	"location.X" ,
-	"location.Y" ,
-	"location.Z" ,
-	"translate",
-	"transform"
+	const char *name;
+	int         value;
+};
+
+static const DaoxChannelTag collada_channel_tags[] =
+{
+	{ "scale.X", DAOX_ANIMATE_SX },
+	{ "scale.Y", DAOX_ANIMATE_SY },
+	{ "scale.Z", DAOX_ANIMATE_SZ },
+	{ "rotateX.ANGLE", DAOX_ANIMATE_RX },
+	{ "rotateY.ANGLE", DAOX_ANIMATE_RY },
+	{ "rotateZ.ANGLE", DAOX_ANIMATE_RZ },
+	{ "rotationX.ANGLE", DAOX_ANIMATE_RX },
+	{ "rotationY.ANGLE", DAOX_ANIMATE_RY },
+	{ "rotationZ.ANGLE", DAOX_ANIMATE_RZ },
+	{ "location.X", DAOX_ANIMATE_TX },
+	{ "location.Y", DAOX_ANIMATE_TX },
+	{ "location.Z", DAOX_ANIMATE_TX },
+	{ "translate", DAOX_ANIMATE_TL },
+	{ "transform", DAOX_ANIMATE_TF },
+	{ NULL, 0 }
 };
 
 
@@ -716,6 +728,7 @@ DaoxColladaParser* DaoxColladaParser_New( DaoxResource *resource )
 	self->texcoords = DArray_New( sizeof(DaoxVector2D) );
 	self->skinparams = DArray_New( sizeof(DaoxSkinParam) );
 	self->indexfloats = DArray_New( sizeof(DaoxIndexFloat) );
+	self->animatedNodes = DList_New(0);
 	self->string = DString_New(1);
 	self->tags = DHash_New( DAO_DATA_STRING, 0 );
 	self->channels = DHash_New( DAO_DATA_STRING, 0 );
@@ -724,9 +737,9 @@ DaoxColladaParser* DaoxColladaParser_New( DaoxResource *resource )
 		DString tag = DString_WrapChars( collada_tags[i-1] );
 		DMap_Insert( self->tags, & tag, (void*) i );
 	}
-	for(i=0; i<=DAOX_ANIMATE_TF; ++i){
-		DString tag = DString_WrapChars( collada_channel_tags[i] );
-		DMap_Insert( self->channels, & tag, (void*) i );
+	for(i=0; collada_channel_tags[i].name; ++i){
+		DString tag = DString_WrapChars( collada_channel_tags[i].name );
+		DMap_Insert( self->channels, & tag, (void*)(size_t) collada_channel_tags[i].value );
 	}
 	return self;
 }
@@ -747,6 +760,7 @@ void DaoxColladaParser_Delete( DaoxColladaParser *self )
 	DArray_Delete( self->texcoords );
 	DArray_Delete( self->skinparams );
 	DArray_Delete( self->indexfloats );
+	DList_Delete( self->animatedNodes );
 	DString_Delete( self->string );
 	DMap_Delete( self->materials );
 	DMap_Delete( self->channels );
@@ -1535,6 +1549,7 @@ int DaoxColladaParser_AttachJoints( void *userdata, DaoXmlNode *node )
 		DaoXmlDOM_Traverse( self->dom, node2, self, DaoxColladaParser_AttachJoint );
 		offset = pos + 1;
 	}
+	printf( "joints: %i\n", model->skeleton->joints->size );
 	DString_Delete( names );
 	DString_Delete( name );
 	return 1;
@@ -1580,7 +1595,7 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 	targetNode = DaoXmlDOM_Search( self->dom, vscenes, self->string, DaoXml_FindNodeByID );
 
 	if( targetNode == NULL || targetNode->data == NULL ) return; // TODO
-	printf( "animation: %s %p\n", self->string->chars, targetNode->data );
+	printf( "animation: %s %p\n", att->chars, targetNode->data );
 
 	DString_SubString( att, self->string, pos+1, -1 );
 	it = DMap_Find( self->channels, self->string );
@@ -1589,7 +1604,6 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 
 	dvalue = (DaoValue*) targetNode->data;
 	sceneNode = (DaoxSceneNode*) DaoValue_CastCstruct( dvalue, daox_type_scene_node );
-	printf( "animation: %s %p\n", self->string->chars, sceneNode );
 	if( sceneNode == NULL ) return;
 
 	att = DaoXmlNode_GetAttributeMBS( channelNode, "source" );
@@ -1610,6 +1624,7 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 	if( sceneNode->controller == NULL ) sceneNode->controller = DaoxController_New();
 	if( sceneNode->controller->animations == NULL ){
 		sceneNode->controller->animations = DList_New( DAO_DATA_VALUE );
+		DList_Append( self->animatedNodes, sceneNode );
 	}
 	DList_Append( sceneNode->controller->animations, animation );
 
@@ -1749,6 +1764,9 @@ DaoxScene* DaoxResource_LoadColladaSource( DaoxResource *self, DString *source, 
 			if( strcmp( node->name->chars, "animation" ) != 0 ) continue;
 			DaoxColladaParser_ParseAnimation( parser, node );
 		}
+	}
+	for(i=0; i<parser->animatedNodes->size; ++i){
+		DaoxSceneNode_SortAnimations( parser->animatedNodes->items.pSceneNode[i] );
 	}
 	scene = parser->currentScene;
 	DaoxColladaParser_Delete( parser );

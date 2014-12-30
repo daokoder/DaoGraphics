@@ -96,9 +96,9 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 		prevFrame = self->keyFrames->data.keyframes + (imin + frameCount - 1) % frameCount;
 	}
 
-	factor = (self->time - prevFrame->time) / (nextFrame->time - prevFrame->time);
-	if( prevFrame->time > nextFrame->time ){
-		factor = self->time / nextFrame->time;
+	factor = (self->time - prevFrame->time) / (nextFrame->time - prevFrame->time + EPSILON);
+	if( prevFrame == nextFrame || prevFrame->time > nextFrame->time ){
+		factor = self->time / (nextFrame->time + EPSILON);
 	}
 
 	if( self->channel == DAOX_ANIMATE_TF ){

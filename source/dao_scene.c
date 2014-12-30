@@ -465,6 +465,19 @@ void DaoxSceneNode_AddChild( DaoxSceneNode *self, DaoxSceneNode *child )
 	GC_Assign( & child->parent, self );
 	DList_Append( self->children, child );
 }
+static int DaoxAnimation_Compare( void *first, void *second )
+{
+	DaoxAnimation *a1 = (DaoxAnimation*) first;
+	DaoxAnimation *a2 = (DaoxAnimation*) second;
+	if( a1->channel == a2->channel ) return 0;
+	return a1->channel < a2->channel ? -1 : 1;
+}
+void DaoxSceneNode_SortAnimations( DaoxSceneNode *self )
+{
+	if( self->controller && self->controller->animations ){
+		DList_Sort( self->controller->animations, DaoxAnimation_Compare );
+	}
+}
 
 
 
@@ -670,6 +683,15 @@ DaoxLight* DaoxLight_New()
 	self->targetPosition.y = -1E16;
 	self->targetPosition.z = 0;
 	self->intensity.alpha = 1.0;
+
+#if 0
+	DaoxModel *model = DaoxModel_New();
+	DaoxMesh *mesh = DaoxMesh_New();
+	DaoxMesh_MakeBox( mesh, 0.5, 0.5, 0.5 );
+	DaoxMesh_UpdateTree( mesh, 0 );
+	DaoxModel_SetMesh( model, mesh );
+	DaoxSceneNode_AddChild( (DaoxSceneNode*)self, (DaoxSceneNode*)model );
+#endif
 	return self;
 }
 void DaoxLight_Delete( DaoxLight *self )
@@ -712,12 +734,9 @@ DaoxJoint* DaoxJoint_New()
 #if 0
 	DaoxModel *model = DaoxModel_New();
 	DaoxMesh *mesh = DaoxMesh_New();
-	DaoxMesh_MakeCube( mesh );
+	DaoxMesh_MakeBox( mesh, 0.5, 0.5, 0.5 );
 	DaoxMesh_UpdateTree( mesh, 0 );
 	DaoxModel_SetMesh( model, mesh );
-	model->base.scale.x = 0.5;
-	model->base.scale.y = 0.5;
-	model->base.scale.z = 0.5;
 	DaoxSceneNode_AddChild( (DaoxSceneNode*)self, (DaoxSceneNode*)model );
 #endif
 	return self;

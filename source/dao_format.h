@@ -120,6 +120,8 @@ struct DaoxColladaParser
 	DArray  *skinparams;
 	DArray  *indexfloats;
 
+	DList  *animatedNodes;
+
 	DaoxIntTuples  *tuples;
 	DaoxIntTuples  *tuples2;
 };

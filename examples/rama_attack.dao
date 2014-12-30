@@ -1,0 +1,17 @@
+
+load graphics;
+
+resource = Graphics::Resource()
+
+scene = resource.LoadDaeFile( "../media/rama_attack/rama_attack.dae" )
+scene.SetBackground( 1.0, 1.0, 1.0, 1.0 )
+
+
+light = Graphics::Light( $spot, 0.6, 0.6, 0.6 )
+light.Move( 1, -5, 3 )
+scene.AddNode( light );
+
+
+window = Graphics::Window( 960, 800, '' )
+window.Show( scene )
+window.Quit()
