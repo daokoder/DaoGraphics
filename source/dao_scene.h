@@ -184,7 +184,7 @@ struct DaoxSceneNode
 
 	DaoxOBBox3D     obbox;        /* local space; */
 	DaoxVector3D    scale;        /* local space; */
-	DaoxVector3D    rotation;     /* local space (angles); */
+	DaoxVector3D    rotation;     /* local space (axis-angle); */
 	DaoxVector3D    translation;  /* parent space; */
 	DaoxController *controller;   /* control for additional transform; */
 	DaoxSceneNode  *parent;
@@ -220,7 +220,7 @@ DaoxVector3D DaoxSceneNode_GetWorldPosition( DaoxSceneNode *self );
 // with the up direction pointing to the direction of the local y-axis (0,1,0),
 // and the right direction pointing to the direction of the local x-axis (1,0,0),
 //
-// Its location and orientation can only be adjusted by transformation (::transform).
+// Its location and orientation can only be adjusted by node transformation.
 */
 struct DaoxCamera
 {

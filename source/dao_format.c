@@ -478,6 +478,7 @@ enum DaoxColladaTags
 	DAE_CAMERA ,
 	DAE_OPTICS ,
 	DAE_PERSPECTIVE ,
+	DAE_XFOV ,
 	DAE_YFOV ,
 	DAE_ASPECT_RATIO ,
 	DAE_ZNEAR ,
@@ -550,6 +551,7 @@ static const char* const collada_tags[] =
 	"camera" ,
 	"optics" ,
 	"perspective" ,
+	"xfov" ,
 	"yfov" ,
 	"aspect_ratio" ,
 	"znear" ,
@@ -1267,6 +1269,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		break;
 	case DAE_PERSPECTIVE :
 		break;
+	case DAE_XFOV :
 	case DAE_YFOV :
 	case DAE_ASPECT_RATIO :
 	case DAE_ZNEAR :
@@ -1275,12 +1278,16 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		if( camera == NULL ) break;
 		dvalue = strtod( node->content->chars, NULL );
 		switch( id ){
+		case DAE_XFOV :         camera->fovAngle = dvalue; break; // TODO
 		case DAE_YFOV :         camera->fovAngle = dvalue; break;
 		case DAE_ASPECT_RATIO : camera->aspectRatio = dvalue; break;
 		case DAE_ZNEAR :        camera->nearPlane = dvalue; break;
 		case DAE_ZFAR :         camera->farPlane = dvalue; break;
 		}
 		camera->focusPlane = 0.8 * camera->nearPlane + 0.2 * camera->farPlane;
+		if( id == DAE_ASPECT_RATIO && DaoXmlNode_GetChildMBS( node->parent, "xfov" ) != NULL ){
+			camera->fovAngle *= camera->aspectRatio;
+		}
 		break;
 	case DAE_INIT_FROM :
 		if( (texture = (DaoxTexture*) DaoXmlNode_GetAncestorDataMBS( node, "image", 1 )) ){
@@ -1726,6 +1733,29 @@ void DaoxColladaParser_ParseAnimation( DaoxColladaParser *self, DaoXmlNode *node
 	}
 }
 
+void DaoxSceneNode_ConvertAnglesToAxisRotation( DaoxSceneNode *self )
+{
+	int i;
+	DaoxQuaternion quaternion = DaoxQuaternion_FromEulerAngleVector( self->rotation );
+	self->rotation = DaoxQuaternion_ToRotation( & quaternion );
+	if( self->ctype == daox_type_joint ){
+		DaoxJoint *joint = (DaoxJoint*) self;
+		quaternion = DaoxQuaternion_FromEulerAngleVector( joint->orientation );
+		joint->orientation = DaoxQuaternion_ToRotation( & quaternion );
+	}
+	for(i=0; i<self->children->size; ++i){
+		DaoxSceneNode *node2 = self->children->items.pSceneNode[i];
+		DaoxSceneNode_ConvertAnglesToAxisRotation( node2 );
+	}
+}
+void DaoxScene_ConvertAnglesToAxisRotion( DaoxScene *self )
+{
+	int i;
+	for(i=0; i<self->nodes->size; ++i){
+		DaoxSceneNode *node = self->nodes->items.pSceneNode[i];
+		DaoxSceneNode_ConvertAnglesToAxisRotation( node );
+	}   
+}
 DaoxScene* DaoxResource_LoadColladaSource( DaoxResource *self, DString *source, DString *path )
 {
 	DaoxColladaParser *parser = DaoxColladaParser_New( self );
@@ -1758,6 +1788,7 @@ DaoxScene* DaoxResource_LoadColladaSource( DaoxResource *self, DString *source, 
 		node = DaoXmlNode_GetChildByAttributeMBS( parser->libVisualScenes, "id", att->chars+1);
 		DaoXmlDOM_Traverse( dom, node, parser, DaoxColladaParser_Parse );
 		DaoXmlDOM_Traverse( dom, node, parser, DaoxColladaParser_AttachJoints );
+		DaoxScene_ConvertAnglesToAxisRotion( parser->currentScene );
 	}
 	if( parser->libAnimations ){
 		for(i=0; i<parser->libAnimations->children->size; ++i){

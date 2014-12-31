@@ -47,11 +47,15 @@ void DaoxAnimation_Delete( DaoxAnimation *self )
 
 void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 {
-	DaoxMatrix4D matrix;
+	DaoxQuaternion quaternion;
 	DaoxVector3D vector;
 	DaoxVector3D P0, P1, C0, C1;
 	DaoxVector3D scale, rotate, translate;
+	DaoxVector3D x_axis = { 1.0, 0.0, 0.0 };
+	DaoxVector3D y_axis = { 0.0, 1.0, 0.0 };
+	DaoxVector3D z_axis = { 0.0, 0.0, 1.0 };
 	DaoxVectorD4 Svec, vec1, vec2, vec3 ,vec4;
+	DaoxMatrix4D M = DaoxMatrix4D_Identity();
 	DaoxMatrixD4X4 Cmat, Mmat = { {{-1,3,-3,1}, {3,-6,3,0}, {-3,3,0,0}, {1,0,0,0}} };
 	DaoxKeyFrame *keyFrames = self->keyFrames->data.keyframes;
 	DaoxKeyFrame *prevFrame, *nextFrame;
@@ -169,21 +173,18 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 		break;
 	}
 
-	scale = DaoxVector3D_XYZ( 1.0, 1.0, 1.0 );
-	rotate = translate = DaoxVector3D_XYZ( 0.0, 0.0, 0.0 );
 	switch( self->channel ){
-	case DAOX_ANIMATE_SX : scale.x = vector.y; break;
-	case DAOX_ANIMATE_SY : scale.y = vector.y; break;
-	case DAOX_ANIMATE_SZ : scale.z = vector.y; break;
-	case DAOX_ANIMATE_RX : rotate.x = vector.y; break;
-	case DAOX_ANIMATE_RY : rotate.y = vector.y; break;
-	case DAOX_ANIMATE_RZ : rotate.z = vector.y; break;
-	case DAOX_ANIMATE_TX : translate.x = vector.y; break;
-	case DAOX_ANIMATE_TY : translate.y = vector.y; break;
-	case DAOX_ANIMATE_TZ : translate.z = vector.y; break;
-	case DAOX_ANIMATE_TL : translate = vector; break;
-	case DAOX_ANIMATE_TF : break;
+	case DAOX_ANIMATE_SX : M = DaoxMatrix4D_Scale( vector.y, 1.0, 1.0 ); break;
+	case DAOX_ANIMATE_SY : M = DaoxMatrix4D_Scale( 1.0, vector.y, 1.0 ); break;
+	case DAOX_ANIMATE_SZ : M = DaoxMatrix4D_Scale( 1.0, 1.0, vector.y ); break;
+	case DAOX_ANIMATE_RX : M = DaoxMatrix4D_AxisRotation( x_axis, vector.y ); break;
+	case DAOX_ANIMATE_RY : M = DaoxMatrix4D_AxisRotation( y_axis, vector.y ); break;
+	case DAOX_ANIMATE_RZ : M = DaoxMatrix4D_AxisRotation( z_axis, vector.y ); break;
+	case DAOX_ANIMATE_TX : M = DaoxMatrix4D_Translation( vector.y, 0.0, 0.0 ); break;
+	case DAOX_ANIMATE_TY : M = DaoxMatrix4D_Translation( 0.0, vector.y, 0.0 ); break;
+	case DAOX_ANIMATE_TZ : M = DaoxMatrix4D_Translation( 0.0, 0.0, vector.y ); break;
+	case DAOX_ANIMATE_TL : M = DaoxMatrix4D_Translation( vector.x, vector.y, vector.z ); break;
 	}
-	self->transform = DaoxMatrix4D_Combine( scale, rotate, translate );
+	self->transform = M;
 }
 
