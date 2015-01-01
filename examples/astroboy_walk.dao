@@ -7,14 +7,6 @@ scene = resource.LoadDaeFile( "../media/astroboy_walk/astroboy_walk.dae" )
 scene.SetBackground( 0.5, 0.5, 0.5, 0.5 )
 
 
-light = Graphics::Light( $spot, 0.3, 0.3, 0.3 )
-light.Move( 500, 0, 0 )
-#scene.AddNode( light );
-
-light = Graphics::Light( $spot, 0.2, 0.2, 0.2 )
-light.Move( 0, 0, 500 )
-#scene.AddNode( light );
-
 camera = Graphics::Camera()
 #camera.Move( 10, 10, 10 ) # bug with moving forward
 camera.Move( 10, 25, 25 )

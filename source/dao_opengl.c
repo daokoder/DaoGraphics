@@ -261,9 +261,12 @@ vec4 RenderVectorGraphics( vec2 vertexPosition, vec3 bezierKLM, vec2 texUV, floa
 	//} \n\
 	if( dashCount > 0 ) alphaBlending2 *= HandleDash( pathOffset * graphScale ); \n\
 	if( gradientType > 0 ) fragColor = ComputeGradient( vertexPosition, pathOffset ); \n\
-	if( hasDiffuseTexture > 0 ) fragColor = texture( diffuseTexture, texUV ); \n\
-	float klm = abs( bezierKLM[0] ) + abs( bezierKLM[1] ) + abs( bezierKLM[2] ); \n\
-	if( klm > 1E-16 ) fragColor = ComputeCubicBezier( bezierKLM, fragColor ); \n\
+	if( hasDiffuseTexture > 0 ){\n\
+		fragColor = texture( diffuseTexture, texUV ); \n\
+	}else{\n\
+		float klm = abs( bezierKLM[0] ) + abs( bezierKLM[1] ) + abs( bezierKLM[2] ); \n\
+		if( klm > 1E-16 ) fragColor = ComputeCubicBezier( bezierKLM, fragColor ); \n\
+	}\n\
 	//fragColor = ComputeQuadraticBezier( vec2( bezierKLM ), fragColor ); \n\
 	fragColor.a *= alphaBlending2; \n\
 	return fragColor; \n\
@@ -573,7 +576,7 @@ vec4 ComputeAllLights( vec4 diffColor, vec4 emiColor )\n\
 	float alpha2 = diffColor[3];\n\
 	float alpha = emiColor[3];\n\
 	vec4 vertexColor = vec4( litColor, alpha2 );\n\
-	vec4 vertexColor2 = vertexColor + emiColor + 0.1*normalize(ambientColor); // TODO: ambient light;\n\
+	vec4 vertexColor2 = vertexColor + emiColor + 0.05*normalize(ambientColor); // TODO: ambient light;\n\
 	vertexColor = (1.0 - alpha)*vertexColor + alpha * vertexColor2;\n\
 	vertexColor[3] = alpha2;\n\
 	return vertexColor;\n\
@@ -661,12 +664,18 @@ void main(void)\n\
 	if( tileTextureCount > 0 ) hasDiffuseTexture2 = 1;\n\
 	if( hasDiffuseTexture2 > 0 ){\n\
 		diffColor = texture( diffuseTexture, varTexCoord );\n\
+		if( diffColor.a < 0.1 ) discard;\n\
+		diffColor.rgb *= diffColor.a;\n\
 		if( terrainTileType != 0 ){ \n\
 			diffColor = BlendTerrainTextures( diffColor, varTexCoord );\n\
 		}\n\
 	}\n\
 	if( hasEmissionTexture > 0 ){\n\
 		emiColor = texture( emissionTexture, varTexCoord );\n\
+	}\n\
+	if( vectorGraphics > 0 ){ \n\
+		vec2 canvasCoord = vec2( localPosition ); \n\
+		diffColor = RenderVectorGraphics( canvasCoord, bezierKLM, varTexCoord, pathOffset );\n\
 	}\n\
 	//diffColor = vec4(bezierKLM, 1.0);\n\
 	fragColor = ComputeAllLights( diffColor, emiColor );\n\
@@ -686,11 +695,6 @@ void main(void)\n\
 		if( hasDepthTexture > 0 ){\n\
 			fragColor[3] = 1.0 - exp( -25*alpha*alpha );\n\
 		}\n\
-	}\n\
-	if( vectorGraphics > 0 ){ \n\
-		vec2 canvasCoord = vec2( localPosition ); \n\
-		vec4 color = RenderVectorGraphics( canvasCoord, bezierKLM, varTexCoord, pathOffset ); \n\
-			fragColor = fragColor * color; \n\
 	}\n\
 }\n";
 

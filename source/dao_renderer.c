@@ -631,6 +631,7 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	DaoxColor lightIntensity[32];
 	DaoxVector3D zaxis = {0.0,0.0,1.0};
 	DaoxColor bgcolor = scene->background;
+	DaoxColor dark = {0.2, 0.2, 0.2, 1.0};
 	GLfloat matrix[16] = {0};
 	GLfloat matrix2[16] = {0};
 	GLfloat matrix3[9] = {0};
@@ -751,6 +752,12 @@ void DaoxRenderer_Render( DaoxRenderer *self, DaoxScene *scene, DaoxCamera *cam 
 	glUniform1f(self->shader->uniforms.gradientRadius, 0 );
 	glUniform1i(self->shader->uniforms.terrainTileType, 0 );
 	glUniform1i(self->shader->uniforms.tileTextureCount, 0 );
+
+	glUniform4fv( self->shader->uniforms.ambientColor, 1, & dark.red );
+	glUniform4fv( self->shader->uniforms.diffuseColor, 1, & dark.red );
+	glUniform4fv( self->shader->uniforms.specularColor, 1, & dark.red );
+	glUniform4fv( self->shader->uniforms.emissionColor, 1, & daox_black_color.red );
+	glUniform1f( self->shader->uniforms.shininess, 2 );
 
 	glActiveTexture( GL_TEXTURE0 + DAOX_GRADIENT_SAMPLER);
 	glBindTexture( GL_TEXTURE_2D, self->shader->textures.gradientSampler );
