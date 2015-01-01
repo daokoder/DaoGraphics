@@ -384,6 +384,9 @@ void DaoxSceneNode_Free( DaoxSceneNode *self )
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DaoGC_DecRC( (DaoValue*) self->parent );
 	DList_Delete( self->children );
+	if( self->controller && self->controller->animations ){
+		DList_Clear( self->controller->animations );
+	}
 }
 DaoxSceneNode* DaoxSceneNode_New()
 {
@@ -394,6 +397,7 @@ DaoxSceneNode* DaoxSceneNode_New()
 void DaoxSceneNode_Delete( DaoxSceneNode *self )
 {
 	DaoxSceneNode_Free( self );
+	if( self->controller ) DaoxController_Delete( self->controller );
 	dao_free( self );
 }
 void DaoxSceneNode_MoveByXYZ( DaoxSceneNode *self, float dx, float dy, float dz )

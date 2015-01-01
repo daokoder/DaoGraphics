@@ -169,7 +169,7 @@ double DaoxViewFrustum_Difference( DaoxViewFrustum *self, DaoxViewFrustum *other
 struct DaoxController
 {
 	DaoxMatrix4D  transform;
-	DList        *animations; // TODO: GC
+	DList        *animations;
 };
 DaoxController* DaoxController_New();
 void DaoxController_Delete( DaoxController *self );

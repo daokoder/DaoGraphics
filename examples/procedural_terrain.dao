@@ -36,8 +36,8 @@ for( i = 0 : % texImages - 1 ){
 	texture2.SetImage( image2 );
 
 	material = Graphics::Material()
-	material.SetTexture( texture, $first )
-	material.SetTexture( texture2, $second )
+	material.SetTexture( texture, $diffuse )
+	material.SetTexture( texture2, $bump )
 	materials.append( material );
 }
 

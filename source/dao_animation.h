@@ -37,17 +37,17 @@ typedef struct DaoxKeyFrame   DaoxKeyFrame;
 
 enum DaoxAnimationChannel
 {
-	DAOX_ANIMATE_SX ,
-	DAOX_ANIMATE_SY ,
-	DAOX_ANIMATE_SZ ,
-	DAOX_ANIMATE_RX ,
-	DAOX_ANIMATE_RY ,
-	DAOX_ANIMATE_RZ ,
-	DAOX_ANIMATE_TX ,
-	DAOX_ANIMATE_TY ,
-	DAOX_ANIMATE_TZ ,
-	DAOX_ANIMATE_TL ,
-	DAOX_ANIMATE_TF
+	DAOX_ANIMATE_SX ,  /* Scale X; */
+	DAOX_ANIMATE_SY ,  /* Scale Y; */
+	DAOX_ANIMATE_SZ ,  /* Scale Z; */
+	DAOX_ANIMATE_RX ,  /* Rotate around X; */
+	DAOX_ANIMATE_RY ,  /* Rotate around Y; */
+	DAOX_ANIMATE_RZ ,  /* Rotate around Z; */
+	DAOX_ANIMATE_TX ,  /* Translate X; */
+	DAOX_ANIMATE_TY ,  /* Translate Y; */
+	DAOX_ANIMATE_TZ ,  /* Translate Z; */
+	DAOX_ANIMATE_TL ,  /* Translate XYZ; */
+	DAOX_ANIMATE_TF    /* Transform; */
 };
 
 enum DaoxAnimationInterpolation

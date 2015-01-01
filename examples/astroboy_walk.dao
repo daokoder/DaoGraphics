@@ -25,5 +25,5 @@ camera.Orient( $Y );
 scene.AddNode( camera );
 
 window = Graphics::Window( 960, 800, '' )
-window.Show( scene, 30, 1 )
+window.Show( scene, 300, 1 )
 window.Quit()

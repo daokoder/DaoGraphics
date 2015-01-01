@@ -72,6 +72,8 @@ DaoxEmitter* DaoxEmitter_New()
 void DaoxEmitter_Delete( DaoxEmitter *self )
 {
 	DaoxModel_Free( (DaoxModel*) self );
+	GC_DecRC( self->emitter );
+	GC_DecRC( self->material );
 	dao_free( self );
 }
 

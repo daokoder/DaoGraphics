@@ -30,8 +30,8 @@ camera = Graphics::Camera()
 camera.Move( -15, 15, 15 )
 camera.LookAt( 0, 0, 0 );
 camera.SetFarPlane( 10000 );
-camera.SetFOV( 120 );
-camera.Orient( $Z );
+camera.SetFOV( 90 );
+camera.Orient( $Y );
 scene.AddNode( camera );
 
 window = Graphics::Window( 960, 800, '' )

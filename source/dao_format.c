@@ -1169,6 +1169,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 	DaoxVector3D vector2;
 	DaoxVector3D *pvector;
 	DaoxMatrix4D matrix;
+	DaoxQuaternion quaternion;
 	DaoXmlNode *pred = NULL, *child = NULL;
 	DaoXmlNode *node2;
 	DArray *floats = self->floats;
@@ -1432,8 +1433,12 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		// </matrix>
 		*/
 		matrix = DaoxMatrix4D_InitRowMajor( floats->data.floats );
-		if( sceneNode->controller == NULL ) sceneNode->controller = DaoxController_New();
-		sceneNode->controller->transform = matrix;
+		quaternion = DaoxQuaternion_FromRotationMatrix( & matrix );
+		sceneNode->rotation = DaoxQuaternion_ToRotation( & quaternion );
+		sceneNode->translation.x = matrix.B1;
+		sceneNode->translation.y = matrix.B2;
+		sceneNode->translation.z = matrix.B3;
+		// TODO: check or warn matrices that are not rotation with translation;
 		break;
 	case DAE_INSTANCE_CAMERA :
 		att = DaoXmlNode_GetAttributeMBS( node, "url" );

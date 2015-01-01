@@ -670,10 +670,6 @@ void main(void)\n\
 	}\n\
 	//diffColor = vec4(bezierKLM, 1.0);\n\
 	fragColor = ComputeAllLights( diffColor, emiColor );\n\
-	if( hasDiffuseTexture2 > 0 ){\n\
-		if( diffColor[3] < 0.9 ) discard;\n\
-		fragColor[3] = diffColor[3];\n\
-	}\n\
 	if( lightCount == 0 ) fragColor = diffColor + emiColor;\n\
 	//fragColor = diffColor;\n\
 	if( particleType > 0 ){\n\

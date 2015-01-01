@@ -567,7 +567,7 @@ static void DaoxCanvasNode_GetGCFields( void *p, DList *values, DList *lists, DL
 static DaoFuncItem DaoxCanvasNodeMeths[]=
 {
 	{ ITEM_SetVisible,
-		"SetVisible( self: CanvasNode, visible: enum<false,true> )"
+		"SetVisible( self: CanvasNode, visible = true )"
 	},
 	{ ITEM_Scale,
 		"Scale( self: CanvasNode, ratio: float ) => CanvasNode"
@@ -1138,6 +1138,9 @@ static void DaoxSceneNode_GetGCFields( void *p, DList *values, DList *lists, DLi
 {
 	DaoxSceneNode *self = (DaoxSceneNode*) p;
 	DList_Append( lists, self->children );
+	if( self->controller && self->controller->animations ){
+		DList_Append( lists, self->controller->animations );
+	}
 	if( self->parent ) DList_Append( values, self->parent );
 	if( remove ){
 		self->parent = NULL;
@@ -1309,8 +1312,10 @@ static void DaoxModel_GetGCFields( void *p, DList *values, DList *lists, DList *
 	DaoxModel *self = (DaoxModel*) p;
 	DaoxSceneNode_GetGCFields( p, values, lists, maps, remove );
 	if( self->mesh ) DList_Append( values, self->mesh );
+	if( self->skeleton ) DList_Append( values, self->skeleton );
 	if( remove ){
 		self->mesh = NULL;
+		self->skeleton = NULL;
 	}
 }
 DaoTypeBase DaoxModel_Typer =
@@ -1364,11 +1369,23 @@ static DaoFuncItem DaoxEmitterMeths[]=
 	{ NULL, NULL }
 };
 
+static void DaoxEmitter_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxEmitter *self = (DaoxEmitter*) p;
+	DaoxModel_GetGCFields( p, values, lists, maps, remove );
+	if( self->emitter ) DList_Append( values, self->emitter );
+	if( self->material ) DList_Append( values, self->material );
+	if( remove ){
+		self->emitter = NULL;
+		self->material = NULL;
+	}
+}
+
 DaoTypeBase DaoxEmitter_Typer =
 {
 	"Emitter", NULL, NULL, (DaoFuncItem*) DaoxEmitterMeths,
 	{ & DaoxModel_Typer, NULL }, {NULL},
-	(FuncPtrDel)DaoxEmitter_Delete, DaoxModel_GetGCFields
+	(FuncPtrDel)DaoxEmitter_Delete, DaoxEmitter_GetGCFields
 };
 
 
