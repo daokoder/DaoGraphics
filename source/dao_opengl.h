@@ -157,7 +157,7 @@ struct DaoxShader
 		uint_t  lightSource;
 		uint_t  lightIntensity;
 		uint_t  skinning;
-		uint_t  skinMatRows;
+		uint_t  skinMatrices;
 		uint_t  ambientColor;
 		uint_t  diffuseColor;
 		uint_t  specularColor;

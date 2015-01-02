@@ -565,7 +565,7 @@ void DaoxRenderer_DrawTask( DaoxRenderer *self, DaoxDrawTask *drawtask )
 			DaoxMatrix4D *mat = drawtask->skeleton->skinMats2->data.matrices4d + i;
 			DaoxMatrix4D_Export( mat, matRows[i] );
 		}
-		glUniformMatrix4fv( self->shader->uniforms.skinMatRows, k, 0, matRows[0] );
+		glUniformMatrix4fv( self->shader->uniforms.skinMatrices, k, 0, matRows[0] );
 	}
 	glUniform1i( self->shader->uniforms.skinning, drawtask->skeleton != NULL );
 

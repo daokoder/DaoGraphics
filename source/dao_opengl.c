@@ -322,7 +322,7 @@ uniform mat4 projMatrix;\n\
 uniform mat4 viewMatrix;\n\
 uniform mat4 modelMatrix;\n\
 uniform float graphScale; \n\
-uniform mat4 skinMatRows[128];\n\
+uniform mat4 skinMatrices[128];\n\
 \n\
 in vec3 position;\n\
 in vec3 normal;\n\
@@ -349,19 +349,23 @@ void main(void)\n\
 		localPosition.x = position.x * graphScale;\n\
 		localPosition.y = position.y * graphScale;\n\
 	}\n\
-	vec4 worldPosition4 = vec4( localPosition, 1.0 );\n\
-	worldPosition4 = modelMatrix * worldPosition4;\n\
-	if( skinning != 0 ){ \n\
-		worldPosition4 = \n\
-			skinMatRows[int(joints[0])] * worldPosition4 * weights[0] + \n\
-			skinMatRows[int(joints[1])] * worldPosition4 * weights[1] + \n\
-			skinMatRows[int(joints[2])] * worldPosition4 * weights[2] + \n\
-			skinMatRows[int(joints[3])] * worldPosition4 * weights[3]; \n\
-	}\n\
+	vec4 worldPos = modelMatrix * vec4( localPosition, 1.0 );\n\
 	varNormal = normal;\n\
+	if( skinning != 0 ){ \n\
+		mat4 skmat0 = skinMatrices[int(joints[0])];\n\
+		mat4 skmat1 = skinMatrices[int(joints[1])];\n\
+		mat4 skmat2 = skinMatrices[int(joints[2])];\n\
+		mat4 skmat3 = skinMatrices[int(joints[3])];\n\
+		float w0 = weights[0], w1 = weights[1];\n\
+		float w2 = weights[2], w3 = weights[3];\n\
+		worldPos = skmat0 * worldPos * w0 + skmat1 * worldPos * w1\n\
+		         + skmat2 * worldPos * w2 + skmat3 * worldPos * w3; \n\
+		varNormal = mat3(skmat0) * normal * w0 + mat3(skmat1) * normal * w1\n\
+		          + mat3(skmat2) * normal * w2 + mat3(skmat3) * normal * w3;\n\
+	}\n\
 	varTangent = tangent;\n\
 	varTexCoord = texCoord;\n\
-	worldPosition = vec3( worldPosition4 ); \n\
+	worldPosition = vec3( worldPos ); \n\
 	bezierKLM = vec3( texCoord, texMO[0] ); \n\
 	pathOffset = texMO[1]; \n\
 //	bezierKLM.x = joints[0]/50.0;\n\
@@ -370,7 +374,7 @@ void main(void)\n\
 //	bezierKLM.x = weights[0];\n\
 //	bezierKLM.y = weights[1];\n\
 //	bezierKLM.z = weights[2];\n\
-	gl_Position = projMatrix * viewMatrix * worldPosition4;\n\
+	gl_Position = projMatrix * viewMatrix * worldPos;\n\
 	varDeviceCoord = vec2( gl_Position );\n\
 }\n";
 
@@ -891,7 +895,7 @@ void DaoxShader_Finalize3D( DaoxShader *self )
 	self->uniforms.lightSource = glGetUniformLocation(self->program, "lightSource");
 	self->uniforms.lightIntensity = glGetUniformLocation(self->program, "lightIntensity");
 	self->uniforms.skinning = glGetUniformLocation(self->program, "skinning");
-	self->uniforms.skinMatRows = glGetUniformLocation(self->program, "skinMatRows");
+	self->uniforms.skinMatrices = glGetUniformLocation(self->program, "skinMatrices");
 	self->uniforms.ambientColor = glGetUniformLocation(self->program, "ambientColor");
 	self->uniforms.diffuseColor = glGetUniformLocation(self->program, "diffuseColor");
 	self->uniforms.specularColor = glGetUniformLocation(self->program, "specularColor");
