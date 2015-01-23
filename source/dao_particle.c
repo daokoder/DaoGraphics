@@ -123,7 +123,7 @@ DaoxParticle* DaoxEmitter_AddParticle( DaoxEmitter *self, DaoxParticles *cluster
 
 	lifeSpan = self->lifeSpan * (0.8 + 0.2*DaoRandGenerator_GetNormal( randgen ));
 	if( lifeSpan < 0.5*self->lifeSpan ) lifeSpan = 0.5*self->lifeSpan;
-	if( lifeSpan < 2.0*self->lifeSpan ) lifeSpan = 2.0*self->lifeSpan;
+	if( lifeSpan > 2.0*self->lifeSpan ) lifeSpan = 2.0*self->lifeSpan;
 	if( self->life < lifeSpan ) lifeSpan = self->life;
 	if( lifeSpan > cluster->timeout ) cluster->timeout = lifeSpan;
 	particle->lifeSpan = lifeSpan;

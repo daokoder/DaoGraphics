@@ -15,7 +15,6 @@ project_headers =
 	"source/dao_renderer.h" ,
 	"source/dao_animation.h" ,
 	"source/dao_particle.h" ,
-#	"source/dao_graphics.h" ,
 	"source/dao_resource.h" ,
 	"source/dao_xml.h" ,
 	"source/dao_format.h" ,

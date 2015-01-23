@@ -380,14 +380,35 @@ static void WIN_Show( DaoProcess *proc, DaoValue *p[], int N )
 	glfwSetCursorPosCallback( self->handle, DaoxWindow_CursorMoveCallback );
 	glfwSetCursorEnterCallback( self->handle, DaoxWindow_CursorEnterCallback );
 	glfwSetWindowFocusCallback( self->handle, DaoxWindow_FocusCallback );
+
+#ifdef SAVE_RENDERED_SCENE
+	char name[50];
+	int frame = 1;
+	DaoxImage *image = DaoxImage_New();
+	image->depth = DAOX_IMAGE_BIT32;
+	DaoxImage_Resize( image, self->width, self->height );
+#endif
 	while( self->visible && ! glfwWindowShouldClose( self->handle ) ){
 		double frameStartTime = 0.0;
 		double frameEndTime = 0.0;
 		frameStartTime = glfwGetTime();
 		if( canvas ) DaoxPainter_Paint( self->painter, canvas, canvas->viewport );
 		if( scene ){
+#ifdef SAVE_RENDERED_SCENE
+			DaoxScene_Update( scene, 1.0/30.0 );
+			glReadBuffer( GL_BACK );
+			glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
+			glPixelStorei( GL_PACK_ROW_LENGTH, image->width );
+			DaoxRenderer_Render( self->renderer, scene, scene->camera );
+			glReadPixels( 0, 0, self->width, self->height, GL_RGBA, GL_UNSIGNED_BYTE, image->imageData );
+			sprintf( name, "rama_attack_frame_%03i.png", frame );
+			DaoxImage_SavePNG( image, name );
+			frame += 1;
+			if( frame > 155 ) break;
+#else
 			DaoxScene_Update( scene, frameStartTime - lastFrameStart );
 			DaoxRenderer_Render( self->renderer, scene, scene->camera );
+#endif
 		}
 		lastFrameStart = frameStartTime;
 		if( fpsTest ){

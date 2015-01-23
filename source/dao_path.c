@@ -2191,7 +2191,7 @@ int DaoxPath_Compare( DaoxPath *self, DaoxPath *other )
 	if( com1 != NULL && com2 == NULL ) return  1;
 	return 0;
 }
-void DaoxPathStyle_Convert( DaoxPathStyle *self, int buffer[DAOX_MAX_DASH+4] )
+void DaoxPathStyle_Convert( DaoxPathStyle *self, int buffer[DAOX_MAX_DASH+5] )
 {
 	int i;
 	buffer[0] = self->fill;

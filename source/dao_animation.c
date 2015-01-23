@@ -50,7 +50,6 @@ void DaoxAnimation_Update( DaoxAnimation *self, float dtime )
 	DaoxQuaternion quaternion;
 	DaoxVector3D vector;
 	DaoxVector3D P0, P1, C0, C1;
-	DaoxVector3D scale, rotate, translate;
 	DaoxVector3D x_axis = { 1.0, 0.0, 0.0 };
 	DaoxVector3D y_axis = { 0.0, 1.0, 0.0 };
 	DaoxVector3D z_axis = { 0.0, 0.0, 1.0 };

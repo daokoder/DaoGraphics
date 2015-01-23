@@ -616,8 +616,9 @@ DaoxMeshUnit* DaoxMesh_MakeCube( DaoxMesh *self )
 	return DaoxMesh_MakeBox( self, 1.0, 1.0, 1.0 );
 }
 
-const float XX = 0.525731112119133606f;
-const float YY = 0.850650808352039932f;
+
+#define XX 0.525731112119133606f
+#define YY 0.850650808352039932f
 
 static float icosahedron_vertices[][3] =
 {
