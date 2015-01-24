@@ -490,6 +490,11 @@ DaoTypeBase DaoxWindow_Typer =
 
 
 
+void DaoxGLFW_Error( int code, const char *message )
+{
+	fprintf( stderr, "GLFW ERROR (%i): %s\n", code, message );
+}
+
 DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
 	dao_vmspace_graphics = vmSpace;
@@ -500,10 +505,11 @@ DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	glfwWindowHint(GLFW_DEPTH_BITS, 24); 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2); 
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #ifdef MACOSX
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); /*Not for Linux with Mesa;*/
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
+	glfwSetErrorCallback( DaoxGLFW_Error );
 	daox_type_window = DaoNamespace_WrapType( ns, & DaoxWindow_Typer, 0 );
 	return 0;
 }

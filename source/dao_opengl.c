@@ -645,7 +645,7 @@ float ParticleFactor( float x, float y )\n\
 	float ds = x - 0.5;\n\
 	float dt = y - 0.5;\n\
 	float r = sqrt( ds*ds + dt*dt );\n\
-	if( r >= 0.5 ) return 0;\n\
+	if( r >= 0.5 ) return 0.0;\n\
 	float loc = sqrt(1.0 - 2.0 * r);\n\
 	return n * loc * varTangent.z;\n\
 }\n\
