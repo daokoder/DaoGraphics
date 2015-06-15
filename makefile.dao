@@ -4,7 +4,6 @@ project_headers =
 {
 	"source/dao_common.h" ,
 	"source/dao_font.h" ,
-	"source/dao_image.h" ,
 	"source/dao_path.h" ,
 	"source/dao_canvas.h" ,
 	"source/dao_mesh.h" ,
@@ -19,8 +18,6 @@ project_headers =
 	"source/dao_xml.h" ,
 	"source/dao_format.h" ,
 	"source/dao_opengl.h" ,
-	"source/lode_png.h" ,
-	"source/micro_jpeg.h" ,
 	"source/stb_truetype.h" ,
 }
 
@@ -28,7 +25,6 @@ project_sources =
 {
 	"source/dao_common.c" ,
 	"source/dao_font.c" ,
-	"source/dao_image.c" ,
 	"source/dao_path.c" ,
 	"source/dao_canvas.c" ,
 	"source/dao_mesh.c" ,
@@ -45,18 +41,18 @@ project_sources =
 	"source/dao_format.c" ,
 	"source/dao_opengl.c" ,
 	"source/dao_window.c" ,
-	"source/lode_png.c" ,
-	"source/micro_jpeg.c" ,
 }
 
 
 glname = DaoMake::IsPlatform( "MACOSX" ) ? "OpenGL3" : "OpenGL";
 
-daovm  = DaoMake::FindPackage( "Dao",    $REQUIRED )
-opengl = DaoMake::FindPackage( glname, $OPTIONAL )
+daovm  = DaoMake::FindPackage( "Dao",      $REQUIRED )
+daoim  = DaoMake::FindPackage( "DaoImage", $REQUIRED )
+opengl = DaoMake::FindPackage( glname,     $OPTIONAL )
 gles   = DaoMake::FindPackage( "OpenGLES", $OPTIONAL )
 
-if( daovm == none or (opengl == none and gles == none) ) return
+if( daovm == none or daoim == none ) return
+if( opengl == none and gles == none ) return
 
 project = DaoMake::Project( "DaoGraphics" ) 
 
@@ -73,6 +69,8 @@ project_lib  = project.AddStaticLibrary( "dao_graphics", project_objs )
 project.UseImportLibrary( daovm )
 project.UseStaticLibrary( glfw )
 
+project_dll.UseSharedLibrary( daoim, "dao_image" )
+
 if( gles != none ){
 	project.AddDefinition( "DAO_GRAPHICS_USE_GLES" )
 	project.UseSharedLibrary( gles )
@@ -80,6 +78,7 @@ if( gles != none ){
 	project.UseSharedLibrary( opengl )
 }
 
+project.AddIncludePath( "../image/source" )
 project.AddIncludePath( "deps/glfw/include" )
 project.SetTargetPath( "../../lib/dao/modules" )
 

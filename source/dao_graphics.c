@@ -2129,14 +2129,15 @@ DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
 DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
+	DaoNamespace *sqlns = DaoVmSpace_LinkModule( vmSpace, nspace, "image" );
 	DaoNamespace *ns;
+
 	dao_vmspace_graphics = vmSpace;
 	ns = DaoVmSpace_GetNamespace( vmSpace, "Graphics" );
 	DaoNamespace_AddConst( nspace, ns->name, (DaoValue*) ns, DAO_PERM_PUBLIC );
 	DaoNamespace_WrapFunctions( ns, globalMeths );
 
 	DaoFont_OnLoad( vmSpace, ns );
-	DaoImage_OnLoad( vmSpace, ns );
 	DaoTriangulator_OnLoad( vmSpace, ns );
 
 	DaoNamespace_DefineType( ns, "tuple<red:float,green:float,blue:float,alpha:float>", "Color" );
