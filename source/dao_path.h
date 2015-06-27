@@ -290,7 +290,7 @@ void DaoxPathMesh_Delete( DaoxPathMesh *self );
 
 void DaoxPathMesh_Reset( DaoxPathMesh *self, DaoxPath *path, DaoxPathStyle *style );
 void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator );
-void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self );
+void DaoxPathMesh_ComputeStroke( DaoxPathMesh *self );
 
 
 

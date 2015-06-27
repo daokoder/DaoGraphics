@@ -71,6 +71,7 @@
 #include "daoStdtype.h"
 #include "daoValue.h"
 #include "daoGC.h"
+#include "dao_random.h"
 
 
 #define EPSILON 1E-16
@@ -398,6 +399,7 @@ DaoxVector2D* DArray_PushVectorXY( DArray *self, float x, float y );
 DaoxVector3D* DArray_PushVectorXYZ( DArray *self, float x, float y, float z );
 DaoxTriangle* DArray_PushTriangleIJK( DArray *self, int i, int j, int k );
 DaoxIndexFloat* DArray_PushIndexFloat( DArray *self, int index, float value );
+
 
 typedef int (*DList_CompareItem)( void *first, void *second );
 

@@ -1305,7 +1305,7 @@ int DaoxContext_BindTexture( DaoxContext *self, DaoxTexture *texture )
 
 	if( texture->image == NULL ) return 0;
 
-	data = texture->image->imageData;
+	data = texture->image->buffer.data.uchars;
 	W = texture->image->width;
 	H = texture->image->height;
 

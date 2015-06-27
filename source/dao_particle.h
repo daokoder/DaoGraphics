@@ -81,7 +81,7 @@ struct DaoxEmitter
 
 	DaoxMaterial  *material;
 
-	DaoRandGenerator  *randGenerator;
+	DaoxRandGenerator  *randGenerator;
 };
 extern DaoType *daox_type_emitter;
 

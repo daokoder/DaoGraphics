@@ -370,8 +370,8 @@ void DaoxPainter_UpdateItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNo
 	distance = DaoxVector3D_Dist( & self->campos, & itempos );
 	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
 
-	if( diameter < 1E-5 * distance * scale ) return;
-	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
+	if( diameter < 1E-5 * distance * scale ) goto HandleChildrenItems;
+	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) goto HandleChildrenItems;
 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader->uniforms.modelMatrix, 1, 0, modelMatrix );
@@ -405,6 +405,7 @@ void DaoxPainter_UpdateItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNo
 		//printf( "2>> %i %i\n", self->vertexCount, self->triangleCount );
 	}
 
+HandleChildrenItems:
 	for(i=0; i<n; i++){
 		DaoxCanvasNode *it = item->children->items.pCanvasNode[i];
 		DaoxPainter_UpdateItem( self, canvas, it, transform );
@@ -434,8 +435,8 @@ void DaoxPainter_BufferItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNo
 	distance = DaoxVector3D_Dist( & self->campos, & itempos );
 	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
 
-	if( diameter < 1E-5 * distance * scale ) return;
-	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
+	if( diameter < 1E-5 * distance * scale ) goto HandleChildrenItems;
+	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) goto HandleChildrenItems;
 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader->uniforms.modelMatrix, 1, 0, modelMatrix );
@@ -468,6 +469,7 @@ void DaoxPainter_BufferItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNo
 		mesh->bufferred = 1;
 	}
 
+HandleChildrenItems:
 	for(i=0; i<n; i++){
 		DaoxCanvasNode *it = item->children->items.pCanvasNode[i];
 		DaoxPainter_BufferItem( self, canvas, it, transform );
@@ -496,8 +498,9 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 	distance = DaoxVector3D_Dist( & self->campos, & itempos );
 	diameter = DaoxVector2D_Dist( obbox.X, obbox.Y );
 	//printf( "DaoxPainter_PaintItem 1: %s %g %g\n", item->ctype->name->chars, diameter, distance );
-	if( diameter < 1E-5 * distance * scale ) return;
-	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) return;
+
+	if( diameter < 1E-5 * distance * scale ) goto HandleChildrenItems;
+	if( DaoxOBBox2D_Intersect( & self->obbox, & obbox ) < 0 ) goto HandleChildrenItems;
 
 	DaoxGraphics_TransfromMatrix( transform, modelMatrix );
 	glUniformMatrix4fv( self->shader->uniforms.modelMatrix, 1, 0, modelMatrix );
@@ -509,6 +512,7 @@ void DaoxPainter_PaintItem( DaoxPainter *self, DaoxCanvas *canvas, DaoxCanvasNod
 		}
 	}
 
+HandleChildrenItems:
 	for(i=0; i<n; i++){
 		DaoxCanvasNode *it = item->children->items.pCanvasNode[i];
 		DaoxPainter_PaintItem( self, canvas, it, transform );
@@ -691,8 +695,8 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 	int y = rect.bottom;
 	int width = rect.right - rect.left + 1;
 	int height = rect.top - rect.bottom + 1;
-	int pixelBytes = 1 + image->depth;
-	uchar_t *imageData = image->imageData + y * image->widthStep + x * pixelBytes;
+	int pixelBytes = image->buffer.stride;
+	uchar_t *imageData = image->buffer.data.uchars + y * image->stride + x * pixelBytes;
 	int left = viewport.left;
 	int right = viewport.right;
 	int bottom = viewport.bottom;

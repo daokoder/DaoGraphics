@@ -338,7 +338,7 @@ struct DaoxScene
 	DList  *lights;
 
 	DaoxPathCache *pathCache;
-	DaoRandGenerator  *randGenerator;
+	DaoxRandGenerator  *randGenerator;
 };
 extern DaoType *daox_type_scene;
 

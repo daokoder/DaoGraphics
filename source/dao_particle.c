@@ -80,7 +80,7 @@ void DaoxEmitter_Delete( DaoxEmitter *self )
 DaoxParticle* DaoxEmitter_AddParticle( DaoxEmitter *self, DaoxParticles *cluster, DaoxVector3D pos )
 {
 	int i, offset = cluster->data->vertices->size;
-	DaoRandGenerator *randgen = self->randGenerator;
+	DaoxRandGenerator *randgen = self->randGenerator;
 	DaoxParticle *particle = (DaoxParticle*) DArray_Push( cluster->particles );
 	DaoxVertex *vertex1, *vertex2, *vertex3, *vertex4;
 	DaoxVector3D X = DaoxVector3D_XYZ( 1.0, 0.0, 0.0 );
@@ -113,15 +113,15 @@ DaoxParticle* DaoxEmitter_AddParticle( DaoxEmitter *self, DaoxParticles *cluster
 	DArray_PushTriangleIJK( cluster->data->triangles, offset, offset+1, offset+2 );
 	DArray_PushTriangleIJK( cluster->data->triangles, offset, offset+2, offset+3 );
 
-	r1 = DaoRandGenerator_GetUniform( randgen );
-	r2 = DaoRandGenerator_GetUniform( randgen );
+	r1 = DaoxRandGenerator_GetUniform( randgen );
+	r2 = DaoxRandGenerator_GetUniform( randgen );
 	for(i=0; i<4; ++i){
 		DaoxVertex *vertex = cluster->data->vertices->data.vertices + offset + i;
 		vertex->tan.x = r1;
 		vertex->tan.y = r2;
 	}
 
-	lifeSpan = self->lifeSpan * (0.8 + 0.2*DaoRandGenerator_GetNormal( randgen ));
+	lifeSpan = self->lifeSpan * (0.8 + 0.2*DaoxRandGenerator_GetNormal( randgen ));
 	if( lifeSpan < 0.5*self->lifeSpan ) lifeSpan = 0.5*self->lifeSpan;
 	if( lifeSpan > 2.0*self->lifeSpan ) lifeSpan = 2.0*self->lifeSpan;
 	if( self->life < lifeSpan ) lifeSpan = self->life;
@@ -136,7 +136,7 @@ void DaoxEmitter_Update( DaoxEmitter *self, float dtime )
 	DaoxMatrix4D worldToObj = DaoxMatrix4D_Inverse( & objToWorld );
 	DaoxVector3D gravity = DaoxMatrix4D_Rotate( & worldToObj, & self->gravity );
 	DaoxVector3D dv = DaoxVector3D_Scale( & gravity, dtime * self->gravityStrength );
-	DaoRandGenerator *randgen = self->randGenerator;
+	DaoxRandGenerator *randgen = self->randGenerator;
 	DaoxParticles *cluster = NULL;
 	float fvelocity = dtime;
 	int i, j, k;
@@ -208,7 +208,7 @@ void DaoxEmitter_Update( DaoxEmitter *self, float dtime )
 	if( self->life < self->lifeSpan ) k *= self->life / self->lifeSpan;
 	if( k ) self->dtime = 0.0;
 	while( k ){
-		int source = self->emitter->vertices->size * DaoRandGenerator_GetUniform( randgen );
+		int source = self->emitter->vertices->size * DaoxRandGenerator_GetUniform( randgen );
 		DaoxVertex *vertex = self->emitter->vertices->data.vertices + source;
 		DaoxParticle *particle = DaoxEmitter_AddParticle( self, cluster, vertex->pos );
 		particle->velocity = DaoxVector3D_Scale( & vertex->norm, self->radialVelocity );
@@ -219,7 +219,7 @@ void DaoxEmitter_Update( DaoxEmitter *self, float dtime )
 }
 void DaoxEmitter_UpdateView( DaoxEmitter *self, DaoxVector3D campos )
 {
-	DaoRandGenerator *randgen = self->randGenerator;
+	DaoxRandGenerator *randgen = self->randGenerator;
 	int i, j, k;
 	for(i=0; i<self->active; ++i){
 		DaoxParticles *cluster = (DaoxParticles*) self->clusters->items.pVoid[i];
@@ -240,9 +240,9 @@ void DaoxEmitter_UpdateView( DaoxEmitter *self, DaoxVector3D campos )
 			camdir = DaoxVector3D_Sub( & particle->position, & campos );
 			camdir = DaoxVector3D_Normalize( & camdir );
 			if( randgen ){
-				camdir.x += 0.1*(DaoRandGenerator_GetUniform( randgen ) - 0.5);
-				camdir.y += 0.1*(DaoRandGenerator_GetUniform( randgen ) - 0.5);
-				camdir.z += 0.1*(DaoRandGenerator_GetUniform( randgen ) - 0.5);
+				camdir.x += 0.1*(DaoxRandGenerator_GetUniform( randgen ) - 0.5);
+				camdir.y += 0.1*(DaoxRandGenerator_GetUniform( randgen ) - 0.5);
+				camdir.z += 0.1*(DaoxRandGenerator_GetUniform( randgen ) - 0.5);
 				camdir = DaoxVector3D_Normalize( & camdir );
 			}
 			dx = DaoxVector3D_XYZ( camdir.y, camdir.z, camdir.x );

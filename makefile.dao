@@ -46,12 +46,14 @@ project_sources =
 
 glname = DaoMake::IsPlatform( "MACOSX" ) ? "OpenGL3" : "OpenGL";
 
-daovm  = DaoMake::FindPackage( "Dao",      $REQUIRED )
-daoim  = DaoMake::FindPackage( "DaoImage", $REQUIRED )
+daovm   = DaoMake::FindPackage( "Dao",       $REQUIRED )
+daoim   = DaoMake::FindPackage( "DaoImage",  $REQUIRED )
+daorand = DaoMake::FindPackage( "DaoRandom", $REQUIRED )
+
 opengl = DaoMake::FindPackage( glname,     $OPTIONAL )
 gles   = DaoMake::FindPackage( "OpenGLES", $OPTIONAL )
 
-if( daovm == none or daoim == none ) return
+if( daovm == none or daoim == none or daorand == none ) return
 if( opengl == none and gles == none ) return
 
 project = DaoMake::Project( "DaoGraphics" ) 
@@ -70,6 +72,7 @@ project.UseImportLibrary( daovm )
 project.UseStaticLibrary( glfw )
 
 project_dll.UseSharedLibrary( daoim, "dao_image" )
+project_dll.UseSharedLibrary( daorand, "dao_random" )
 
 if( gles != none ){
 	project.AddDefinition( "DAO_GRAPHICS_USE_GLES" )
@@ -78,11 +81,14 @@ if( gles != none ){
 	project.UseSharedLibrary( opengl )
 }
 
+project.AddIncludePath( "../random" )
 project.AddIncludePath( "../image/source" )
 project.AddIncludePath( "deps/glfw/include" )
 project.SetTargetPath( "../../lib/dao/modules" )
 
 
-project.GenerateFinder( $TRUE );
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_dll );
 project.Install( DaoMake::Variables[ "INSTALL_MOD" ], project_lib );
+
+findpkg = project.GenerateFinder( $TRUE );
+project.Install( DaoMake::Variables[ "INSTALL_FINDER" ], findpkg );

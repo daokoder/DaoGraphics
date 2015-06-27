@@ -1635,3 +1635,4 @@ double DaoxMath_Clamp( double value, double min, double max )
 	if( value > max ) value = max;
 	return value;
 }
+

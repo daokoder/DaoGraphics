@@ -829,7 +829,7 @@ DaoxScene* DaoxScene_New()
 {
 	DaoxScene *self = (DaoxScene*) dao_calloc( 1, sizeof(DaoxScene) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
-	self->randGenerator = DaoRandGenerator_New( rand() );
+	self->randGenerator = DaoxRandGenerator_New( rand() );
 	self->nodes = DList_New( DAO_DATA_VALUE );
 	self->lights = DList_New(0);
 	self->background.alpha = 1.0;
@@ -838,7 +838,7 @@ DaoxScene* DaoxScene_New()
 void DaoxScene_Delete( DaoxScene *self )
 {
 	if( self->pathCache ) GC_DecRC( self->pathCache );
-	DaoRandGenerator_Delete( self->randGenerator );
+	DaoxRandGenerator_Delete( self->randGenerator );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DList_Delete( self->nodes );
 	DList_Delete( self->lights );

@@ -181,7 +181,7 @@ struct DaoxTerrainGenerator
 
 	DaoxTerrain    *terrain;
 
-	DaoRandGenerator  *randGenerator;
+	DaoxRandGenerator  *randGenerator;
 
 	DaoxTerrainParams  params;
 	DaoxVector2D       faultPoint;

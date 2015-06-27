@@ -2017,7 +2017,7 @@ void DaoxPathMesh_AddCap( DaoxPathMesh *self, DaoxPathComponent *com, float offs
 		DaoxPathMesh_HandleSegment( self, & round, offset2, offset2 );
 	}
 }
-void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self )
+void DaoxPathMesh_ComputeStroke( DaoxPathMesh *self )
 {
 	DArray *segments = DArray_New( sizeof(DaoxPathSegment) );
 	DaoxPathComponent *com;
@@ -2030,8 +2030,6 @@ void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self )
 	self->workTriangles = self->strokeTriangles;
 	self->workBeziers   = self->strokeBeziers;
 	for(com=self->path->first; com; com=com->next){
-		DaoxVector3D zero3 = {0.0, 0.0, 0.0};
-		DaoxBezierPoint *P1, *P2, *P3, *P4, *P5, *P6;
 		DaoxPathSegment *seg;
 		double offset2 = offset;
 		float w2 = 0.5 * width;
@@ -2050,7 +2048,7 @@ void DaoxMeshPath_ComputeStroke( DaoxPathMesh *self )
 		}
 	}
 	DArray_Delete( segments );
-	//printf( "DaoxMeshPath_ComputeStroke: %i\n", self->strokePoints->size );
+	//printf( "DaoxPathMesh_ComputeStroke: %i\n", self->strokePoints->size );
 }
 
 
@@ -2278,7 +2276,7 @@ DaoxPathMesh* DaoxPathCache_FindMesh( DaoxPathCache *self, DaoxPath *path, DaoxP
 	DList_Append( it->value.pList, mesh );
 	DaoxPathMesh_Reset( mesh, path, style );
 	DaoxPathMesh_Preprocess( mesh, self->triangulator );
-	if( style->width > 1E-9 ) DaoxMeshPath_ComputeStroke( mesh );
+	if( style->width > 1E-9 ) DaoxPathMesh_ComputeStroke( mesh );
 #ifdef DEBUG
 	printf( "(%p) Cached paths: %i; Cached meshes: %i\n", self, self->pathCount, self->meshCount );
 #endif

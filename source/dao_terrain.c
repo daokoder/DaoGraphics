@@ -1070,7 +1070,7 @@ DaoxTerrainGenerator* DaoxTerrainGenerator_New()
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_terrain_generator );
 	self->terrain = DaoxTerrain_New();
 	GC_IncRC( self->terrain );
-	self->randGenerator = DaoRandGenerator_New( rand() );
+	self->randGenerator = DaoxRandGenerator_New( rand() );
 	self->params.resolution = 1.0;
 	self->params.amplitude = 1.0;
 	self->params.faultScale = 1.0;
@@ -1078,7 +1078,7 @@ DaoxTerrainGenerator* DaoxTerrainGenerator_New()
 }
 void DaoxTerrainGenerator_Delete( DaoxTerrainGenerator *self )
 {
-	DaoRandGenerator_Delete( self->randGenerator );
+	DaoxRandGenerator_Delete( self->randGenerator );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	GC_DecRC( self->terrain );
 	dao_free( self );
@@ -1109,7 +1109,7 @@ void DaoxTerrainGenerator_ApplyFaultLine2( DaoxTerrainGenerator *self, DaoxTerra
 	minSize += 0.01 * self->faultDist * params->resolution;
 
 #if 0
-	float noise = DaoRandGenerator_GetNormal( self->randGenerator );
+	float noise = DaoxRandGenerator_GetNormal( self->randGenerator );
 	if( noise >  1.0 ) noise =  1.0;
 	if( noise < -1.0 ) noise = -1.0;
 	maxChange += 0.1 * maxChange * noise;
@@ -1134,7 +1134,7 @@ void DaoxTerrainGenerator_ApplyFaultLine2( DaoxTerrainGenerator *self, DaoxTerra
 	float cross2 = distToFaultLine[0] * distToFaultLine[2];
 	if( cross1 < 0.01 || cross2 < 0.01 ){ /* Allow almost crossing triangles: */
 		float prob = exp( - minDistToPoint * minDistToPoint );
-		if( DaoRandGenerator_GetUniform( self->randGenerator ) > prob ) goto Adjust;
+		if( DaoxRandGenerator_GetUniform( self->randGenerator ) > prob ) goto Adjust;
 		DaoxTerrain_Split( self->terrain, unit, triangle, 1 );
 		for(i=0; i<4; ++i) DaoxTerrainGenerator_ApplyFaultLine2( self, unit, triangle->splits[i] );
 		return;
@@ -1171,33 +1171,33 @@ void DaoxTerrainGenerator_Update( DaoxTerrainGenerator *self, int iterations )
 {
 	DaoxTerrainBlock *unit;
 	DaoxTerrain *terrain = self->terrain;
-	DaoRandGenerator *randgen = self->randGenerator;
+	DaoxRandGenerator *randgen = self->randGenerator;
 	DaoxVector2D *faultPoint = & self->faultPoint;
 	DaoxVector2D *faultNorm = & self->faultNorm;
 	int i, j, k;
 
 	for(i=0; i<iterations; ++i){
 		float randAngle;
-		faultPoint->x = self->diameter * (DaoRandGenerator_GetUniform( randgen ) - 0.5);
-		faultPoint->y = self->diameter * (DaoRandGenerator_GetUniform( randgen ) - 0.5);
-		faultNorm->x = DaoRandGenerator_GetUniform( randgen ) - 0.5;
-		faultNorm->y = DaoRandGenerator_GetUniform( randgen ) - 0.5;
+		faultPoint->x = self->diameter * (DaoxRandGenerator_GetUniform( randgen ) - 0.5);
+		faultPoint->y = self->diameter * (DaoxRandGenerator_GetUniform( randgen ) - 0.5);
+		faultNorm->x = DaoxRandGenerator_GetUniform( randgen ) - 0.5;
+		faultNorm->y = DaoxRandGenerator_GetUniform( randgen ) - 0.5;
 		*faultNorm = DaoxVector2D_Normalize( faultNorm );
 		self->faultDist = 0.5 * self->diameter;
 		DaoxTerrainGenerator_ApplyFaultLine( self );
 		while(1){
 			DaoxVector2D faultDir = DaoxMatrix3D_RotateVector( *faultNorm, 0.5*M_PI );
-			float randvar = DaoRandGenerator_GetNormal( randgen );
-			float randdir = DaoRandGenerator_GetUniform( randgen ) < 0.5;
+			float randvar = DaoxRandGenerator_GetNormal( randgen );
+			float randdir = DaoxRandGenerator_GetUniform( randgen ) < 0.5;
 			self->faultDist = self->faultDist * (0.5 + 0.1*randvar);
 			if( randdir ) self->faultDist *= -1.0;
 			if( fabs( self->faultDist ) < 0.05 * self->diameter ) break;
 			faultPoint->x += self->faultDist * faultDir.x;
 			faultPoint->y += self->faultDist * faultDir.y;
-			randAngle = 0.5 * M_PI + 0.25 * M_PI * DaoRandGenerator_GetNormal( randgen );
+			randAngle = 0.5 * M_PI + 0.25 * M_PI * DaoxRandGenerator_GetNormal( randgen );
 			*faultNorm = DaoxMatrix3D_RotateVector( faultDir, randAngle );
 			*faultNorm = DaoxVector2D_Normalize( faultNorm );
-			if( DaoRandGenerator_GetUniform( randgen ) ){
+			if( DaoxRandGenerator_GetUniform( randgen ) ){
 				faultNorm->x = - faultNorm->x;
 				faultNorm->y = - faultNorm->y;
 			}
@@ -1211,11 +1211,11 @@ void DaoxTerrainGenerator_Generate( DaoxTerrainGenerator *self, int iterations, 
 {
 	DaoxTerrainBlock *unit;
 	DaoxTerrain *terrain = self->terrain;
-	DaoRandGenerator *randgen = self->randGenerator;
+	DaoxRandGenerator *randgen = self->randGenerator;
 	int i, j, k;
 
 	self->diameter = terrain->width;
-	DaoRandGenerator_Seed( self->randGenerator, seed );
+	DaoxRandGenerator_Seed( self->randGenerator, seed );
 	for(unit=terrain->first; unit!=terrain->last->next; unit=unit->next){
 		unit->center->pos.z = 0.0;
 		for(j=0; j<unit->sides; ++j) unit->spokes[j]->end->pos.z = 0.0;
