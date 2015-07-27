@@ -52,22 +52,22 @@ void DaoxTexture_Delete( DaoxTexture *self )
 	DaoGC_DecRC( (DaoValue*) self->image );
 	dao_free( self );
 }
-void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image )
+void DaoxTexture_SetImage( DaoxTexture *self, DaoImage *image )
 {
 	self->changed = 1;
 	GC_Assign( & self->image, image );
 }
 void DaoxTexture_LoadImage( DaoxTexture *self, const char *file )
 {
-	DaoxImage *image = self->image;
+	DaoImage *image = self->image;
 	int ok = 0;
 	self->changed = 1;
 	if( image == NULL || image->refCount > 1 ){
-		image = DaoxImage_New();
+		image = _DaoImage_New();
 		DaoxTexture_SetImage( self, image );
 	}
-	if( ok == 0 ) ok = DaoxImage_LoadPNG( self->image, file );
-	if( ok == 0 ) ok = DaoxImage_LoadBMP( self->image, file );
+	if( ok == 0 ) ok = _DaoImage_LoadPNG( self->image, file );
+	if( ok == 0 ) ok = _DaoImage_LoadBMP( self->image, file );
 }
 
 
@@ -829,7 +829,7 @@ DaoxScene* DaoxScene_New()
 {
 	DaoxScene *self = (DaoxScene*) dao_calloc( 1, sizeof(DaoxScene) );
 	DaoCstruct_Init( (DaoCstruct*) self, daox_type_scene );
-	self->randGenerator = DaoxRandGenerator_New( rand() );
+	self->randGenerator = _DaoRandGenerator_New( rand() );
 	self->nodes = DList_New( DAO_DATA_VALUE );
 	self->lights = DList_New(0);
 	self->background.alpha = 1.0;
@@ -838,7 +838,7 @@ DaoxScene* DaoxScene_New()
 void DaoxScene_Delete( DaoxScene *self )
 {
 	if( self->pathCache ) GC_DecRC( self->pathCache );
-	DaoxRandGenerator_Delete( self->randGenerator );
+	_DaoRandGenerator_Delete( self->randGenerator );
 	DaoCstruct_Free( (DaoCstruct*) self );
 	DList_Delete( self->nodes );
 	DList_Delete( self->lights );

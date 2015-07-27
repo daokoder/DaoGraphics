@@ -866,7 +866,7 @@ static void CANVAS_AddText2( DaoProcess *proc, DaoValue *p[], int N )
 static void CANVAS_AddImage( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
-	DaoxImage *image = (DaoxImage*) p[1];
+	DaoImage *image = (DaoImage*) p[1];
 	float x = p[2]->xFloat.value;
 	float y = p[3]->xFloat.value;
 	float w = p[4]->xFloat.value;
@@ -1012,7 +1012,7 @@ static void TEX_New( DaoProcess *proc, DaoValue *p[], int N )
 static void TEX_SetImage( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxTexture *self = (DaoxTexture*) p[0];
-	DaoxImage *image = (DaoxImage*) p[1];
+	DaoImage *image = (DaoImage*) p[1];
 	DaoxTexture_SetImage( self, image );
 }
 
@@ -1541,10 +1541,10 @@ static void SCENE_AddRectTerrain( DaoProcess *proc, DaoValue *p[], int N )
 	float length = p[3]->xFloat.value;
 
 	if( heightmap->type != DAO_ARRAY ){
-		DaoxImage *image = (DaoxImage*) p[1];
+		DaoImage *image = (DaoImage*) p[1];
 		float height = p[4]->xFloat.value;
 		heightmap = DaoArray_New(DAO_FLOAT);
-		DaoxImage_Export( image, heightmap, height / 255.0 );
+		_DaoImage_Export( image, heightmap, height / 255.0 );
 	}
 
 	DaoxTerrain_SetHeightmap( terrain, heightmap );
@@ -1562,10 +1562,10 @@ static void SCENE_AddHexTerrain( DaoProcess *proc, DaoValue *p[], int N )
 	float radius = p[3]->xFloat.value;
 
 	if( heightmap->type != DAO_ARRAY ){
-		DaoxImage *image = (DaoxImage*) p[1];
+		DaoImage *image = (DaoImage*) p[1];
 		float height = p[4]->xFloat.value;
 		heightmap = DaoArray_New(DAO_FLOAT);
-		DaoxImage_Export( image, heightmap, height / 255.0 );
+		_DaoImage_Export( image, heightmap, height / 255.0 );
 	}
 
 	DaoxTerrain_SetHeightmap( terrain, heightmap );
@@ -1624,7 +1624,7 @@ static void PAINTER_RenderToImage( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxPainter *self = (DaoxPainter*) p[0];
 	DaoxCanvas *canvas = (DaoxCanvas*) p[1];
-	DaoxImage *image = (DaoxImage*) p[2];
+	DaoImage *image = (DaoImage*) p[2];
 	int width = p[3]->xInteger.value;
 	int height = p[4]->xInteger.value;
 	DaoxPainter_PaintCanvasImage( self, canvas, canvas->viewport, image, width, height );
@@ -2129,6 +2129,7 @@ DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns );
 
 DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 {
+	DaoNamespace *randns = DaoVmSpace_LinkModule( vmSpace, nspace, "random" );
 	DaoNamespace *imns = DaoVmSpace_LinkModule( vmSpace, nspace, "image" );
 	DaoNamespace *ns;
 
@@ -2143,50 +2144,50 @@ DAO_DLL int DaoGraphics_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *nspace )
 
 	DaoNamespace_DefineType( ns, "tuple<red:float,green:float,blue:float,alpha:float>", "Color" );
 
-	daox_type_path = DaoNamespace_WrapType( ns, & DaoxPath_Typer, 0 );
-	daox_type_path_mesh = DaoNamespace_WrapType( ns, & DaoxPathMesh_Typer, 0 );
-	daox_type_path_cache = DaoNamespace_WrapType( ns, & DaoxPathCache_Typer, 0 );
+	daox_type_path = DaoNamespace_WrapType( ns, & DaoxPath_Typer, DAO_CSTRUCT, 0 );
+	daox_type_path_mesh = DaoNamespace_WrapType( ns, & DaoxPathMesh_Typer, DAO_CSTRUCT, 0 );
+	daox_type_path_cache = DaoNamespace_WrapType( ns, & DaoxPathCache_Typer, DAO_CSTRUCT, 0 );
 
-	daox_type_gradient = DaoNamespace_WrapType( ns, & DaoxGradient_Typer, 0 );
-	daox_type_linear_gradient = DaoNamespace_WrapType( ns, & DaoxLinearGradient_Typer, 0 );
-	daox_type_radial_gradient = DaoNamespace_WrapType( ns, & DaoxRadialGradient_Typer, 0 );
-	daox_type_path_gradient = DaoNamespace_WrapType( ns, & DaoxPathGradient_Typer, 0 );
+	daox_type_gradient = DaoNamespace_WrapType( ns, & DaoxGradient_Typer, DAO_CSTRUCT, 0 );
+	daox_type_linear_gradient = DaoNamespace_WrapType( ns, & DaoxLinearGradient_Typer, DAO_CSTRUCT, 0 );
+	daox_type_radial_gradient = DaoNamespace_WrapType( ns, & DaoxRadialGradient_Typer, DAO_CSTRUCT, 0 );
+	daox_type_path_gradient = DaoNamespace_WrapType( ns, & DaoxPathGradient_Typer, DAO_CSTRUCT, 0 );
 
-	daox_type_brush = DaoNamespace_WrapType( ns, & DaoxBrush_Typer, 0 );
-	daox_type_canvas_node = DaoNamespace_WrapType( ns, & DaoxCanvasNode_Typer, 0 );
-	daox_type_canvas_line = DaoNamespace_WrapType( ns, & DaoxCanvasLine_Typer, 0 );
-	daox_type_canvas_rect = DaoNamespace_WrapType( ns, & DaoxCanvasRect_Typer, 0 );
-	daox_type_canvas_circle = DaoNamespace_WrapType( ns, & DaoxCanvasCircle_Typer, 0 );
-	daox_type_canvas_ellipse = DaoNamespace_WrapType( ns, & DaoxCanvasEllipse_Typer, 0 );
-	daox_type_canvas_path = DaoNamespace_WrapType( ns, & DaoxCanvasPath_Typer, 0 );
-	daox_type_canvas_text = DaoNamespace_WrapType( ns, & DaoxCanvasText_Typer, 0 );
-	daox_type_canvas_image = DaoNamespace_WrapType( ns, & DaoxCanvasImage_Typer, 0 );
+	daox_type_brush = DaoNamespace_WrapType( ns, & DaoxBrush_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas_node = DaoNamespace_WrapType( ns, & DaoxCanvasNode_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas_line = DaoNamespace_WrapType( ns, & DaoxCanvasLine_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas_rect = DaoNamespace_WrapType( ns, & DaoxCanvasRect_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas_circle = DaoNamespace_WrapType( ns, & DaoxCanvasCircle_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas_ellipse = DaoNamespace_WrapType( ns, & DaoxCanvasEllipse_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas_path = DaoNamespace_WrapType( ns, & DaoxCanvasPath_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas_text = DaoNamespace_WrapType( ns, & DaoxCanvasText_Typer, DAO_CSTRUCT, 0 );
+	daox_type_canvas_image = DaoNamespace_WrapType( ns, & DaoxCanvasImage_Typer, DAO_CSTRUCT, 0 );
 
-	daox_type_mesh_unit = DaoNamespace_WrapType( ns, & DaoxMeshUnit_Typer, 0 );
-	daox_type_mesh = DaoNamespace_WrapType( ns, & DaoxMesh_Typer, 0 );
-	daox_type_texture = DaoNamespace_WrapType( ns, & DaoxTexture_Typer, 0 );
-	daox_type_material = DaoNamespace_WrapType( ns, & DaoxMaterial_Typer, 0 );
-	daox_type_scene_node = DaoNamespace_WrapType( ns, & DaoxSceneNode_Typer, 0 );
-	daox_type_camera = DaoNamespace_WrapType( ns, & DaoxCamera_Typer, 0 );
-	daox_type_light = DaoNamespace_WrapType( ns, & DaoxLight_Typer, 0 );
-	daox_type_joint = DaoNamespace_WrapType( ns, & DaoxJoint_Typer, 0 );
-	daox_type_skeleton = DaoNamespace_WrapType( ns, & DaoxSkeleton_Typer, 0 );
-	daox_type_model = DaoNamespace_WrapType( ns, & DaoxModel_Typer, 0 );
-	daox_type_emitter = DaoNamespace_WrapType( ns, & DaoxEmitter_Typer, 0 );
-	daox_type_terrain = DaoNamespace_WrapType( ns, & DaoxTerrain_Typer, 0 );
+	daox_type_mesh_unit = DaoNamespace_WrapType( ns, & DaoxMeshUnit_Typer, DAO_CSTRUCT, 0 );
+	daox_type_mesh = DaoNamespace_WrapType( ns, & DaoxMesh_Typer, DAO_CSTRUCT, 0 );
+	daox_type_texture = DaoNamespace_WrapType( ns, & DaoxTexture_Typer, DAO_CSTRUCT, 0 );
+	daox_type_material = DaoNamespace_WrapType( ns, & DaoxMaterial_Typer, DAO_CSTRUCT, 0 );
+	daox_type_scene_node = DaoNamespace_WrapType( ns, & DaoxSceneNode_Typer, DAO_CSTRUCT, 0 );
+	daox_type_camera = DaoNamespace_WrapType( ns, & DaoxCamera_Typer, DAO_CSTRUCT, 0 );
+	daox_type_light = DaoNamespace_WrapType( ns, & DaoxLight_Typer, DAO_CSTRUCT, 0 );
+	daox_type_joint = DaoNamespace_WrapType( ns, & DaoxJoint_Typer, DAO_CSTRUCT, 0 );
+	daox_type_skeleton = DaoNamespace_WrapType( ns, & DaoxSkeleton_Typer, DAO_CSTRUCT, 0 );
+	daox_type_model = DaoNamespace_WrapType( ns, & DaoxModel_Typer, DAO_CSTRUCT, 0 );
+	daox_type_emitter = DaoNamespace_WrapType( ns, & DaoxEmitter_Typer, DAO_CSTRUCT, 0 );
+	daox_type_terrain = DaoNamespace_WrapType( ns, & DaoxTerrain_Typer, DAO_CSTRUCT, 0 );
 
-	daox_type_canvas = DaoNamespace_WrapType( ns, & DaoxCanvas_Typer, 0 );
-	daox_type_scene = DaoNamespace_WrapType( ns, & DaoxScene_Typer, 0 );
-	daox_type_painter = DaoNamespace_WrapType( ns, & DaoxPainter_Typer, 0 );
-	daox_type_renderer = DaoNamespace_WrapType( ns, & DaoxRenderer_Typer, 0 );
-	daox_type_animation = DaoNamespace_WrapType( ns, & DaoxAnimation_Typer, 0 );
-	daox_type_resource = DaoNamespace_WrapType( ns, & DaoxResource_Typer, 0 );
-	daox_type_terrain_block = DaoNamespace_WrapType( ns, & DaoxTerrainBlock_Typer, 0 );
-	daox_type_terrain_generator = DaoNamespace_WrapType( ns, & DaoxTerrainGenerator_Typer, 0 );
+	daox_type_canvas = DaoNamespace_WrapType( ns, & DaoxCanvas_Typer, DAO_CSTRUCT, 0 );
+	daox_type_scene = DaoNamespace_WrapType( ns, & DaoxScene_Typer, DAO_CSTRUCT, 0 );
+	daox_type_painter = DaoNamespace_WrapType( ns, & DaoxPainter_Typer, DAO_CSTRUCT, 0 );
+	daox_type_renderer = DaoNamespace_WrapType( ns, & DaoxRenderer_Typer, DAO_CSTRUCT, 0 );
+	daox_type_animation = DaoNamespace_WrapType( ns, & DaoxAnimation_Typer, DAO_CSTRUCT, 0 );
+	daox_type_resource = DaoNamespace_WrapType( ns, & DaoxResource_Typer, DAO_CSTRUCT, 0 );
+	daox_type_terrain_block = DaoNamespace_WrapType( ns, & DaoxTerrainBlock_Typer, DAO_CSTRUCT, 0 );
+	daox_type_terrain_generator = DaoNamespace_WrapType( ns, & DaoxTerrainGenerator_Typer, DAO_CSTRUCT, 0 );
 
-	daox_type_shader = DaoNamespace_WrapType( ns, & DaoxShader_Typer, 0 );
-	daox_type_buffer = DaoNamespace_WrapType( ns, & DaoxBuffer_Typer, 0 );
-	daox_type_context = DaoNamespace_WrapType( ns, & DaoxContext_Typer, 0 );
+	daox_type_shader = DaoNamespace_WrapType( ns, & DaoxShader_Typer, DAO_CSTRUCT, 0 );
+	daox_type_buffer = DaoNamespace_WrapType( ns, & DaoxBuffer_Typer, DAO_CSTRUCT, 0 );
+	daox_type_context = DaoNamespace_WrapType( ns, & DaoxContext_Typer, DAO_CSTRUCT, 0 );
 
 	DaoWindow_OnLoad( vmSpace, ns );
 	return 0;

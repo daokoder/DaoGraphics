@@ -687,7 +687,7 @@ void DaoxPainter_Render( DaoxPainter *self, DaoxCanvas *canvas, DaoxCamera *came
 }
 
 
-void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, DaoxAABBox2D rect )
+void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoImage *image, DaoxAABBox2D rect )
 {
 	DaoxAABBox2D rect2, subViewport = viewport;
 	DaoxColor bgcolor = canvas->background;
@@ -771,12 +771,12 @@ void DaoxPainter_PaintSubSceneImage( DaoxPainter *self, DaoxCanvas *canvas, Daox
 		DaoxPainter_PaintSubSceneImage( self, canvas, subViewport, image, rect2 );
 	}
 }
-void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoxImage *image, int width, int height )
+void DaoxPainter_PaintCanvasImage( DaoxPainter *self, DaoxCanvas *canvas, DaoxAABBox2D viewport, DaoImage *image, int width, int height )
 {
 	DaoxAABBox2D rect = { 0.0, 0.0, 0.0, 0.0 };
 
 	image->depth = DAOX_IMAGE_BIT32;
-	DaoxImage_Resize( image, width, height );
+	_DaoImage_Resize( image, width, height );
 
 	rect.right = width - 1;
 	rect.top = height - 1;

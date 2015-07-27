@@ -81,7 +81,7 @@ int DaoxResource_SearchFile( DaoxResource *self, DString *fname, DString *search
 
 	if( DaoVmSpace_SearchResource( self->vmSpace, fname, search ) ) return 1;
 	tmp = DString_Copy( fname );
-	Dao_MakePath( search, tmp );
+	DString_MakePath( search, tmp );
 	if( DaoVmSpace_TestFile( self->vmSpace, tmp ) ){
 		DString_Assign( fname, tmp );
 		DString_Delete( tmp );
@@ -94,9 +94,9 @@ int DaoxResource_ReadFile( DaoxResource *self, DString *fname, DString *source )
 {
 	return DaoVmSpace_ReadFile( self->vmSpace, fname, source );
 }
-DaoxImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *path )
+DaoImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *path )
 {
-	DaoxImage *image = NULL;
+	DaoImage *image = NULL;
 	DString *file = DString_Copy( fname );
 	DString *source = DString_New();
 
@@ -105,10 +105,10 @@ DaoxImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *
 	if( DaoxResource_SearchFile( self, file, path ) ){
 		DNode *it = DMap_Find( self->images, file );
 		if( it != NULL ){
-			image = (DaoxImage*) it->value.pValue;
+			image = (DaoImage*) it->value.pValue;
 		}else if( DaoxResource_ReadFile( self, file, source ) ){
-			image = DaoxImage_New();
-			DaoxImage_Decode( image, source );
+			image = _DaoImage_New();
+			_DaoImage_Decode( image, source );
 			DMap_Insert( self->images, file, image );
 		}
 	}

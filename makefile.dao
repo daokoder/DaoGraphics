@@ -47,13 +47,11 @@ project_sources =
 glname = DaoMake::IsPlatform( "MACOSX" ) ? "OpenGL3" : "OpenGL";
 
 daovm   = DaoMake::FindPackage( "Dao",       $REQUIRED )
-daoim   = DaoMake::FindPackage( "DaoImage",  $REQUIRED )
-daorand = DaoMake::FindPackage( "DaoRandom", $REQUIRED )
 
 opengl = DaoMake::FindPackage( glname,     $OPTIONAL )
 gles   = DaoMake::FindPackage( "OpenGLES", $OPTIONAL )
 
-if( daovm == none or daoim == none or daorand == none ) return
+if( daovm == none ) return
 if( opengl == none and gles == none ) return
 
 project = DaoMake::Project( "DaoGraphics" ) 
@@ -70,9 +68,6 @@ project_lib  = project.AddStaticLibrary( "dao_graphics", project_objs )
 
 project.UseImportLibrary( daovm )
 project.UseStaticLibrary( glfw )
-
-project_dll.UseSharedLibrary( daoim, "dao_image" )
-project_dll.UseSharedLibrary( daorand, "dao_random" )
 
 if( gles != none ){
 	project.AddDefinition( "DAO_GRAPHICS_USE_GLES" )

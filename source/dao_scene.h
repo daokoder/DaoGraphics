@@ -36,7 +36,6 @@
 
 #include "dao_common.h"
 #include "dao_font.h"
-#include "dao_image.h"
 #include "dao_mesh.h"
 #include "dao_animation.h"
 
@@ -84,14 +83,14 @@ struct DaoxTexture
 
 	uint_t      tid;
 	uint_t      changed;
-	DaoxImage  *image;
+	DaoImage   *image;
 	void       *ctx;
 };
 extern DaoType *daox_type_texture;
 
 DaoxTexture* DaoxTexture_New();
 void DaoxTexture_Delete( DaoxTexture *self );
-void DaoxTexture_SetImage( DaoxTexture *self, DaoxImage *image );
+void DaoxTexture_SetImage( DaoxTexture *self, DaoImage *image );
 void DaoxTexture_LoadImage( DaoxTexture *self, const char *file );
 
 
@@ -338,7 +337,7 @@ struct DaoxScene
 	DList  *lights;
 
 	DaoxPathCache *pathCache;
-	DaoxRandGenerator  *randGenerator;
+	DaoRandGenerator  *randGenerator;
 };
 extern DaoType *daox_type_scene;
 

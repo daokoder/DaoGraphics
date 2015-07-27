@@ -71,7 +71,10 @@
 #include "daoStdtype.h"
 #include "daoValue.h"
 #include "daoGC.h"
-#include "dao_random.h"
+
+#define DAO_HAS_RANDOM
+#define DAO_HAS_IMAGE
+#include "dao_api.h"
 
 
 #define EPSILON 1E-16

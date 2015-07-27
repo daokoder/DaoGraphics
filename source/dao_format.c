@@ -160,7 +160,7 @@ int DaoxResource_LoadObjMtlSource( DaoxResource *self, DaoxObjParser *parser, DS
 	DNode *it;
 	DaoToken **tokens;
 	DaoxVector3D vector;
-	DaoxImage *image;
+	DaoImage *image;
 	DaoxTexture *texture = NULL;
 	DaoxMaterial *material = NULL;
 	DString *string = DString_New();
@@ -1293,7 +1293,7 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 	case DAE_INIT_FROM :
 		if( (texture = (DaoxTexture*) DaoXmlNode_GetAncestorDataMBS( node, "image", 1 )) ){
 			/* Always assuming relative path for simplicity: */
-			DaoxImage *image = DaoxResource_LoadImage( resource, node->content, self->path );
+			DaoImage *image = DaoxResource_LoadImage( resource, node->content, self->path );
 			if( image ) DaoxTexture_SetImage( texture, image );
 			node->data = texture;
 		}else{

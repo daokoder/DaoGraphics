@@ -41,7 +41,6 @@
 #include "dao_common.h"
 #include "dao_triangulator.h"
 #include "dao_font.h"
-#include "dao_image.h"
 #include "dao_scene.h"
 #include "daoStdtype.h"
 #include "daoValue.h"
@@ -248,7 +247,7 @@ DAO_DLL DaoxCanvasText* DaoxCanvas_AddText( DaoxCanvas *self, const char *text, 
 
 DAO_DLL DaoxCanvasText* DaoxCanvas_AddPathText( DaoxCanvas *self, const char *text, DaoxPath *path, float degrees );
 
-DAO_DLL DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoxImage *image, float x, float y, float w );
+DAO_DLL DaoxCanvasImage* DaoxCanvas_AddImage( DaoxCanvas *self, DaoImage *image, float x, float y, float w );
 
 
 

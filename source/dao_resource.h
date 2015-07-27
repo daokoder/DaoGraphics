@@ -62,7 +62,7 @@ void DaoxResource_Delete( DaoxResource *self );
 int DaoxResource_SearchFile( DaoxResource *self, DString *fname, DString *search );
 int DaoxResource_ReadFile( DaoxResource *self, DString *fname, DString *source );
 
-DaoxImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *path );
+DaoImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *path );
 
 DaoxScene* DaoxResource_GetScene( DaoxResource *self );
 

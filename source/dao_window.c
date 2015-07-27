@@ -510,6 +510,6 @@ DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 	glfwSetErrorCallback( DaoxGLFW_Error );
-	daox_type_window = DaoNamespace_WrapType( ns, & DaoxWindow_Typer, 0 );
+	daox_type_window = DaoNamespace_WrapType( ns, & DaoxWindow_Typer, DAO_CSTRUCT, 0 );
 	return 0;
 }
