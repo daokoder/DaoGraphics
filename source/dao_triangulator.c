@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -438,7 +438,7 @@ static void TRIA_Get( DaoProcess *proc, DaoValue *p[], int N )
 	tuple->values[1]->xInteger.value = triangle->index[1];
 	tuple->values[2]->xInteger.value = triangle->index[2];
 }
-static DaoFuncItem DaoxTriangulatorMeths[]=
+static DaoFunctionEntry DaoxTriangulatorMeths[]=
 {
 	{ TRIA_New,     "Triangulator()" },
 	{ TRIA_Push,    "PushPoint( self : Triangulator, x : float, y : float ) => Triangulator" },
@@ -448,15 +448,35 @@ static DaoFuncItem DaoxTriangulatorMeths[]=
 	{ NULL, NULL }
 };
 
-DaoTypeBase DaoxTriangulator_Typer =
+
+DaoTypeCore daoTriangulatorCore =
 {
-	"Triangulator", NULL, NULL, (DaoFuncItem*) DaoxTriangulatorMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxTriangulator_Delete, NULL
+	"Triangulator",                                    /* name */
+	sizeof(DaoxTriangulator),                          /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	DaoxTriangulatorMeths,                             /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* GetField */
+	DaoCstruct_CheckGetItem,   DaoCstruct_DoGetItem,   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxTriangulator_Delete,       /* Delete */
+	NULL                                               /* HandleGC */
 };
 
 
 DAO_DLL int DaoTriangulator_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 {
-	daox_type_triangulator = DaoNamespace_WrapType( ns, & DaoxTriangulator_Typer, DAO_CDATA, 0 );
+	daox_type_triangulator = DaoNamespace_WrapType( ns, & daoTriangulatorCore, DAO_CDATA, 0 );
 	return 0;
 }

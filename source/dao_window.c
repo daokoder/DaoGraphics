@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -455,7 +455,7 @@ static void WIN_Quit( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxContext_Clear( self->context );
 }
 
-static DaoFuncItem DaoxWindowMeths[]=
+static DaoFunctionEntry DaoxWindowMeths[]=
 {
 	{ WIN_New,   "Window( width = 300, height = 200, title = '' )" },
 	{ WIN_Ctx,   "GetContext( self: Window ) => Context" },
@@ -466,7 +466,7 @@ static DaoFuncItem DaoxWindowMeths[]=
 	{ NULL, NULL }
 };
 
-static void DaoxWindow_GetGCFields( void *p, DList *values, DList *lists, DList *maps, int remove )
+static void DaoxWindow_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
 {
 	DaoxWindow *self = (DaoxWindow*) p;
 	DList_Append( values, self->context );
@@ -482,10 +482,30 @@ static void DaoxWindow_GetGCFields( void *p, DList *values, DList *lists, DList 
 		self->model = NULL;
 	}
 }
-DaoTypeBase DaoxWindow_Typer =
+
+DaoTypeCore daoWindowCore =
 {
-	"Window", NULL, NULL, (DaoFuncItem*) DaoxWindowMeths, { NULL }, { NULL },
-	(FuncPtrDel)DaoxWindow_Delete, DaoxWindow_GetGCFields
+	"Window",                                          /* name */
+	sizeof(DaoxWindow),                                /* size */
+	{ NULL },                                          /* bases */
+	NULL,                                              /* numbers */
+	DaoxWindowMeths,                                   /* methods */
+	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
+	NULL,                      NULL,                   /* SetField */
+	NULL,                      NULL,                   /* GetItem */
+	NULL,                      NULL,                   /* SetItem */
+	NULL,                      NULL,                   /* Unary */
+	NULL,                      NULL,                   /* Binary */
+	NULL,                      NULL,                   /* Conversion */
+	NULL,                      NULL,                   /* ForEach */
+	NULL,                                              /* Print */
+	NULL,                                              /* Slice */
+	NULL,                                              /* Compare */
+	NULL,                                              /* Hash */
+	NULL,                                              /* Create */
+	NULL,                                              /* Copy */
+	(DaoDeleteFunction) DaoxWindow_Delete,             /* Delete */
+	DaoxWindow_HandleGC                                /* HandleGC */
 };
 
 
@@ -510,6 +530,6 @@ DAO_DLL int DaoWindow_OnLoad( DaoVmSpace *vmSpace, DaoNamespace *ns )
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 	glfwSetErrorCallback( DaoxGLFW_Error );
-	daox_type_window = DaoNamespace_WrapType( ns, & DaoxWindow_Typer, DAO_CSTRUCT, 0 );
+	daox_type_window = DaoNamespace_WrapType( ns, & daoWindowCore, DAO_CSTRUCT, 0 );
 	return 0;
 }

@@ -55,6 +55,7 @@ routine main( fps_limit = 30, compute_fps = 0 )
 
 	window.Show( canvas, fps_limit, compute_fps )
 	window.Quit()
+	return 0;
 }
 routine main( save : string, width = 1200, height = 900 )
 {
@@ -71,4 +72,5 @@ routine main( save : string, width = 1200, height = 900 )
 	painter.RenderToImage( canvas, image, width, height );
 	image.Save( save );
 	window.Quit()
+	return 0;
 }

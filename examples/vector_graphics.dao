@@ -155,7 +155,7 @@ routine main( view3d = 0 )
 	if( view3d == 0 ){
 		window.Show( canvas, 1000, 1 )
 		window.Quit()
-		return
+		return 0
 	}
 
 	scene = Graphics::Scene();
@@ -177,4 +177,5 @@ routine main( view3d = 0 )
 	
 	window.Show( scene, 1000, 1 )
 	window.Quit()
+	return 0
 }

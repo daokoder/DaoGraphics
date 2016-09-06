@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2012-2014, Limin Fu
+// Copyright (c) 2012-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -29,8 +29,8 @@
 #ifndef __DAO_FONT_H__
 #define __DAO_FONT_H__
 
-#include "dao_triangulator.h"
 #include "dao_path.h"
+#include "dao_triangulator.h"
 #include "daoStdtype.h"
 #include "stb_truetype.h"
 

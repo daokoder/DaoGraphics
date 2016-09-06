@@ -2,7 +2,7 @@
 // Dao Graphics Engine
 // http://www.daovm.net
 //
-// Copyright (c) 2013-2014, Limin Fu
+// Copyright (c) 2013-2016, Limin Fu
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -137,7 +137,7 @@ struct DaoxMeshEdge
 	DaoxMeshEdge  *right;
 };
 
-/* Just trangle face: */
+/* Just triangle face: */
 struct DaoxMeshFace
 {
 	DaoxMeshNode  *nodes[3];

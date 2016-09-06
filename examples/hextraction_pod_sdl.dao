@@ -161,4 +161,5 @@ routine main()
 	}
 	dao_context.Quit()
 	SDL_Quit();
+	return 0;
 }
