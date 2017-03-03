@@ -488,6 +488,7 @@ DaoTypeCore daoWindowCore =
 	"Window",                                          /* name */
 	sizeof(DaoxWindow),                                /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxWindowMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

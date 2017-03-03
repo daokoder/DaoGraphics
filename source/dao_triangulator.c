@@ -454,6 +454,7 @@ DaoTypeCore daoTriangulatorCore =
 	"Triangulator",                                    /* name */
 	sizeof(DaoxTriangulator),                          /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxTriangulatorMeths,                             /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

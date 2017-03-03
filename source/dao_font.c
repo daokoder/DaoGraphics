@@ -212,6 +212,7 @@ DaoTypeCore daoFontCore =
 	"Font",                                            /* name */
 	sizeof(DaoxFont),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxFontMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -250,6 +251,7 @@ DaoTypeCore daoGlyphCore =
 	"Glyph",                                           /* name */
 	sizeof(DaoxGlyph),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxGlyphMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */

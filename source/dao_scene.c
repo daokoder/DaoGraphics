@@ -38,7 +38,6 @@
 
 
 
-void DaoxTexture_glFreeTexture( DaoxTexture *self );
 
 DaoxTexture* DaoxTexture_New()
 {

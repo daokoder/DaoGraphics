@@ -228,8 +228,9 @@ DaoTypeCore daoPathCore =
 	"Path",                                            /* name */
 	sizeof(DaoxPath),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
-	DaoxPathMeths,                                      /* methods */
+	DaoxPathMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
 	NULL,                      NULL,                   /* GetField */
 	NULL,                      NULL,                   /* GetItem */
@@ -261,6 +262,7 @@ DaoTypeCore daoPathMeshCore =
 	"PathMesh",                                        /* name */
 	sizeof(DaoxPathMesh),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	NULL,                                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -299,6 +301,7 @@ DaoTypeCore daoPathCacheCore =
 	"PathCache",                                       /* name */
 	sizeof(DaoxPathCache),                             /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	NULL,                                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -364,6 +367,7 @@ DaoTypeCore daoGradientCore =
 	"ColorGradient",                                   /* name */
 	sizeof(DaoxGradient),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxGradientMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -411,6 +415,7 @@ DaoTypeCore daoLinearGradientCore =
 	"LinearGradient",                                  /* name */
 	sizeof(DaoxGradient),                              /* size */
 	{ & daoGradientCore, NULL },                       /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxLinearGradientMeths,                           /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -452,6 +457,7 @@ DaoTypeCore daoRadialGradientCore =
 	"RadialGradient",                                  /* name */
 	sizeof(DaoxGradient),                              /* size */
 	{ & daoGradientCore, NULL },                       /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxRadialGradientMeths,                           /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -595,6 +601,7 @@ DaoTypeCore daoBrushCore =
 	"Brush",                                           /* name */
 	sizeof(DaoxBrush),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxBrushMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -705,6 +712,7 @@ DaoTypeCore daoCanvasNodeCore =
 	"CanvasNode",                                      /* name */
 	sizeof(DaoxCanvasNode),                            /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasNodeMeths,                               /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -758,6 +766,7 @@ DaoTypeCore daoCanvasLineCore =
 	"CanvasLine",                                      /* name */
 	sizeof(DaoxCanvasLine),                            /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasLineMeths,                               /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -812,6 +821,7 @@ DaoTypeCore daoCanvasRectCore =
 	"CanvasRect",                                      /* name */
 	sizeof(DaoxCanvasRect),                            /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasRectMeths,                               /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -859,6 +869,7 @@ DaoTypeCore daoCanvasCircleCore =
 	"CanvasCircle",                                    /* name */
 	sizeof(DaoxCanvasCircle),                          /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasCircleMeths,                             /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -909,6 +920,7 @@ DaoTypeCore daoCanvasEllipseCore =
 	"CanvasEllipse",                                   /* name */
 	sizeof(DaoxCanvasEllipse),                         /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasEllipseMeths,                            /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -945,6 +957,7 @@ DaoTypeCore daoCanvasPathCore =
 	"CanvasPath",                                      /* name */
 	sizeof(DaoxCanvasPath),                            /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasPathMeths,                               /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -979,6 +992,7 @@ DaoTypeCore daoCanvasTextCore =
 	"CanvasText",                                      /* name */
 	sizeof(DaoxCanvasText),                            /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasTextMeths,                               /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1012,6 +1026,7 @@ DaoTypeCore daoCanvasImageCore =
 	"CanvasImage",                                     /* name */
 	sizeof(DaoxCanvasImage),                           /* size */
 	{ & daoCanvasNodeCore, NULL },                     /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasImageMeths,                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1217,11 +1232,14 @@ static void DaoxCanvas_HandleGC( DaoValue *p, DList *values, DList *lists, DList
 }
 
 
+extern DaoTypeCore daoSceneNodeCore;
+
 DaoTypeCore daoCanvasCore =
 {
 	"Canvas",                                          /* name */
 	sizeof(DaoxCanvas),                                /* size */
-	{ NULL },                                          /* bases */
+	{ & daoSceneNodeCore, NULL },                      /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCanvasMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1277,6 +1295,7 @@ DaoTypeCore daoMeshUnitCore =
 	"MeshUnit",                                        /* name */
 	sizeof(DaoxMeshUnit),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxMeshUnitMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1313,6 +1332,7 @@ DaoTypeCore daoMeshCore =
 	"Mesh",                                            /* name */
 	sizeof(DaoxMesh),                                  /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxMeshMeths,                                     /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1370,6 +1390,7 @@ DaoTypeCore daoTextureCore =
 	"Texture",                                         /* name */
 	sizeof(DaoxTexture),                               /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxTextureMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1454,6 +1475,7 @@ DaoTypeCore daoMaterialCore =
 	"Material",                                        /* name */
 	sizeof(DaoxMaterial),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxMaterialMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1525,6 +1547,7 @@ DaoTypeCore daoSceneNodeCore =
 	"SceneNode",                                       /* name */
 	sizeof(DaoxSceneNode),                             /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxSceneNodeMeths,                                /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1641,6 +1664,7 @@ DaoTypeCore daoCameraCore =
 	"Camera",                                          /* name */
 	sizeof(DaoxCamera),                                /* size */
 	{ & daoSceneNodeCore, NULL },                      /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxCameraMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1685,6 +1709,7 @@ DaoTypeCore daoLightCore =
 	"Light",                                           /* name */
 	sizeof(DaoxLight),                                 /* size */
 	{ & daoSceneNodeCore, NULL },                      /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxLightMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1714,6 +1739,7 @@ DaoTypeCore daoJointCore =
 	"Joint",                                           /* name */
 	sizeof(DaoxJoint),                                 /* size */
 	{ & daoSceneNodeCore, NULL },                      /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	NULL,                                              /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1742,6 +1768,7 @@ DaoTypeCore daoSkeletonCore =
 	"Skeleton",                                        /* name */
 	sizeof(DaoxSkeleton),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	NULL,                                              /* methods */
 	NULL,                      NULL,                   /* GetField */
@@ -1796,6 +1823,7 @@ DaoTypeCore daoModelCore =
 	"Model",                                           /* name */
 	sizeof(DaoxModel),                                 /* size */
 	{ & daoSceneNodeCore, NULL },                      /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxModelMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1878,6 +1906,7 @@ DaoTypeCore daoEmitterCore =
 	"Emitter",                                         /* name */
 	sizeof(DaoxEmitter),                               /* size */
 	{ & daoModelCore, NULL },                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxEmitterMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -1920,6 +1949,7 @@ DaoTypeCore daoTerrainBlockCore =
 	"TerrainBlock",                                    /* name */
 	sizeof(DaoxTerrainBlock),                          /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxTerrainBlockMeths,                             /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2006,6 +2036,7 @@ DaoTypeCore daoTerrainCore =
 	"Terrain",                                         /* name */
 	sizeof(DaoxTerrain),                               /* size */
 	{ & daoModelCore, NULL },                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxTerrainMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2161,6 +2192,7 @@ DaoTypeCore daoSceneCore =
 	"Scene",                                           /* name */
 	sizeof(DaoxScene),                                 /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxSceneMeths,                                    /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2229,6 +2261,7 @@ DaoTypeCore daoPainterCore =
 	"Painter",                                         /* name */
 	sizeof(DaoxPainter),                               /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxPainterMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2325,6 +2358,7 @@ DaoTypeCore daoRendererCore =
 	"Renderer",                                        /* name */
 	sizeof(DaoxRenderer),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxRendererMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2354,6 +2388,7 @@ DaoTypeCore daoAnimationCore =
 	"Animation",                                       /* name */
 	sizeof(DaoxAnimation),                             /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	NULL,                                              /* methods */
 	NULL,                      NULL,                   /* GetField */
@@ -2437,6 +2472,7 @@ DaoTypeCore daoResourceCore =
 	"Resource",                                        /* name */
 	sizeof(DaoxResource),                              /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxResourceMeths,                                 /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2604,6 +2640,7 @@ DaoTypeCore daoTerrainGeneratorCore =
 	"TerrainGenerator",                                /* name */
 	sizeof(DaoxTerrainGenerator),                      /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxTerrainGeneratorMeths,                         /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2637,6 +2674,7 @@ DaoTypeCore daoShaderCore =
 	"Shader",                                          /* name */
 	sizeof(DaoxShader),                                /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxShaderMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2670,6 +2708,7 @@ DaoTypeCore daoBufferCore =
 	"Buffer",                                          /* name */
 	sizeof(DaoxBuffer),                                /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
 	DaoxBufferMeths,                                   /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
@@ -2725,11 +2764,12 @@ static void DaoxContext_HandleGC( DaoValue *p, DList *values, DList *lists, DLis
 
 DaoTypeCore daoContextCore =
 {
-	"Context",                                          /* name */
-	sizeof(DaoxContext),                                /* size */
+	"Context",                                         /* name */
+	sizeof(DaoxContext),                               /* size */
 	{ NULL },                                          /* bases */
+	{ NULL },                                          /* casts */
 	NULL,                                              /* numbers */
-	DaoxContextMeths,                                   /* methods */
+	DaoxContextMeths,                                  /* methods */
 	DaoCstruct_CheckGetField,  DaoCstruct_DoGetField,  /* GetField */
 	NULL,                      NULL,                   /* SetField */
 	NULL,                      NULL,                   /* GetItem */
@@ -2744,8 +2784,8 @@ DaoTypeCore daoContextCore =
 	NULL,                                              /* Hash */
 	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
-	(DaoDeleteFunction) DaoxContext_Delete,             /* Delete */
-	DaoxContext_HandleGC                                /* HandleGC */
+	(DaoDeleteFunction) DaoxContext_Delete,            /* Delete */
+	DaoxContext_HandleGC                               /* HandleGC */
 };
 
 
