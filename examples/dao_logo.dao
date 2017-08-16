@@ -5,24 +5,24 @@
 
 load graphics;
 
-window = Graphics::Window( 960, 640, 'Dao Logo' )
+var window = Graphics::Window( 960, 640, 'Dao Logo' )
 
-canvas = Graphics::Canvas();
+var canvas = Graphics::Canvas();
 
 canvas.SetViewport( -500, 500, -400, 400 );
 
 canvas.SetBackground( 1.0, 1.0, 1.0, 1.0 );
 
-fontRoboto = Graphics::Font( "fonts/Roboto-Bold.ttf" );
+var fontRoboto = Graphics::Font( "fonts/Roboto-Bold.ttf" );
 
 
-brush = canvas.PushBrush()
+var brush = canvas.PushBrush()
 brush.SetFont( fontRoboto, 120 );
 brush.SetStrokeWidth( 0.5 );
 brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
 brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
-text = canvas.AddText( "Dao", -100, 240 );
+var text = canvas.AddText( "Dao", -100, 240 );
 
 brush = canvas.PushBrush()
 brush.SetFont( fontRoboto, 75 );
@@ -30,7 +30,7 @@ brush.SetStrokeWidth( 0.5 );
 brush.SetStrokeColor( 0.0, 0.0, 0.5, 0.9 );
 brush.SetFillColor( 0.0, 0.0, 0.5, 0.9 );
 
-path = Graphics::Path();
+var path = Graphics::Path();
 #item = canvas.AddPath( path );
 #item.SetVisible( $false );
 
@@ -47,11 +47,11 @@ canvas.PopBrush();
 
 canvas.PushBrush()
 
-unit = 100;
+var unit = 100;
 
 brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(0)
 
-grad_O = brush.SetRadialGradient();
+var grad_O = brush.SetRadialGradient();
 grad_O.AddStop( 0.0, (1.0, 1.0, 1.0, 0.9) )
 grad_O.AddStop( 0.1, (0.9, 0.8, 0.9, 0.9) )
 grad_O.AddStop( 0.8, (0.6, 0.0, 0.9, 0.9) )
@@ -110,7 +110,7 @@ canvas.PopBrush()
 
 brush = canvas.PushBrush().SetJunction( $flat ).SetStrokeWidth(0)
 
-grad_A = brush.SetRadialGradient();
+var grad_A = brush.SetRadialGradient();
 grad_A.AddStop( 0.0, (0.6, 0.7, 0.6, 0.1) )
 grad_A.AddStop( 0.3, (0.5, 0.6, 0.5, 0.4) )
 grad_A.AddStop( 0.5, (0.2, 0.9, 0.2, 0.7) )

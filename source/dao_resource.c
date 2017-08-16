@@ -107,7 +107,7 @@ DaoImage* DaoxResource_LoadImage( DaoxResource *self, DString *fname, DString *p
 		if( it != NULL ){
 			image = (DaoImage*) it->value.pValue;
 		}else if( DaoxResource_ReadFile( self, file, source ) ){
-			image = _DaoImage_New();
+			image = _DaoImage_New( _DaoImage_Type( DaoType_GetVmSpace( self->ctype ) ) );
 			_DaoImage_Decode( image, source );
 			DMap_Insert( self->images, file, image );
 		}

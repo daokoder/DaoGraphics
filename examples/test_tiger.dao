@@ -4,28 +4,28 @@ load test_tiger_paths
 
 routine LoadTiger( canvas : Graphics::Canvas )
 {
-	group = canvas.AddGroup()
+	var group = canvas.AddGroup()
 	group.Rotate( 180 );
 	group.Move( 100, 100 );
-	brush = canvas.PushBrush()
-	for( i = 0 : pathCount-1 ){
-	#for( i = pathCount-60 : pathCount-50 ){
-		commands = commandArrays[i]
-		points = dataArrays[i]
-		style = styleArrays[i];
+	var brush = canvas.PushBrush()
+	for(var i = 0 : pathCount ){
+	#for(var i = pathCount-60 : pathCount-50 ){
+		var commands = commandArrays[i]
+		var points = dataArrays[i]
+		var style = styleArrays[i];
 
-		brush = canvas.PushBrush()
+		var brush = canvas.PushBrush()
 		brush.SetStrokeColor( style[0], style[1], style[2], style[3] )
 		brush.SetFillColor( style[4], style[5], style[6], style[7] )
 
 		# vgDrawPath(path,paintModes), style[9] is the paintModes:
-		strokeWidth = (((int)style[9]) & 1) ? style[8] : 0;
+		var strokeWidth = (((int)style[9]) & 1) ? style[8] : 0;
 		brush.SetStrokeWidth( strokeWidth )
 		
-		path = Graphics::Path();
+		var path = Graphics::Path();
 		canvas.AddPath( path );
-		k = 0;
-		for( j = 0 : commandCounts[i]-1 ){
+		var k = 0;
+		for(var j = 0 : commandCounts[i] ){
 			switch( commands[j] ){
 			case VG_MOVE_TO_ABS  :
 				path.MoveTo( points[k], points[k+1] );
@@ -47,8 +47,8 @@ routine LoadTiger( canvas : Graphics::Canvas )
 
 routine main( fps_limit = 30, compute_fps = 0 )
 {
-	window = Graphics::Window( 960, 640, 'Graphics Demo: Tiger' )
-	canvas = Graphics::Canvas();
+	var window = Graphics::Window( 960, 640, 'Graphics Demo: Tiger' )
+	var canvas = Graphics::Canvas();
 	canvas.SetViewport( -500, 500, -400, 400 );
 	canvas.SetBackground( 1.0, 1.0, 1.0, 1.0 );
 	LoadTiger( canvas );
@@ -60,14 +60,14 @@ routine main( fps_limit = 30, compute_fps = 0 )
 routine main( save : string, width = 1200, height = 900 )
 {
     # Must be called before Graphics::Canvas():
-	window = Graphics::Window( 800, 600, 'Graphics Demo: Tiger' )
+	var window = Graphics::Window( 800, 600, 'Graphics Demo: Tiger' )
 
-	painter = Graphics::Painter( window.GetContext() );
-	canvas = Graphics::Canvas();
+	var painter = Graphics::Painter( window.GetContext() );
+	var canvas = Graphics::Canvas();
 	canvas.SetBackground( 1.0, 1.0, 1.0, 0.0 );
 	LoadTiger( canvas );
 
-	image = Graphics::Image();
+	var image = Graphics::Image();
 	canvas.SetViewport( -400, 400, -300, 300 );
 	painter.RenderToImage( canvas, image, width, height );
 	image.Save( save );

@@ -1,16 +1,17 @@
 
 load math;
+load random
 load graphics;
 
 
-length = 1
-width = 0.1
+var length = 1
+var width = 0.1
 
-scene = Graphics::Scene();
+var scene = Graphics::Scene();
 
-heightmap = Graphics::Image();
+var heightmap = Graphics::Image();
 
-texImages =
+var texImages =
 {
 #	"../media/textures/rock_with_algae_test.png",
 #	"../media/textures/rock_with_algae_test.png",
@@ -18,47 +19,47 @@ texImages =
 	"../media/textures/cliff_with_grass.png"
 }
 
-bumpImages = 
+var bumpImages = 
 {
 	"../media/textures/rock_with_algae_bump.png",
 	"../media/textures/cliff_with_grass_bump.png"
 }
 
-materials = {}
+var materials = {}
 
-for( i = 0 : % texImages - 1 ){
-	image = Graphics::Image();
-	image2 = Graphics::Image();
+for(var i = 0 : % texImages ){
+	var image = Graphics::Image();
+	var image2 = Graphics::Image();
 	image.Load( texImages[i] )
 	image2.Load( bumpImages[i] )
 
-	texture = Graphics::Texture();
-	texture2 = Graphics::Texture();
+	var texture = Graphics::Texture();
+	var texture2 = Graphics::Texture();
 	texture.SetImage( image );
 	texture2.SetImage( image2 );
 
-	material = Graphics::Material()
+	var material = Graphics::Material()
 	material.SetTexture( texture, $diffuse )
 	material.SetTexture( texture2, $bump )
 	materials.append( material );
 }
 
-camera = Graphics::Camera()
+var camera = Graphics::Camera()
 
-circles = 2;
-radius = 5.0;
-height = circles*radius/4;
+var circles = 2;
+var radius = 5.0;
+var height = circles*radius/4;
 
-math.srand( 100 )
+random.srand( 100 )
 
 # Public domain heightmap, downloaded from wikipedia.org:
-terrain: Graphics::Terrain;
+var terrain: Graphics::Terrain | none = none;
 if( 1 ){
 	heightmap.Load( '../media/heightmap.png' )
 	terrain = scene.AddHexTerrain( heightmap, circles, radius, height )
 }else{
-	height = 2.0;
-	heightmap2 = array<float>(20,20){ rand(2.0) + 0.5 }
+	var height = 2.0;
+	var heightmap2 = array<float>(20,20){ random.rand(2.0) + 0.5 }
 	terrain = scene.AddHexTerrain( heightmap2, circles, radius )
 }
 camera.Move( 0.0, 2*circles*radius, 2*circles*radius )
@@ -66,7 +67,7 @@ camera.LookAt( 0.0, 0.35*circles*radius, 0.0 );
 #camera.LookAt( 0.5*circles*radius, 0.35*circles*radius, 0.0 );
 camera.SetFOV( 60 );
 
-terrain.EachBlock { [block] block.SetMaterial( materials[ rand( %materials ) ] ) }
+terrain.EachBlock { [block] block.SetMaterial( materials[ random.rand( %materials-1 ) ] ) }
 
 #tile = terrain.GetBlock( 0, 1, 0 )
 #tile.SetMaterial( materials[ rand( %materials ) ] )
@@ -76,17 +77,17 @@ camera.Orient( $Z );
 scene.AddNode( camera );
 
 
-intensity1 = 0.2;
-intensity2 = 0.2;
-intensity3 = 0.2;
-intensity4 = 0.2;
+var intensity1 = 0.2;
+var intensity2 = 0.2;
+var intensity3 = 0.2;
+var intensity4 = 0.2;
 
-len = 2*circles*radius
+var len = 2*circles*radius
 
-light1 = Graphics::Light( $spot, intensity1, intensity1, intensity1 )
-light2 = Graphics::Light( $spot, intensity2, intensity2, intensity2 )
-light3 = Graphics::Light( $spot, intensity3, intensity3, intensity3 )
-light4 = Graphics::Light( $spot, intensity4, intensity4, intensity4 )
+var light1 = Graphics::Light( $spot, intensity1, intensity1, intensity1 )
+var light2 = Graphics::Light( $spot, intensity2, intensity2, intensity2 )
+var light3 = Graphics::Light( $spot, intensity3, intensity3, intensity3 )
+var light4 = Graphics::Light( $spot, intensity4, intensity4, intensity4 )
 light1.Move( 0.0, 0.0, 5*len );
 light2.Move( len, 0.0, 5*len );
 light3.Move( 0.5*len, len*sin(0.6667*3.1415), 5*len );
@@ -96,7 +97,7 @@ scene.AddNode( light2 );
 scene.AddNode( light3 );
 scene.AddNode( light4 );
 
-window = Graphics::Window( 960, 640, "Terrain" )
+var window = Graphics::Window( 960, 640, "Terrain" )
 window.Show( scene, 10, 1 )
 window.Quit()
 

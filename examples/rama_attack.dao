@@ -1,11 +1,11 @@
 
 load graphics;
 
-resource = Graphics::Resource()
+var resource = Graphics::Resource()
 
-scene = resource.LoadDaeFile( "../media/rama_attack/rama_attack.dae" )
+var scene = resource.LoadDaeFile( "../media/rama_attack/rama_attack.dae" )
 scene.SetBackground( 0.5, 0.5, 0.5, 0.5 )
 
-window = Graphics::Window( 960, 800, '' )
+var window = Graphics::Window( 960, 800, '' )
 window.Show( scene, 500, 1 )
 window.Quit()

@@ -1,13 +1,13 @@
 
 load graphics;
 
-resource = Graphics::Resource()
+var resource = Graphics::Resource()
 
-scene = resource.LoadDaeFile( "../media/astroboy_walk/astroboy_walk.dae" )
+var scene = resource.LoadDaeFile( "../media/astroboy_walk/astroboy_walk.dae" )
 scene.SetBackground( 0.5, 0.5, 0.5, 0.5 )
 
 
-camera = Graphics::Camera()
+var camera = Graphics::Camera()
 #camera.Move( 10, 10, 10 ) # bug with moving forward
 camera.Move( 10, 25, 25 )
 camera.LookAt( 0, 15, 0 );
@@ -16,6 +16,6 @@ camera.SetFOV( 60 );
 camera.Orient( $Y );
 scene.AddNode( camera );
 
-window = Graphics::Window( 960, 800, '' )
+var window = Graphics::Window( 960, 800, '' )
 window.Show( scene, 300, 1 )
 window.Quit()

@@ -62,7 +62,7 @@ void DaoxTexture_LoadImage( DaoxTexture *self, const char *file )
 	int ok = 0;
 	self->changed = 1;
 	if( image == NULL || image->refCount > 1 ){
-		image = _DaoImage_New();
+		image = _DaoImage_New( _DaoImage_Type( DaoType_GetVmSpace( self->ctype ) ) );
 		DaoxTexture_SetImage( self, image );
 	}
 	if( ok == 0 ) ok = _DaoImage_LoadPNG( self->image, file );

@@ -3,9 +3,9 @@ load graphics
 
 routine ComputeMoveStep( camera: Graphics::Camera )
 {
-	pos = camera.translation
-	focus = camera.focus
-	dist = 0.0;
+	var pos = camera.translation
+	var focus = camera.focus
+	var dist = 0.0;
 	dist += (pos.x - focus.x) * (pos.x - focus.x)
 	dist += (pos.y - focus.y) * (pos.y - focus.y)
 	dist += (pos.z - focus.z) * (pos.z - focus.z)
@@ -24,12 +24,12 @@ routine MoveCameraByDirection( camera: Graphics::Camera, dir: enum<left,right,up
 
 routine ZoomCamera( camera: Graphics::Camera, mode: enum<in,out> )
 {
-	fov = camera.fov;
+	var fov = camera.fov;
 	if( mode == $in ){
 		camera.SetFOV( 0.9*fov )
 	}else{
-		scaled = 1.1 * fov;
-		interpolated = 0.9 * fov + 0.1 * 179;
+		var scaled = 1.1 * fov;
+		var interpolated = 0.9 * fov + 0.1 * 179;
 		camera.SetFOV( scaled < interpolated ? scaled : interpolated );
 	}
 }

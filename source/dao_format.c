@@ -1479,6 +1479,8 @@ int DaoxColladaParser_Parse( void *userdata, DaoXmlNode *node )
 		return 0;
 	case DAE_CONTROLLER :
 		DaoxColladaParser_HandleController( self, node );
+		if( node->data == NULL ) break; // TODO
+		DaoxScene_AddNode( self->currentScene, (DaoxSceneNode*) node->data );
 		return 0;
 	case DAE_INSTANCE_GEOMETRY :
 		att = DaoXmlNode_GetAttributeMBS( node, "url" );

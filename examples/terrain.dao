@@ -1,25 +1,25 @@
 
 load graphics;
 
-length = 1
-width = 0.1
+var length = 1
+var width = 0.1
 
-scene = Graphics::Scene();
+var scene = Graphics::Scene();
 
-heightmap = Graphics::Image();
+var heightmap = Graphics::Image();
 
 
-camera = Graphics::Camera()
+var camera = Graphics::Camera()
 
 if(1){
 	# Public domain heightmap, downloaded from wikipedia.org:
 	heightmap.Load( '../media/heightmap.png' )
-	terrain = scene.AddRectTerrain( heightmap, 100, 100, 10 )
+	var terrain = scene.AddRectTerrain( heightmap, 100, 100, 10 )
 	camera.Move( 0, 60, 65 )
 	camera.LookAt( 0, 20, 0 );
 }else{
 	heightmap.Load( '../media/world-heightmap.png' )
-	terrain = scene.AddRectTerrain( heightmap, 300, 100, 5 )
+	var terrain = scene.AddRectTerrain( heightmap, 300, 100, 5 )
 	camera.Move( 0, -10, 150 )
 	camera.LookAt( 0, 0, 0 );
 }
@@ -27,11 +27,11 @@ camera.SetFarPlane( 10000 );
 camera.Orient( $Z );
 scene.AddNode( camera );
 
-intensity = 1.0;
+var intensity = 1.0;
 
-light1 = Graphics::Light( $spot, 0.4*intensity, 0.3*intensity, 0.2*intensity )
-light2 = Graphics::Light( $spot, 0.3*intensity, 0.4*intensity, 0.2*intensity )
-light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.2*intensity )
+var light1 = Graphics::Light( $spot, 0.4*intensity, 0.3*intensity, 0.2*intensity )
+var light2 = Graphics::Light( $spot, 0.3*intensity, 0.4*intensity, 0.2*intensity )
+var light3 = Graphics::Light( $spot, 0.3*intensity, 0.3*intensity, 0.2*intensity )
 light1.Move( 50, 90, 150 )
 light2.Move( 101.5, 61.5, 161.5 )
 light2.Move( 0, 0, -50 )
@@ -39,6 +39,6 @@ scene.AddNode( light1 );
 scene.AddNode( light2 );
 scene.AddNode( light3 );
 
-window = Graphics::Window( 960, 640, "Terrain" )
+var window = Graphics::Window( 960, 640, "Terrain" )
 window.Show( scene, 10, 1 )
 window.Quit()

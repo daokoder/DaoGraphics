@@ -1,14 +1,14 @@
 
 load graphics;
 
-resource = Graphics::Resource()
+var resource = Graphics::Resource()
 
-scene = Graphics::Scene(); #resource.LoadDaeFile( "box.dae" )
+var scene = Graphics::Scene(); #resource.LoadDaeFile( "box.dae" )
 scene.SetBackground( 0.0, 0.0, 0.0, 1.0 )
 scene.SetBackground( 1.0, 1.0, 1.0, 1.0 )
 
-fire = Graphics::Emitter()
-smoke = Graphics::Emitter()
+var fire = Graphics::Emitter()
+var smoke = Graphics::Emitter()
 scene.AddNode( fire )
 scene.AddNode( smoke )
 
@@ -17,15 +17,15 @@ smoke.MoveBy( 10, 0, 10 )
 fire.Configure( EmissionRate=200, LifeSpan=1.5, Velocity=2, Gravity=5 )
 smoke.Configure( EmissionRate=100, LifeSpan=3, Velocity=1, Gravity=1 )
 
-mat = Graphics::Material()
-mat2 = Graphics::Material()
+var mat = Graphics::Material()
+var mat2 = Graphics::Material()
 mat.SetColor( emission = (1.0, 0.8, 0.0), diffuse=(0.8,0.0,0.0), ambient=(0.0,0.0,0.0) )
 mat2.SetColor( emission = (0.75, 0.7, 0.7), diffuse=(0.0,0.0,0.0), ambient=(0.1,0.1,0.1) )
 fire.SetMaterial( mat );
 smoke.SetMaterial( mat2 );
 
 
-camera = Graphics::Camera()
+var camera = Graphics::Camera()
 #camera.Move( 10, 10, 10 ) # bug with moving forward
 camera.Move( -15, 15, 15 )
 camera.LookAt( 0, 0, 0 );
@@ -34,6 +34,6 @@ camera.SetFOV( 90 );
 camera.Orient( $Y );
 scene.AddNode( camera );
 
-window = Graphics::Window( 960, 800, '' )
+var window = Graphics::Window( 960, 800, '' )
 window.Show( scene, 300, 1 )
 window.Quit()

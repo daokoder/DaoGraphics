@@ -1,8 +1,8 @@
 
 load graphics;
 
-window_width = 1000
-window_height = 800
+var window_width = 1000
+var window_height = 800
 
 var window = Graphics::Window( window_width, window_height, 'Dao Logo' )
 
@@ -12,12 +12,12 @@ canvas.SetViewport( -1000, 1000, -1000, 800 );
 
 canvas.SetBackground( 1.0, 1.0, 1.0, 1.0 );
 
-font = Graphics::DefaultFont;
+var font = Graphics::DefaultFont;
 #brush = canvas.PushBrush()
 #brush.SetFont( font, 30 );
 
 
-path = Graphics::Path();
+var path = Graphics::Path();
 path.MoveTo( -50, 100 );
 path.CubicTo( 100, 0, 0, 80, 150, -100 )
 path.CubicTo( 100, 0, -150, -100 )
@@ -34,20 +34,20 @@ path.CubicTo( -20, 0, 0, -60 )
 path.Close()
 
 
-brush = canvas.PushBrush()
+var brush = canvas.PushBrush()
 brush.SetStrokeWidth( 20.0 );
 brush.SetStrokeColor( 0.0, 0.0, 0.7, 0.7 );
 
-row1 =  650
-row2 =  330
-row3 =   80
-row4 = -400
-gap = 100
+var row1 =  650
+var row2 =  330
+var row3 =   80
+var row4 = -400
+var gap = 100
 
 canvas.AddLine( -800, row1, -400, row1 )
 canvas.AddRect( -800, row2, -400, row1-gap )
 canvas.AddCircle( -800+200, row3, 150 )
-cpath = canvas.AddPath( path );
+var cpath = canvas.AddPath( path );
 cpath.Move( -600, row4 )
 cpath.Scale( 2.0 )
 
@@ -70,14 +70,14 @@ brush.SetFillColor( 0.6, 0.9, 0.4, 0.9 );
 brush = canvas.PushBrush()
 brush.SetStrokeWidth( 20.0 );
 brush.SetFillColor( 1.0, 1.0, 1.0, 0.1 );
-strokeGrad = brush.SetStrokeGradient();
+var strokeGrad = brush.SetStrokeGradient();
 strokeGrad.AddStop( 0.1, (0.6, 1.0, 0.6, 1.0) )
 strokeGrad.AddStop( 0.3, (0.1, 0.6, 0.1, 1.0) )
 strokeGrad.AddStop( 0.5, (0.6, 0.6, 0.1, 1.0) )
 strokeGrad.AddStop( 0.7, (0.6, 0.2, 0.1, 1.0) )
 strokeGrad.AddStop( 0.9, (0.8, 0.5, 0.1, 1.0) )
 
-linearGrad = brush.SetLinearGradient();
+var linearGrad = brush.SetLinearGradient();
 linearGrad.AddStop( 0.0, (0.6, 1.0, 0.6, 1.0) )
 linearGrad.AddStop( 0.25, (0.1, 0.6, 0.1, 1.0) )
 linearGrad.AddStop( 0.5, (0.6, 0.6, 0.1, 1.0) )
@@ -90,7 +90,7 @@ canvas.AddLine( -800+1200, row1, -400+1200, row1 )
 canvas.AddRect( -800+1200, row2, -400+1200, row1-gap, 50, 50 )
 
 brush = canvas.PushBrush()
-grad_O = brush.SetRadialGradient();
+var grad_O = brush.SetRadialGradient();
 grad_O.AddStop( 0.0, (0.6, 1.0, 0.6, 1.0) )
 grad_O.AddStop( 0.25, (0.1, 0.6, 0.1, 1.0) )
 grad_O.AddStop( 0.5, (0.6, 0.6, 0.1, 1.0) )
@@ -142,10 +142,10 @@ path.CubicAbsTo( 700, 100, 800, 100, 900, 0 );
 
 cpath = canvas.AddPath( path )
 cpath.Move( -700, -800 )
-text = canvas.AddText( "Vector Graphics", path );
+var text = canvas.AddText( "Vector Graphics", path );
 text.Move( -700, -800 )
 
-image = Graphics::Image();
+var image = Graphics::Image();
 image.Load( "../media/images/mandrill.png" );
 canvas.AddImage( image, 500, -850, 200 );
 
@@ -158,15 +158,15 @@ routine main( view3d = 0 )
 		return 0
 	}
 
-	scene = Graphics::Scene();
+	var scene = Graphics::Scene();
 	scene.SetBackground( 0.5, 0.5, 0.5, 0.5 )
 	
 	# light types not supported yet!
-	light = Graphics::Light( $spot, 0.9, 0.9, 0.9 )
+	var light = Graphics::Light( $spot, 0.9, 0.9, 0.9 )
 	light.Move( 0, 0, 500 )
 	scene.AddNode( light );
 	
-	camera = Graphics::Camera()
+	var camera = Graphics::Camera()
 	camera.Move( 800, 800, 800 )
 	camera.LookAt( 0, 300, 0 );
 	camera.SetFarPlane( 50000 );
