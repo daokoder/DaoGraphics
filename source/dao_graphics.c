@@ -1763,6 +1763,12 @@ DaoTypeCore daoJointCore =
 
 
 
+static void DaoxSkeleton_HandleGC( DaoValue *p, DList *values, DList *lists, DList *maps, int remove )
+{
+	DaoxSkeleton *self = (DaoxSkeleton*) p;
+	DList_Append( lists, self->joints );
+}
+
 DaoTypeCore daoSkeletonCore =
 {
 	"Skeleton",                                        /* name */
@@ -1786,7 +1792,7 @@ DaoTypeCore daoSkeletonCore =
 	NULL,                                              /* Create */
 	NULL,                                              /* Copy */
 	(DaoDeleteFunction) DaoxSkeleton_Delete,           /* Delete */
-	NULL                                               /* HandleGC */
+	DaoxSkeleton_HandleGC                              /* HandleGC */
 };
 
 

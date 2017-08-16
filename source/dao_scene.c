@@ -767,7 +767,6 @@ DaoxSkeleton* DaoxSkeleton_New()
 }
 void DaoxSkeleton_Delete( DaoxSkeleton *self )
 {
-#warning "TODO: GC!"
 	DList_Delete( self->joints );
 	DArray_Delete( self->skinMats );
 	DArray_Delete( self->skinMats2 );
