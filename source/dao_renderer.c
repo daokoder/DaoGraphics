@@ -437,7 +437,7 @@ void DaoxRenderer_UpdateBuffer( DaoxRenderer *self, DList *drawtasks, DaoxBuffer
 	}
 
 #ifdef DEBUG
-	printf( "DaoxRenderer_UpdateBuffer: %i %i, %p %p\n", vertexCount, triangleCount, glvertices, gltriangles );
+	//printf( "DaoxRenderer_UpdateBuffer: %i %i, %p %p\n", vertexCount, triangleCount, glvertices, gltriangles );
 #endif
 
 	vertexCount = 0;

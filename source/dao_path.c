@@ -527,11 +527,11 @@ void DaoxPath_ArcTo2( DaoxPath *self, float x, float y, float degrees, float deg
 }
 void DaoxPath_ArcTo( DaoxPath *self, float x, float y, float degrees )
 {
-	DaoxPath_ArcTo2( self, x, y, degrees, 30.0 );
+	DaoxPath_ArcTo2( self, x, y, degrees, fabs(degrees) / 2.0 );
 }
 void DaoxPath_ArcBy( DaoxPath *self, float cx, float cy, float degrees )
 {
-	DaoxPath_ArcBy2( self, cx, cy, degrees, 30.0 );
+	DaoxPath_ArcBy2( self, cx, cy, degrees, fabs(degrees) / 2.0 );
 }
 #define DAOX_PATH_QUAD_TO_CUBIC 1
 void DaoxPath_QuadTo( DaoxPath *self, float cx, float cy, float x, float y )
@@ -1484,6 +1484,7 @@ void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator
 					DaoxPathSegment_Divide( S1, R1 );
 					DList_Append( segments, S1->first );
 					DList_Append( segments, S1->second );
+					DArray_Reserve( boxes, boxes->size + 2 );
 					box1 = DArray_Push( boxes );
 					box2 = DArray_Push( boxes );
 					*box1 = DaoxPathSegment_GetOBBox( S1->first );
@@ -1494,6 +1495,7 @@ void DaoxPathMesh_Preprocess( DaoxPathMesh *self, DaoxTriangulator *triangulator
 					DaoxPathSegment_Divide( S2, R2 );
 					DList_Append( segments, S2->first );
 					DList_Append( segments, S2->second );
+					DArray_Reserve( boxes, boxes->size + 2 );
 					box1 = DArray_Push( boxes );
 					box2 = DArray_Push( boxes );
 					*box1 = DaoxPathSegment_GetOBBox( S2->first );

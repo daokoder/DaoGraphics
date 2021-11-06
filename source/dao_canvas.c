@@ -511,6 +511,25 @@ void DaoxCanvas_AddNode( DaoxCanvas *self, DaoxCanvasNode *node )
 	}
 }
 
+void DaoxCanvas_Remove( DaoxCanvas *self, DaoxCanvasNode *node )
+{
+	int i;
+
+	for(i=0; i<self->actives->size; ++i){
+		if( self->actives->items.pVoid[i] == node ){
+			DList_Erase( self->actives, i, 1 );
+			break;
+		}
+	}
+
+	for(i=0; i<self->nodes->size; ++i){
+		if( self->nodes->items.pVoid[i] == node ){
+			DList_Erase( self->nodes, i, 1 );
+			break;
+		}
+	}
+}
+
 DaoxCanvasNode* DaoxCanvas_AddGroup( DaoxCanvas *self )
 {
 	DaoxCanvasNode *node = DaoxCanvasNode_New( daox_type_canvas_node );

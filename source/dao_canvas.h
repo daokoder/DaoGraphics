@@ -230,6 +230,8 @@ DAO_DLL void DaoxCanvas_SetBackground( DaoxCanvas *self, DaoxColor color );
 DAO_DLL DaoxBrush* DaoxCanvas_PushBrush( DaoxCanvas *self, int index );
 DAO_DLL void DaoxCanvas_PopBrush( DaoxCanvas *self );
 
+DAO_DLL void DaoxCanvas_Remove( DaoxCanvas *self, DaoxCanvasNode *node );
+
 DAO_DLL DaoxCanvasNode* DaoxCanvas_AddGroup( DaoxCanvas *self );
 
 DAO_DLL DaoxCanvasLine* DaoxCanvas_AddLine( DaoxCanvas *self, float x1, float y1, float x2, float y2 );

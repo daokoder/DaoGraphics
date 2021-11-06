@@ -1083,6 +1083,12 @@ static void CANVAS_SetBackground( DaoProcess *proc, DaoValue *p[], int N )
 	DaoxCanvas_SetBackground( self, color );
 	DaoProcess_PutValue( proc, (DaoValue*) self );
 }
+static void CANVAS_Remove( DaoProcess *proc, DaoValue *p[], int N )
+{
+	DaoxCanvas *self = (DaoxCanvas*) p[0];
+	DaoxCanvasNode *node = (DaoxCanvasNode*) p[1];
+	DaoxCanvas_Remove( self, node );
+}
 static void CANVAS_AddGroup( DaoProcess *proc, DaoValue *p[], int N )
 {
 	DaoxCanvas *self = (DaoxCanvas*) p[0];
@@ -1198,6 +1204,8 @@ static DaoFunctionEntry DaoxCanvasMeths[]=
 	{ CANVAS_PushBrush,   "PushBrush( self: Canvas, index: int ) => invar<Brush>" },
 
 	{ CANVAS_PopBrush,    "PopBrush( self: Canvas )" },
+
+	{ CANVAS_Remove,   "Remove( self: Canvas, node: CanvasNode )" },
 
 	{ CANVAS_AddGroup,   "AddGroup( self: Canvas ) => CanvasNode" },
 	{ CANVAS_AddCircle,    "AddCircle( self: Canvas, x: float, y: float, r: float ) => CanvasCircle" },
